@@ -1,0 +1,93 @@
+{
+  "global_parameters": {
+    "test_size": 0.2,
+    "random_state": 42,
+    "docross_validation": true,
+    "k_fold": 5,
+    "error_interval_setting": "std",
+    "test_log_file_path": "test_log.xlsx",
+    "save_model": true
+  
+  },
+  "datasets": [
+    {
+      "name": "MUTAG",
+      "source": "TUD",
+      "domain": "molecular"
+    },
+    {
+      "name": "AIDS",
+      "source": "TUD",
+      "domain": "molecular"
+    },
+    {
+      "name": "ENZYMES",
+      "source": "TUD",
+      "domain": "Bioinformatics"
+    },
+    {
+      "name": "PTC_FR",
+      "source": "TUD",
+      "domain": "molecular"
+    },
+    {
+    "name": "SYNTHETIC",
+      "source": "TUD",
+      "domain": "synthetic"
+    }    
+  ],
+  "models_to_run": [
+    {
+      "model_id": "WL_SVM_Default",
+      "model_type": "SVC_WeisfeilerLehman",
+      "parameters": {
+        "n_iter": 5,
+        "C": 1.0,
+        "normalize_kernel": true
+      }
+    },
+    {
+      "model_id": "WL_SVM_HighC_Normalized",
+      "model_type": "SVC_WeisfeilerLehman",
+      "parameters": {
+        "n_iter": 5,
+        "C": 2.0,
+        "normalize_kernel": true
+      }
+    },
+    {
+      "model_id": "WL_SVM_MoreIter_Unnormalized",
+      "model_type": "SVC_WeisfeilerLehman",
+      "parameters": {
+        "n_iter": 7,
+        "C": 1.0,
+        "normalize_kernel": false
+      }
+    },
+    {
+      "model_id": "constant_guesser",
+      "model_type": "RandomGuesser",
+      "parameters": {
+        "constant": 0,
+        "strategy": "constant"
+      }
+    },
+    {
+      "model_id": "random_guesser",
+      "model_type": "RandomGuesser",
+      "parameters": {
+        "constant": 0,
+        "strategy": "uniform"
+      }
+    },
+    {
+      "model_id": "Stratified_random_guesser",
+      "model_type": "RandomGuesser",
+      "parameters": {
+        "constant": 0,
+        "strategy": "stratified"
+      }
+    }
+    
+  ]
+}

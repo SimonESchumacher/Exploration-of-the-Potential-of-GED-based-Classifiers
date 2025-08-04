@@ -1,0 +1,3 @@
+{
+    "python.defaultInterpreterPath": "./gedlibpy/venv/bin/python3"
+}

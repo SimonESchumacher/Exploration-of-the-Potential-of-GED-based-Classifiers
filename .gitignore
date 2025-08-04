@@ -1,0 +1,4 @@
+# Ignore embedded git repositories
+GMatch4py/
+gedlib/
+gedlibpy/
