@@ -14,17 +14,19 @@ from Models.Blind_Classifier import Blind_Classifier
 from Models.KNN_Classifer import KNN
 from Models.GEDLIB_SVC import GED_SVC
 from Custom_Kernels.GEDLIB_kernel import GEDKernel
+from Custom_Kernels.Trivial_GED_Kernel import Trivial_GED_Kernel
 from Dummy_Calculator import Dummy_Calculator
+from Base_Calculator import Base_Calculator
 from GEDLIB_Caclulator import GEDLIB_Calculator
 # from Models.GED_KNN import GED_KNN
 import pandas as pd
 
 # classifier = GED_SVC(gamma=1.0, method='BIPARTITE', normalize_ged=True, similarity=True, C=1.0)
-ged_calculator = Dummy_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
+ged_calculator = Base_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
 
 DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="label")
-
-Kernel = GEDKernel(ged_calculator=ged_calculator, comparison_method="Mean-Similarity")
+Kernel = Trivial_GED_Kernel(ged_calculator=ged_calculator, comparison_method="Mean-Distance", similarity_function="k1")
+# Kernel = GEDKernel(ged_calculator=ged_calculator, comparison_method="Mean-Similarity")
 classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", C=1.0)
 
 # Kernel = GEDKernel(method="BRANCH", edit_cost="CONSTANT",comparison_method="Mean-Similarity")

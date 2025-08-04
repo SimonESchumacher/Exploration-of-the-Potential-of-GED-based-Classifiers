@@ -20,7 +20,7 @@ class GEDLIB_Calculator(Base_Calculator):
             and (Base_Calculator.backup.GED_edit_cost == GED_edit_cost and Base_Calculator.backup.GED_calc_method == GED_calc_method)):
             self = Base_Calculator.backup
             if DEBUG:
-                print("Base_Calculator initialized from backup.")
+                print("Calculator initialized from backup.")
         else:
             self.GED_edit_cost = GED_edit_cost
             self.GED_calc_method = GED_calc_method

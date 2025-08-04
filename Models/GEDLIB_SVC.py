@@ -6,6 +6,7 @@ sys.path.append(os.getcwd())
 
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
 from Custom_Kernels.GEDLIB_kernel import GEDKernel
+from Custom_Kernels.Trivial_GED_Kernel import Trivial_GED_Kernel
 DEBUG = False  # Set to True for debug prints
 
 class GED_SVC(SupportVectorMachine):
@@ -87,6 +88,6 @@ class GED_SVC(SupportVectorMachine):
     def get_param_grid(cls):
         param_grid = SupportVectorMachine.get_param_grid()
         # this is a problem, because the kernel has its own parameters
-        param_grid.update(GEDKernel.get_param_grid())
+        param_grid.update(Trivial_GED_Kernel.get_param_grid())
 
         return param_grid
