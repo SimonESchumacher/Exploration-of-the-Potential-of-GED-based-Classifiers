@@ -202,14 +202,18 @@ class Base_Calculator():
             return self.get_similarity(graph1_index, graph2_index, method=bound)
         else:
             raise ValueError("Invalid method. Choose from 'LowerBound-Distance', 'UpperBound-Distance', 'Mean-Distance', 'LowerBound-Similarity', 'UpperBound-Similarity', or 'Mean-Similarity'.")
-    def get_complete_matrix(self, method="Mean-Distance"):
-        matrix = np.zeros((len(self.graphindexes), len(self.graphindexes)))
+    def get_complete_matrix(self, method="Mean-Distance",x_graphindexes=None, y_graphindexes=None):
+        if x_graphindexes is None:
+            x_graphindexes = self.graphindexes
+        if y_graphindexes is None:
+            y_graphindexes =  x_graphindexes
+        matrix = np.zeros((len(x_graphindexes), len(y_graphindexes)))
         if not self.isclalculated:
             raise ValueError("GED matrix has not been computed yet. Call compute_complete_matrix() first.")
         else:
-            for i in range(len(self.graphindexes)):
-                for j in range(len(self.graphindexes)):
-                    matrix[i, j] = self.compare(self.graphindexes[i], self.graphindexes[j], method)
+            for i in range(len(x_graphindexes)):
+                for j in range(len(y_graphindexes)):
+                    matrix[i, j] = self.compare(x_graphindexes[i], y_graphindexes[j], method)
         return matrix
     def deactivate(self):
         self.isclalculated = False
