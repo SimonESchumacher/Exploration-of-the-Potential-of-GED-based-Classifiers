@@ -331,7 +331,7 @@ class experiment:
         elif tuning_method == 'random':
             hyperparameter_tuner = RandomizedSearchCV(estimator=self.model, param_distributions=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, n_iter=10)
         if DEBUG:
-            print("stating hyperparameter tuning...")
+            print("stating hyperparameter tuning...")  
         hyperparameter_tuner.fit(X_train, y_train)
         if DEBUG:
             print("Hyperparameter tuning completed.")

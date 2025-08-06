@@ -109,8 +109,10 @@ class Base_Calculator():
         if not self.isactive:
             raise ValueError("Calculator is not active. Call activate() first.")
         # generate 2 random integers, the higer one is upper bound the lower one is lower bound
-        n1 = np.random.randint(0, 100)
-        n2 = np.random.randint(0, 100)
+        # n1 = np.random.randint(0, 100)
+        # n2 = np.random.randint(0, 100)
+        n1= 0
+        n2= 0
         if n1 > n2:
             self.upperbound_matrix[graph1_index][graph2_index] = n1
             self.lowerbound_matrix[graph1_index][graph2_index] = n2

@@ -65,7 +65,7 @@ class Dummy_Calculator(Base_Calculator):
         if labels is not None:
             if len(labels) != len(graphs):
                 raise ValueError("Labels length must match the number of graphs.")
-            self.labels.extend(labels)  
+            # self.labels.extend(labels)  
              
 
     def set_method(self,GED_calc_method):
@@ -89,9 +89,11 @@ class Dummy_Calculator(Base_Calculator):
         for idx, graph in iters:
             if not isinstance(graph, nx.Graph):
                 raise TypeError("All graphs must be of type networkx.Graph")
-            self.dataset_edge_count[idx] = graph.number_of_edges()
-            self.dataset_node_count[idx] = graph.number_of_nodes()
-
+            rnd=2
+            self.dataset_edge_count[idx] = graph.number_of_edges() + np.random.randint(-rnd, rnd)  # add some random noise to edges
+            self.dataset_node_count[idx] = graph.number_of_nodes() + np.random.randint(-rnd, rnd)  # add some random noise to nodes
+            # self.dataset_edge_count[idx] = 0
+            # self.dataset_node_count[idx] = 0
         self.lowerbound_matrix = np.zeros((len(self.dataset), len(self.dataset)))
         self.upperbound_matrix = np.zeros((len(self.dataset), len(self.dataset)))
         self.graphindexes = range(len(self.dataset))
