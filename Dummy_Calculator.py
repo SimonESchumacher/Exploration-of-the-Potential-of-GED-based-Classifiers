@@ -90,8 +90,8 @@ class Dummy_Calculator(Base_Calculator):
             if not isinstance(graph, nx.Graph):
                 raise TypeError("All graphs must be of type networkx.Graph")
             rnd=2
-            self.dataset_edge_count[idx] = graph.number_of_edges() + np.random.randint(-rnd, rnd)  # add some random noise to edges
-            self.dataset_node_count[idx] = graph.number_of_nodes() + np.random.randint(-rnd, rnd)  # add some random noise to nodes
+            self.dataset_edge_count[idx] = graph.number_of_edges() #+ np.random.randint(-rnd, rnd)  # add some random noise to edges
+            self.dataset_node_count[idx] = graph.number_of_nodes() #+ np.random.randint(-rnd, rnd)  # add some random noise to nodes
             # self.dataset_edge_count[idx] = 0
             # self.dataset_node_count[idx] = 0
         self.lowerbound_matrix = np.zeros((len(self.dataset), len(self.dataset)))

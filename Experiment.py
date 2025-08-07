@@ -325,6 +325,7 @@ class experiment:
 
         if DEBUG:
             print(f"Starting hyperparameter tuning for {self.model_name} on dataset {self.dataset_name} with parameters: {param_grid}")
+            verbose = 2
         hyperparameter_tuning_start_time = datetime.now()
         if tuning_method == 'grid':
             hyperparameter_tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs)

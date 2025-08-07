@@ -17,6 +17,7 @@ class GED_SVC(SupportVectorMachine):
             kernel_type="precomputed",
             kernel=None,
             kernel_name=None,
+            class_weight=None,
                 attributes:dict=None):
         
         if kernel is None:
@@ -25,10 +26,11 @@ class GED_SVC(SupportVectorMachine):
         self.kernel_name = kernel_name
         # Initialize the Support Vector Machine with the GED kernel
         super().__init__(kernel_type=kernel_type, 
-                         C=C, 
-                         kernelfunction=self.kernel,
-                         kernel_name=kernel_name,
-                         attributes=attributes)	
+                        C=C, 
+                        kernelfunction=self.kernel,
+                        kernel_name=kernel_name,
+                        class_weight=class_weight,
+                        attributes=attributes)	
         if DEBUG:
             print(f"Initialized GED_SVC")
     # Override fit_transform and transform methods

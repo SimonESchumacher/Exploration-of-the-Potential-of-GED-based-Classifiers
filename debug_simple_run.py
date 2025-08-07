@@ -25,11 +25,11 @@ import pandas as pd
 if __name__ == "__main__":
     ged_calculator = Dummy_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
     # ged_calculator = None
-    DATASET= Dataset(name="AIDS", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="label",load_now=False)
+    DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="label",load_now=False)
     DATASET.load()
     Kernel = Trivial_GED_Kernel(ged_calculator=ged_calculator, comparison_method="Mean-Distance", similarity_function="k1")
     # Kernel = GEDKernel(ged_calculator=ged_calculator, comparison_method="Mean-Similarity")
-    classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", C=1.0)
+    classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", class_weight='balanced', C=1.0)
 
     # Kernel = GEDKernel(method="BRANCH", edit_cost="CONSTANT",comparison_method="Mean-Similarity")
     # classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", C=1.0)
@@ -59,8 +59,8 @@ if __name__ == "__main__":
 # accuracy, report = exp_instance.run_kfold()
 # print(report)
 
-# param_grid = classifier.get_param_grid()
-# param_grid
+param_grid = classifier.get_param_grid()
+param_grid
 
 
-# results ,best_model, best_params = exp_instance.run_hyperparameter_tuning(tuning_method='grid', scoring='f1', cv=5, verbose=1, n_jobs=1)
+results ,best_model, best_params = exp_instance.run_hyperparameter_tuning(tuning_method='grid', scoring='f1', cv=5, verbose=1, n_jobs=1)
