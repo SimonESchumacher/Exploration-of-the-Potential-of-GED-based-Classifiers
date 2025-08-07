@@ -20,9 +20,22 @@ class Dummy_Calculator(Base_Calculator):
         # check if there is backup, which has the same parameters as the requested one
         if ((hasattr(Base_Calculator, 'backup') and Base_Calculator.backup is not None)
             and (Base_Calculator.backup.GED_edit_cost == GED_edit_cost and Base_Calculator.backup.GED_calc_method == GED_calc_method)):
-            self = Base_Calculator.backup
+            backup = Base_Calculator.backup
             if DEBUG:
-                print("Dummy_Calculator initialized from backup.")
+                print(f"Using backup Dummy_Calculator with GED_edit_cost={backup.GED_edit_cost} and GED_calc_method={backup.GED_calc_method}")
+            self.GED_edit_cost = backup.GED_edit_cost
+            self.GED_calc_method = backup.GED_calc_method
+            self.isclalculated = backup.isclalculated
+            self.dataset_edge_count = backup.dataset_edge_count
+            self.dataset_node_count = backup.dataset_node_count
+            self.lowerbound_matrix = backup.lowerbound_matrix
+            self.upperbound_matrix = backup.upperbound_matrix
+            self.dataset = backup.dataset
+            self.graphindexes = backup.graphindexes
+            self.labels = backup.labels
+            self.isactive = backup.isactive
+            self.runtime = backup.runtime
+            
         else:
             self.GED_edit_cost = GED_edit_cost
             self.GED_calc_method = GED_calc_method
@@ -227,19 +240,7 @@ class Dummy_Calculator(Base_Calculator):
         self.labels = []
         self.isactive = False
         self.isclalculated = False
-    def get_params(self, deep=True):
-        """
-        Returns the parameters of the GEDLIB_Calculator.
-        """
-        return {
-            "GED_edit_cost": self.GED_edit_cost,
-            "GED_calc_method": self.GED_calc_method,
-            # "isactive": self.isactive,
-            # "isclalculated": self.isclalculated,
-            # "dataset_length": len(self.dataset),
-            # "graphindexes_length": len(self.graphindexes),
-            # "labels_length": len(self.labels) if hasattr(self, 'labels') else 0
-        }
+
     def set_params(self, **params):
         """
         Sets the attributes of the GEDLIB_Calculator.
@@ -265,7 +266,7 @@ class Dummy_Calculator(Base_Calculator):
         Get the parameter grid for hyperparameter tuning.
         """
         return {
-            "GED_calc_method": ['BRANCH', 'BIPARTITE'],
+            # "GED_calc_method": ['BRANCH', 'BIPARTITE'],
             "GED_edit_cost": ['CONSTANT']
             #, "gamma": [0.1, 0.5, 1.0]
         }

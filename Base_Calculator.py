@@ -20,9 +20,22 @@ class Base_Calculator():
         # check if there is backup, which has the same parameters as the requested one
         if ((hasattr(Base_Calculator, 'backup') and Base_Calculator.backup is not None)
             and (Base_Calculator.backup.GED_edit_cost == GED_edit_cost and Base_Calculator.backup.GED_calc_method == GED_calc_method)):
-            self = Base_Calculator.backup
-            if DEBUG:
-                print("Base_Calculator initialized from backup.")
+            backup = Base_Calculator.backup
+            self.GED_edit_cost = backup.GED_edit_cost
+            self.GED_calc_method = backup.GED_calc_method
+            self.isclalculated = backup.isclalculated
+            self.dataset_edge_count = backup.dataset_edge_count
+            self.dataset_node_count = backup.dataset_node_count
+            self.lowerbound_matrix = backup.lowerbound_matrix
+            self.upperbound_matrix = backup.upperbound_matrix
+            self.dataset = backup.dataset
+            self.graphindexes = backup.graphindexes
+            self.labels = backup.labels
+            self.isactive = backup.isactive
+            self.runtime = backup.runtime
+
+            # if DEBUG:
+            #     print("Base_Calculator initialized from backup.")
         else:
             self.GED_edit_cost = GED_edit_cost
             self.GED_calc_method = GED_calc_method
@@ -169,6 +182,8 @@ class Base_Calculator():
         return None  # Dummy implementation, as gedlibpy is not available in this context
     def get_assignment_matrix(self, graph1_index, graph2_index):
         return None  # Dummy implementation, as gedlibpy is not available in this context
+    def get_node_image(self, graph1_index, graph2_index,node_index):
+        return None
     # special funtions handmade
     def get_mean_distance(self, graph1_index, graph2_index):
         return (self.get_lower_bound(graph1_index, graph2_index) + self.get_upper_bound(graph1_index, graph2_index)) / 2

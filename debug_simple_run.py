@@ -17,7 +17,8 @@ from Custom_Kernels.GEDLIB_kernel import GEDKernel
 from Custom_Kernels.Trivial_GED_Kernel import Trivial_GED_Kernel
 from Dummy_Calculator import Dummy_Calculator
 from Base_Calculator import Base_Calculator
-# from GEDLIB_Caclulator import GEDLIB_Calculator
+from GEDLIB_Caclulator import GEDLIB_Calculator
+from Models.GED_Diffu_SVC import DIFFUSION_GED_SVC
 # from Models.GED_KNN import GED_KNN
 import pandas as pd
 
@@ -27,9 +28,11 @@ if __name__ == "__main__":
     # ged_calculator = None
     DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="label",load_now=False)
     DATASET.load()
-    Kernel = Trivial_GED_Kernel(ged_calculator=ged_calculator, comparison_method="Mean-Distance", similarity_function="k1")
+    classifier = DIFFUSION_GED_SVC(C=1.0, llambda=1.0, ged_calculator=ged_calculator, Ged_distance_bound="Mean-Distance", diffusion_Kernel="exp_diff_kernel", class_weight='balanced')
+
+    # Kernel = Trivial_GED_Kernel(ged_calculator=ged_calculator, comparison_method="Mean-Distance", similarity_function="k1")
     # Kernel = GEDKernel(ged_calculator=ged_calculator, comparison_method="Mean-Similarity")
-    classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", class_weight='balanced', C=1.0)
+    # classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", class_weight='balanced', C=1.0)
 
     # Kernel = GEDKernel(method="BRANCH", edit_cost="CONSTANT",comparison_method="Mean-Similarity")
     # classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", C=1.0)
@@ -61,6 +64,9 @@ if __name__ == "__main__":
 
 param_grid = classifier.get_param_grid()
 param_grid
-
+print()
+print(param_grid)
+print()
+print("Starting hyperparameter tuning...")
 
 results ,best_model, best_params = exp_instance.run_hyperparameter_tuning(tuning_method='grid', scoring='f1', cv=5, verbose=1, n_jobs=1)

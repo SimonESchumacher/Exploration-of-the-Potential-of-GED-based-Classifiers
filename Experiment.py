@@ -310,7 +310,7 @@ class experiment:
         print(f"Mean Accuracy: {self.results_log['accuracy']}")
         return np.mean(accuracies) ,classification_report_str
     
-    def run_hyperparameter_tuning(self, tuning_method='grid',scoring='accuracy',cv=5, verbose=0, n_jobs=1):
+    def run_hyperparameter_tuning(self, tuning_method='grid',scoring='accuracy',cv=5, verbose=2, n_jobs=1):
 
 
 
@@ -325,7 +325,6 @@ class experiment:
 
         if DEBUG:
             print(f"Starting hyperparameter tuning for {self.model_name} on dataset {self.dataset_name} with parameters: {param_grid}")
-            verbose = 2
         hyperparameter_tuning_start_time = datetime.now()
         if tuning_method == 'grid':
             hyperparameter_tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs)

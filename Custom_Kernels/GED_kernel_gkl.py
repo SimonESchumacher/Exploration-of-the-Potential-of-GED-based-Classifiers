@@ -3,7 +3,6 @@ from grakel.kernels import Kernel
 from grakel.graph import Graph
 import networkx as nx
 import numpy as np
-import gmatch4py as gm
 import os
 import sys
 import tqdm

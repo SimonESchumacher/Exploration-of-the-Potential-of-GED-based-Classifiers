@@ -161,6 +161,8 @@ class GEDLIB_Calculator(Base_Calculator):
         return gedlibpy.get_backward_map(graph1_index, graph2_index)
     def get_assignment_matrix(self, graph1_index, graph2_index):
         return gedlibpy.get_assignment_matrix(graph1_index, graph2_index)
+    def get_node_image(self, graph1_index, graph2_index,node_index):
+        return gedlibpy.get_node_image(graph1_index, graph2_index,node_index)
     # special funtions handmade
     def get_mean_distance(self, graph1_index, graph2_index):
         return (self.get_lower_bound(graph1_index, graph2_index) + self.get_upper_bound(graph1_index, graph2_index)) / 2
@@ -194,6 +196,8 @@ class GEDLIB_Calculator(Base_Calculator):
             return self.get_similarity(graph1_index, graph2_index, method=bound)
         else:
             raise ValueError("Invalid method. Choose from 'LowerBound-Distance', 'UpperBound-Distance', 'Mean-Distance', 'LowerBound-Similarity', 'UpperBound-Similarity', or 'Mean-Similarity'.")
+    
+    
     def deactivate(self):
         self.isclalculated = False
         self.isactive = False
