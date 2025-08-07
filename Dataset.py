@@ -1,4 +1,6 @@
 # Imports
+from multiprocessing import Pool, cpu_count
+from functools import partial
 from sklearn.model_selection import train_test_split
 # Imports
 import networkx as nx
@@ -115,9 +117,9 @@ def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", u
             for node_idx_global in nodes_in_graph_i:
                 node_data = {}
                 if node_labels:
-                    node_data["label"] = str(node_labels[node_idx_global])
+                    node_data["label"] = str(node_labels.get(node_idx_global, None))
                 if node_attributes:
-                    node_data[use_node_attributes] = str(node_attributes[node_idx_global])
+                    node_data[use_node_attributes] = str(node_attributes.get(node_idx_global, None))
                 G.add_node(node_idx_global, **node_data)
 
         # Add edges within the current graph with optional labels and attributes
@@ -135,8 +137,144 @@ def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", u
     print(f"Converted {num_graphs} graphs to NetworkX format.")
     return nx_graphs, y
 
+def _build_single_graph(
+    graph_index,
+    nodes_in_graph,
+    edges,
+    node_labels,
+    node_attributes,
+    edge_labels,
+    edge_attributes,
+    use_node_attributes,
+    use_edge_attributes
+):
+    """
+    Helper function to build a single NetworkX graph.
+    This function will be executed by a worker process.
+    """
+    G = nx.Graph()
+    if not nodes_in_graph.size == 0:
+        # Add nodes with optional labels and attributes
+        for node_idx_global in nodes_in_graph:
+            node_data = {}
+            if USE_NODE_LABELS and node_labels:
+                node_data["label"] = str(node_labels[node_idx_global])
+            if USE_NODE_ATTRIBUTES and node_attributes and use_node_attributes:
+                node_data[use_node_attributes] = str(node_attributes[node_idx_global])
+            G.add_node(node_idx_global, **node_data)
+        
+        # Add edges within the current graph with optional labels and attributes
+        if USE_EDGE_LABELS or USE_EDGE_ATTRIBUTES:
+            for u, v in edges:
+                if u in nodes_in_graph and v in nodes_in_graph:
+                    edge_data = {}
+                    if edge_labels:
+                        edge_data["label"] = str(edge_labels.get((u, v), None))
+                    if edge_attributes and use_edge_attributes:
+                        # Find the index of the edge (u, v) in the original edges list
+                        try:
+                            edge_idx = edges.index((u, v))
+                            edge_data[use_edge_attributes] = str(edge_attributes.get(edge_idx, None))
+                        except ValueError:
+                            # Handle cases where the edge might not be in the list
+                            pass
+                    G.add_edge(u, v, **edge_data)
 
+    return G
 
+def load_dataset_into_networkx_multi(data_dir, dataset_name, use_node_labels="label", use_edge_labels="label", use_node_attributes:str=None, use_edge_attributes:str=None):
+    """
+    General function to load datasets into NetworkX using multiprocessing.
+    """
+    print(f"Loading {dataset_name} into NetworkX from {data_dir}...")
+    adj_file = os.path.join(data_dir, f"{dataset_name}_A.txt")
+    graph_indicator_file = os.path.join(data_dir, f"{dataset_name}_graph_indicator.txt")
+    graph_labels_file = os.path.join(data_dir, f"{dataset_name}_graph_labels.txt")
+
+    # Load edges
+    with open(adj_file, 'r') as f:
+        edges_raw = [list(map(int, line.strip().split(','))) for line in f]
+    edges = [(u - 1, v - 1) for u, v in edges_raw]
+    print(f"Loaded {len(edges)} edges.")
+
+    # Load node-to-graph mapping
+    with open(graph_indicator_file, 'r') as f:
+        node_to_graph_map = np.array([int(line.strip()) for line in f]) - 1
+    print(f"Loaded {len(node_to_graph_map)} node-to-graph mappings.")
+    
+    # Load graph labels
+    with open(graph_labels_file, 'r') as f:
+        graph_labels_raw = [int(line.strip()) for line in f]
+    y = np.array([(1 if label == 1 else 0) for label in graph_labels_raw])
+    print(f"Loaded {len(y)} graph labels.")
+
+    # Try to load node labels if available
+    node_labels = None
+    if USE_NODE_LABELS and use_node_labels is not None:
+        if use_node_labels is True:
+            use_node_labels = "label"
+        node_labels_file = os.path.join(data_dir, f"{dataset_name}_node_labels.txt")
+        if os.path.exists(node_labels_file):
+            with open(node_labels_file, 'r') as f:
+                node_labels_raw = [int(line.strip()) for line in f]
+            node_labels = {i: label for i, label in enumerate(node_labels_raw)}
+            print(f"Loaded node labels for {len(node_labels)} nodes.")
+    
+    # Try to load edge labels if available
+    edge_labels = None
+    if USE_EDGE_LABELS and use_edge_labels is not None:
+        if use_edge_labels is True:
+            use_edge_labels = "label"
+        edge_labels_file = os.path.join(data_dir, f"{dataset_name}_edge_labels.txt")
+        if os.path.exists(edge_labels_file):
+            with open(edge_labels_file, 'r') as f:
+                edge_labels_raw = [int(line.strip()) for line in f]
+            edge_labels = {(u, v): label for (u, v), label in zip(edges, edge_labels_raw)}
+            print(f"Loaded edge labels for {len(edge_labels)} edges.")
+    
+    # Try to load node attributes if available
+    node_attributes = None
+    if USE_NODE_ATTRIBUTES and use_node_attributes is not None:
+        node_attributes_file = os.path.join(data_dir, f"{dataset_name}_node_attributes.txt")
+        if os.path.exists(node_attributes_file):
+            with open(node_attributes_file, 'r') as f:
+                node_attributes_raw = [list(map(float, line.strip().split(','))) for line in f]
+            node_attributes = {i: attr for i, attr in enumerate(node_attributes_raw)}
+            print(f"Loaded node attributes for {len(node_attributes)} nodes.")
+
+    # Try to load edge attributes if available
+    edge_attributes = None
+    if USE_EDGE_ATTRIBUTES and use_edge_attributes is not None:
+        edge_attributes_file = os.path.join(data_dir, f"{dataset_name}_edge_attributes.txt")
+        if os.path.exists(edge_attributes_file):
+            with open(edge_attributes_file, 'r') as f:
+                edge_attributes_raw = [list(map(float, line.strip().split(','))) for line in f]
+            edge_attributes = {i: attr for i, attr in enumerate(edge_attributes_raw)}
+            print(f"Loaded edge attributes for {len(edge_attributes)} edges.")
+
+    # --- Start of parallelization ---
+    num_graphs = np.max(node_to_graph_map) + 1
+    
+    # Create a list of arguments for each worker process
+    # The arguments are the parts of the data each worker needs to build its graph
+    worker_args = []
+    for i in range(num_graphs):
+        nodes_in_graph_i = np.where(node_to_graph_map == i)[0]
+        worker_args.append((i, nodes_in_graph_i, edges, node_labels, node_attributes, edge_labels, edge_attributes, use_node_attributes, use_edge_attributes))
+    
+    # Use a multiprocessing Pool to distribute the graph building tasks
+    # The number of processes defaults to the number of CPU cores
+    with Pool(processes=cpu_count()) as pool:
+        # The `pool.starmap` method applies the `_build_single_graph` function
+        # to each tuple of arguments in `worker_args`
+        # `tqdm` is used to show a progress bar
+        if DEBUG:
+            nx_graphs = list(tqdm(pool.starmap(_build_single_graph, worker_args), total=num_graphs, desc="Converting graphs to NetworkX format"))
+        else:
+            nx_graphs = pool.starmap(_build_single_graph, worker_args)
+
+    print(f"Converted {num_graphs} graphs to NetworkX format.")
+    return nx_graphs, y
 
 def load_dataset(source,name,use_node_labels=None,use_node_attributes=None,use_edge_labels=None,use_edge_attributes=None) -> tuple[list, list, np.ndarray]:
 
@@ -232,25 +370,65 @@ def extract_simple_graph_features(data):
 
 class Dataset:
 
-    def __init__(self, name,source, domain=None,ged_calculator=None, use_node_labels="label", use_node_attributes="label", use_edge_labels=None, use_edge_attributes=None):
+    def __init__(self, name,source, domain=None,ged_calculator=None, use_node_labels="label", use_node_attributes="label", use_edge_labels=None, use_edge_attributes=None,load_now=True):
         self.name = name
-        self.data= load_dataset(source,name,use_node_labels=use_node_labels,use_node_attributes=use_node_attributes,use_edge_labels=use_edge_labels,use_edge_attributes=use_edge_attributes)
-        self.nx_graphs= self.data[0]
-        self.target = self.data[1]
+        self.ged_calculator = ged_calculator
         self.source = source
         self.domain = domain
         self.Node_label_name = use_node_labels
         self.Edge_label_name = use_edge_labels
+        if load_now:
+            self.data= load_dataset(source,name,use_node_labels=use_node_labels,use_node_attributes=use_node_attributes,use_edge_labels=use_edge_labels,use_edge_attributes=use_edge_attributes)
+            self.nx_graphs= self.data[0]
+            self.target = self.data[1]
+            try:
+                self.characteristics = calculate_dataset_attributes(self.data, source, domain, name)
+            except Exception as e:
+                print(f"An unexpected error occurred while initializing the dataset: {e}")
+                print("happend while loading dataset attributes")
+                print(f"Problematic Dataset: {name} from source: {source}")
+                self.characteristics = {
+                    'name': name,
+                    'source': source,
+                    'domain': domain,
+                    'num_graphs': 0,
+                    'num_classes': 0,
+                    'has_node_labels': False,
+                    'has_edge_labels': False,
+                    'mean_nodes': 0,
+                    'mean_edges': 0,
+                    'label_distribution': 'N/A'
+                }
+                raise e
+            if DEBUG:
+                print(f"Now setting up the Calculator")
+            
+            if self.ged_calculator is not None:
+                self.ged_calculator.add_graphs(self.nx_graphs.copy(), self.target)
+                if DEBUG:
+                    print(f"Calculating GED for between graphs")
+                self.nx_graphs=self.ged_calculator.activate()
+                start_time = pd.Timestamp.now()
+                self.ged_calculator.calculate()
+                end_time = pd.Timestamp.now()
+                self.ged_calculator.runtime = (end_time - start_time).total_seconds()     
+
+        
+        
+    def load(self):
+        self.data = load_dataset(self.source, self.name, use_node_labels=self.Node_label_name, use_node_attributes=self.Node_label_name, use_edge_labels=self.Edge_label_name, use_edge_attributes=self.Edge_label_name)
+        self.nx_graphs = self.data[0]
+        self.target = self.data[1]
         try:
-            self.characteristics = calculate_dataset_attributes(self.data, source, domain, name)
+            self.characteristics = calculate_dataset_attributes(self.data, self.source, self.domain, self.name)
         except Exception as e:
             print(f"An unexpected error occurred while initializing the dataset: {e}")
             print("happend while loading dataset attributes")
-            print(f"Problematic Dataset: {name} from source: {source}")
+            print(f"Problematic Dataset: {self.name} from source: {self.source}")
             self.characteristics = {
-                'name': name,
-                'source': source,
-                'domain': domain,
+                'name': self.name,
+                'source': self.source,
+                'domain': self.domain,
                 'num_graphs': 0,
                 'num_classes': 0,
                 'has_node_labels': False,
@@ -262,8 +440,8 @@ class Dataset:
             raise e
         if DEBUG:
             print(f"Now setting up the Calculator")
-        if ged_calculator is not None:
-            self.ged_calculator = ged_calculator
+        if self.ged_calculator is not None:
+            self.ged_calculator = self.ged_calculator
             self.ged_calculator.add_graphs(self.nx_graphs.copy(), self.target)
             if DEBUG:
                 print(f"Calculating GED for between graphs")
@@ -271,7 +449,8 @@ class Dataset:
             start_time = pd.Timestamp.now()
             self.ged_calculator.calculate()
             end_time = pd.Timestamp.now()
-            self.ged_calculator.runtime = (end_time - start_time).total_seconds()
+            self.ged_calculator.runtime = (end_time - start_time).total_seconds()    
+
     def change_dataset_params(self,new_ged_calculator=False, use_node_labels=None, use_node_attributes=None, use_edge_labels=None, use_edge_attributes=None):
         # realoads the dataset with the new parameters
         self.data = load_dataset(self.source, self.name, use_node_labels=use_node_labels, use_node_attributes=use_node_attributes, use_edge_labels=use_edge_labels, use_edge_attributes=use_edge_attributes)

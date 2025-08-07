@@ -16,27 +16,27 @@ DEBUG = False # Set to False to disable debug prints
 class SupportVectorMachine(GraphClassifier):
     # Support Vector Machine Classifier for Graphs
     # with different Kernels
-    def __init__(self, kernel_type="precomputed", C=1.0, random_state=None,kernelfunction=None,kernel_name="unspecified",attributes=None):
+    def __init__(self, kernel_type="precomputed", C=1.0, random_state=None,kernelfunction=None,kernel_name="unspecified",class_weight=None,attributes=None):
         if kernelfunction is None:
             raise ValueError("kernelfunction must be provided.")
         self.kernel = kernelfunction
         self.kernel_name = kernel_name
         self.kernel_type = kernel_type
         self.C = C
+        self.class_weight = class_weight
         self.random_state = random_state
-        classifier = SVC(kernel=self.kernel_type, C=self.C, random_state=self.random_state)
+        classifier = SVC(kernel=self.kernel_type, C=self.C, random_state=self.random_state,class_weight=class_weight)
+        default_attributes = {
+            "Kernel_type": self.kernel_type,
+            "Kernel": self.kernel_name,
+            "Classifier_C": self.C,
+            "model_random_state": self.random_state,
+            "class_weight": self.class_weight
+        }
         if attributes is None:
-            attributes = {
-                "Kernel_type": self.kernel_type,
-                "Kernel": self.kernel_name,
-                "Classifier_C": self.C,
-                "model_random_state": self.random_state
-            }
+            attributes = default_attributes
         else:
-            attributes["Kernel_type"] = self.kernel_type
-            attributes["Kernel"] = self.kernel_name
-            attributes["Classifier_C"] = self.C
-            attributes["model_random_state"] = self.random_state
+            attributes.update(default_attributes)
         super().__init__(
             classifier=classifier,
             model_name=f"SVC_{self.kernel_name}_{self.kernel_type}",
@@ -169,6 +169,7 @@ class SupportVectorMachine(GraphClassifier):
         param_grid.update({
             'C': [0.1, 0.5, 1.0, 10.0],
             'kernel_type': ['linear', 'poly', 'rbf', 'sigmoid', 'precomputed'],
+            'class_weight': [None, 'balanced'],
         })
         return param_grid
         

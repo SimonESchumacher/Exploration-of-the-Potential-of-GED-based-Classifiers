@@ -79,14 +79,7 @@ class Base_Calculator():
         self.dataset_edge_count = np.zeros(len(self.dataset))
         self.dataset_node_count = np.zeros(len(self.dataset))
         if DEBUG:
-            iters = tqdm.tqdm(enumerate(self.dataset), desc='Adding graphs to Dummy_Calculator', total=len(self.dataset))
-        else:
-            iters = enumerate(self.dataset)
-        for idx, graph in iters:
-            if not isinstance(graph, nx.Graph):
-                raise TypeError("All graphs must be of type networkx.Graph")
-            self.dataset_edge_count[idx] = graph.number_of_edges()
-            self.dataset_node_count[idx] = graph.number_of_nodes()
+            print(f"This thing is just spitting random numbers, so activating is pretty fast")
 
         self.lowerbound_matrix = np.zeros((len(self.dataset), len(self.dataset)))
         self.upperbound_matrix = np.zeros((len(self.dataset), len(self.dataset)))
@@ -110,23 +103,22 @@ class Base_Calculator():
         else:
             return None
 
-    def count_nodes(self, graph_index):
-        """Counts the number of nodes in the specified graph."""
-        if not self.isactive:
-            raise ValueError("Calculator is not active. Call activate() first.")
-        return self.dataset_node_count[graph_index]
-    def count_edges(self, graph_index):
-        """Counts the number of edges in the specified graph."""
-        if not self.isactive:
-            raise ValueError("Calculator is not active. Call activate() first.")
-        return self.dataset_edge_count[graph_index]
     def run_method(self, graph1_index, graph2_index):
         """        Runs the GED method for the specified graph indexes.
         """
         if not self.isactive:
             raise ValueError("Calculator is not active. Call activate() first.")
-        self.upperbound_matrix[graph1_index][graph2_index] = math.fabs(self.count_edges(graph1_index) - self.count_edges(graph2_index))
-        self.lowerbound_matrix[graph1_index][graph2_index] = math.fabs(self.count_nodes(graph1_index) - self.count_nodes(graph2_index))
+        # generate 2 random integers, the higer one is upper bound the lower one is lower bound
+        # n1 = np.random.randint(0, 100)
+        # n2 = np.random.randint(0, 100)
+        n1= 0
+        n2= 0
+        if n1 > n2:
+            self.upperbound_matrix[graph1_index][graph2_index] = n1
+            self.lowerbound_matrix[graph1_index][graph2_index] = n2
+        else:
+            self.upperbound_matrix[graph1_index][graph2_index] = n2
+            self.lowerbound_matrix[graph1_index][graph2_index] = n1
     def calculate(self):
         """
         Computes the GED matrix for the dataset.
@@ -210,14 +202,18 @@ class Base_Calculator():
             return self.get_similarity(graph1_index, graph2_index, method=bound)
         else:
             raise ValueError("Invalid method. Choose from 'LowerBound-Distance', 'UpperBound-Distance', 'Mean-Distance', 'LowerBound-Similarity', 'UpperBound-Similarity', or 'Mean-Similarity'.")
-    def get_complete_matrix(self, method="Mean-Distance"):
-        matrix = np.zeros((len(self.graphindexes), len(self.graphindexes)))
+    def get_complete_matrix(self, method="Mean-Distance",x_graphindexes=None, y_graphindexes=None):
+        if x_graphindexes is None:
+            x_graphindexes = self.graphindexes
+        if y_graphindexes is None:
+            y_graphindexes =  x_graphindexes
+        matrix = np.zeros((len(x_graphindexes), len(y_graphindexes)))
         if not self.isclalculated:
             raise ValueError("GED matrix has not been computed yet. Call compute_complete_matrix() first.")
         else:
-            for i in range(len(self.graphindexes)):
-                for j in range(len(self.graphindexes)):
-                    matrix[i, j] = self.compare(self.graphindexes[i], self.graphindexes[j], method)
+            for i in range(len(x_graphindexes)):
+                for j in range(len(y_graphindexes)):
+                    matrix[i, j] = self.compare(x_graphindexes[i], y_graphindexes[j], method)
         return matrix
     def deactivate(self):
         self.isclalculated = False
