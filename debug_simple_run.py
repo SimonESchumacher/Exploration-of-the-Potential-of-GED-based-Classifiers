@@ -24,11 +24,11 @@ import pandas as pd
 
 # classifier = GED_SVC(gamma=1.0, method='BIPARTITE', normalize_ged=True, similarity=True, C=1.0)
 if __name__ == "__main__":
-    ged_calculator = Dummy_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
-    # ged_calculator = None
+    # ged_calculator = Dummy_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
+    ged_calculator = None
     DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="label",load_now=False)
     DATASET.load()
-    classifier = DIFFUSION_GED_SVC(C=1.0, llambda=1.0, ged_calculator=ged_calculator, Ged_distance_bound="Mean-Distance", diffusion_Kernel="exp_diff_kernel", class_weight='balanced')
+    # classifier = DIFFUSION_GED_SVC(C=1.0, llambda=1.0, ged_calculator=ged_calculator, Ged_distance_bound="Mean-Distance", diffusion_Kernel="exp_diff_kernel", class_weight='balanced')
 
     # Kernel = Trivial_GED_Kernel(ged_calculator=ged_calculator, comparison_method="Mean-Distance", similarity_function="k1")
     # Kernel = GEDKernel(ged_calculator=ged_calculator, comparison_method="Mean-Similarity")
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     # define the model
 
     # classifier = WeisfeilerLehman_SVC(n_iter=5,C=1.0, normalize_kernel=True) # You can tune n_iter and normalize
-    # classifier = CombinedHistogram_SVC(kernel_type="rbf",C=1.0)
+    classifier = CombinedHistogram_SVC(kernel_type="rbf",C=1.0)
     # classifier = GED_SVC(gamma=1.0, node_del_cost=1.0, node_ins_cost=1.0, edge_del_cost=1.0, edge_ins_cost=1.0, approximation=None, kernel_type="rbf", C=0.1)
     # classifier = Blind_Classifier()
     # classifier = Random_Classifier(random_state=42, strategy='uniform', constant=None)

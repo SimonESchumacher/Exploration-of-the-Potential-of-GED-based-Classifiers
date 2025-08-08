@@ -1,5 +1,6 @@
 # Experiment
 # Imports
+import random
 from sklearn.metrics import accuracy_score, classification_report, f1_score, roc_auc_score, precision_score, recall_score
 import numpy as np
 import os
@@ -16,6 +17,7 @@ from sklearn.utils.class_weight import compute_class_weight
 from config_loader import get_conifg_param
 
 RANDOM_STATE = get_conifg_param('Experiment', 'random_state', type='int') # default 42
+RANDOM_STATE = random.randint(0, 1000)
 TEST_SIZE = get_conifg_param('Experiment', 'test_size', type='float') # default 0.2
 RESULTS_FILE = get_conifg_param('Experiment', 'results_filepath', type='str') # default "experiment_log.xlsx"
 DIAGNOSTIC_FILE =get_conifg_param('Experiment', 'disgnostics_filepath', type='str') 
@@ -175,12 +177,9 @@ class experiment:
         This method is called by the fit_model method.
         """
         if hasattr(self.model, 'fit'):
-            try:
-                self.model.fit(G_train, y_train)
-            except Exception as e:
-                print(f"Error during model fitting: {e}")
-                traceback.print_exc()
-                return None
+            
+            self.model.fit(G_train, y_train)
+            
             return self.model
         else:
             raise ValueError("Model does not have a fit method.")
@@ -190,12 +189,9 @@ class experiment:
         This method is called by the test_model method.
         """
         if hasattr(self.model, 'predict'):
-            try:
-                y_pred = self.model.predict(G_test)
-            except Exception as e:
-                print(f"Error during model prediction: {e}")
-                traceback.print_exc()
-                return None
+            
+            y_pred = self.model.predict(G_test)
+           
             return y_pred
         else:
             raise ValueError("Model does not have a predict method.")

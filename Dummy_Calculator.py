@@ -21,8 +21,8 @@ class Dummy_Calculator(Base_Calculator):
         if ((hasattr(Base_Calculator, 'backup') and Base_Calculator.backup is not None)
             and (Base_Calculator.backup.GED_edit_cost == GED_edit_cost and Base_Calculator.backup.GED_calc_method == GED_calc_method)):
             backup = Base_Calculator.backup
-            if DEBUG:
-                print(f"Using backup Dummy_Calculator with GED_edit_cost={backup.GED_edit_cost} and GED_calc_method={backup.GED_calc_method}")
+            # if DEBUG:
+            #     print(f"Using backup Dummy_Calculator with GED_edit_cost={backup.GED_edit_cost} and GED_calc_method={backup.GED_calc_method}")
             self.GED_edit_cost = backup.GED_edit_cost
             self.GED_calc_method = backup.GED_calc_method
             self.isclalculated = backup.isclalculated
@@ -35,7 +35,9 @@ class Dummy_Calculator(Base_Calculator):
             self.labels = backup.labels
             self.isactive = backup.isactive
             self.runtime = backup.runtime
-            
+            self.maxLowerBound = backup.maxLowerBound
+            self.maxUpperBound = backup.maxUpperBound
+            self.max_MeanDistance = backup.max_MeanDistance
         else:
             self.GED_edit_cost = GED_edit_cost
             self.GED_calc_method = GED_calc_method
@@ -105,8 +107,10 @@ class Dummy_Calculator(Base_Calculator):
             rnd=2
             self.dataset_edge_count[idx] = graph.number_of_edges() #+ np.random.randint(-rnd, rnd)  # add some random noise to edges
             self.dataset_node_count[idx] = graph.number_of_nodes() #+ np.random.randint(-rnd, rnd)  # add some random noise to nodes
-            # self.dataset_edge_count[idx] = 0
-            # self.dataset_node_count[idx] = 0
+            # self.dataset_edge_count[idx] = (idx)/20
+            # self.dataset_node_count[idx] = (idx)/20
+            # self.dataset_edge_count[idx]= idx +1
+            # self.dataset_node_count[idx]= idx
         self.lowerbound_matrix = np.zeros((len(self.dataset), len(self.dataset)))
         self.upperbound_matrix = np.zeros((len(self.dataset), len(self.dataset)))
         self.graphindexes = range(len(self.dataset))

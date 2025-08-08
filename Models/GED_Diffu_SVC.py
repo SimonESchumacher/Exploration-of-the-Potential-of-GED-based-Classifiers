@@ -92,9 +92,9 @@ class DIFFUSION_GED_SVC(SupportVectorMachine):
     def get_param_grid(cls):
         param_grid = SupportVectorMachine.get_param_grid()
         param_grid.update({
-            "llambda": [0.1, 0.2,0.5, 1.0],
+            "llambda": [0.1,0.5],
             # "Ged_distance_bound": ["Mean-Distance", "LowerBound-Distance", "UpperBound-Distance"],
-            "diffusion_Kernel": ["exp_diff_kernel", "von_Neumann_diff_kernel"],
+            "diffusion_Kernel": ["exp_diff_kernel"],
         })
         return param_grid
         

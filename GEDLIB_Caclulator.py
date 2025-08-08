@@ -18,9 +18,20 @@ class GEDLIB_Calculator(Base_Calculator):
         # check if there is backup, which has the same parameters as the requested one
         if ((hasattr(Base_Calculator, 'backup') and Base_Calculator.backup is not None)
             and (Base_Calculator.backup.GED_edit_cost == GED_edit_cost and Base_Calculator.backup.GED_calc_method == GED_calc_method)):
-            self = Base_Calculator.backup
-            if DEBUG:
-                print("Calculator initialized from backup.")
+            backup = Base_Calculator.backup
+
+            # set the parameters from the backup
+            self.GED_edit_cost = backup.GED_edit_cost
+            self.GED_calc_method = backup.GED_calc_method
+            self.isclalculated = backup.isclalculated
+            self.isactive = backup.isactive
+            self.dataset = backup.dataset
+            self.graphindexes = backup.graphindexes
+            self.labels = backup.labels
+            self.runtime = backup.runtime
+            self.maxLowerBound = backup.maxLowerBound
+            self.maxUpperBound = backup.maxUpperBound
+            self.max_MeanDistance = backup.max_MeanDistance
         else:
             self.GED_edit_cost = GED_edit_cost
             self.GED_calc_method = GED_calc_method
