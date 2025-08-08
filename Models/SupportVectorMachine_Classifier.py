@@ -16,7 +16,7 @@ DEBUG = False # Set to False to disable debug prints
 class SupportVectorMachine(GraphClassifier):
     # Support Vector Machine Classifier for Graphs
     # with different Kernels
-    def __init__(self, kernel_type="precomputed", C=1.0, random_state=None,kernelfunction=None,kernel_name="unspecified",class_weight=None,attributes=None):
+    def __init__(self, kernel_type="precomputed", C=1.0, random_state=None,kernelfunction=None,kernel_name="unspecified",class_weight=None,attributes=None, **kwargs):
         if kernelfunction is None:
             raise ValueError("kernelfunction must be provided.")
         self.kernel = kernelfunction
@@ -40,55 +40,42 @@ class SupportVectorMachine(GraphClassifier):
         super().__init__(
             classifier=classifier,
             model_name=f"SVC_{self.kernel_name}_{self.kernel_type}",
-            modelattributes=attributes
+            modelattributes=attributes,
+            **kwargs
         )
         self.is_fitted_ = False
         if DEBUG:
             print(f"Initialized SupportVectorMachine with kernel={self.kernel_type}, C={self.C}, in child class")
             print(f"Model Name: {self.get_name}")
-        
+    # TODO: this does not feel like a good move
     def fit_transform(self, X, y=None):
         X = [convert_nx_to_grakel_graph(g) for g in X]
         return self.kernel.fit_transform(X)
-
+    # TODO: this does not feel like a good move
     def transform(self, X):
         X = [convert_nx_to_grakel_graph(g) for g in X]
         return self.kernel.transform(X)
     def get_params(self, deep=True):
         return super().get_params(deep)
     def set_params(self, **params):
-        # Iterate over provided parameters
         for parameter, value in params.items():
             if DEBUG:
                 print(f"SVC: set_params: Setting {parameter} to {value}")
-            # Handle parameters that belong to the SVC_WeisfeilerLehman itself
-            if parameter == 'C':
-                self.C = value
-                # Update the C parameter of the internal SVC classifier
-                self.classifier.set_params(C=self.C)
-            elif parameter == 'kernel_type':
-                self.kernel_type = value
-                # If kernel_type changes, we need to update the SVC
-                self.classifier.set_params(kernel=self.kernel_type)
-            elif parameter == 'random_state':
-                self.random_state = value
-                self.classifier.set_params(random_state=self.random_state)
+            # Directly set attribute if it exists
+            if hasattr(self, parameter):
+                setattr(self, parameter, value)
+                # If the parameter also exists in the classifier, update it there too
+                if hasattr(self.classifier, parameter):
+                    self.classifier.set_params(**{parameter: value})
+            # Pass classifier__* params to classifier
             elif parameter.startswith('classifier_'):
-                # Pass it to the underlying classifier
-                self.classifier.set_params(**{parameter.split('_')[1]: value})
-            # Handle parameters that might be passed to the underlying kernel (WeisfeilerLehman)
-            elif parameter.startswith('kernel_'):
-                # Pass it to the underlying kernel
-                self.kernel.set_params(**{parameter.split('_')[1]: value})
-            # Handle parameters that might be passed to the underlying classifier (SVC)
-            # This is robust if GraphClassifier's set_params correctly handles 'classifier__'
+                self.classifier.set_params(**{parameter.split('_', 1)[1]: value})
+            # Pass kernel__* params to kernel
+            elif parameter.startswith('KERNEL_'):
+                self.kernel.set_params(**{parameter.split('_', 1)[1]: value})
             else:
-                
+                # Fallback to parent class
                 super().set_params(**{parameter: value})
-
-        # Call the parent's set_params, ensuring it handles its own parameters
-        # and potentially classifier__ params if it's set up to do so.
-        # This is where your GraphClassifier's handling of its 'classifier' member comes into play.
         if DEBUG:
             print(f"SVC: set_params: Set parameters for SupportVectorMachine.")
         return self
@@ -141,22 +128,6 @@ class SupportVectorMachine(GraphClassifier):
             traceback.print_exc()
             raise e
         return y_proba
-    
-    def save(self, filename):
-        """
-        Saves the SVC to a file.
-        """
-        if DEBUG:
-            print(f"Saving KNNClassifier model to {filename}")
-        joblib.dump(self, filename=filename)
-    @classmethod
-    def load(cls, filename):
-        """
-        Loads the SVC from a file.
-        """
-        if DEBUG:
-            print(f"Loading model from {filename}")
-        return joblib.load(filename)
     def __str__(self):
         return (f"SVC_{self.kernel_name}(kernel_type={self.kernel_type}, C={self.C}, "
                 f"random_state={self.random_state})")
@@ -167,9 +138,9 @@ class SupportVectorMachine(GraphClassifier):
     def get_param_grid(cls):
         param_grid = GraphClassifier.get_param_grid()
         param_grid.update({
-            # 'C': [0.1, 0.5, 1.0, 10.0],
-            'kernl_type': ['poly', 'rbf', 'precomputed'],
-            # 'kernel_type': ['linear', 'poly', 'rbf', 'sigmoid', 'precomputed'],
+            'C': [0.1, 0.5, 1.0, 10.0],
+            # 'kernel_type': ['poly', 'rbf', 'precomputed'],
+            'kernel_type': ['linear', 'poly', 'rbf', 'sigmoid', 'precomputed'],
             'class_weight': [None, 'balanced'],
         })
         return param_grid

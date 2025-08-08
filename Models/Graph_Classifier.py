@@ -18,14 +18,23 @@ class GraphClassifier(BaseEstimator, ClassifierMixin, abc.ABC):
     All concrete subclasses must implement the abstract methods defined here.
     Common functionalities like save/load are implemented here.
     """
-    def __init__(self,classifier=None, modelattributes=None,model_name="missing"):
-        self.classifier = classifier
+    def __init__(self,classifier=None, modelattributes:dict=None,model_name="[NO_NAME]",**kwargs):
+        """
+        Initializes the GraphClassifier with a classifier and model attributes.
+
+        :param classifier: The classifier instance (e.g., SVC, KNN).
+        :param modelattributes: A dictionary of model attributes/hyperparameters.
+        :param model_name: A name for the model.
+        :param kwargs: Additional keyword arguments.
+        """
+
+        self.classifier = classifier # SVC or an KNN Classifer - > defined and passed down in the child classes SupportVectorMachine and KNN_Classifier
         self.modelattributes = modelattributes
         self.attributes = modelattributes
         self.is_fitted_ = False
-        self.model_mame= model_name
+        self.model_name = model_name
         if DEBUG:
-            print(f"Initialized {self.name} with attributes: in Parent")
+            print(f"Initialized {self.model_name} with attributes: in Parent")
 
     def get_calculator(self):
         return None
@@ -44,7 +53,7 @@ class GraphClassifier(BaseEstimator, ClassifierMixin, abc.ABC):
     def set_params(self, **params):
         print("Warinng: unimplemend parametes are tying to be set, that don't exist. (Ignoring them)")
         print(**params)
-        return None 
+        return self 
     
     def set_class_weights(self, class_weights):
         # Sets class weights for the classifier, if supported.
@@ -103,7 +112,7 @@ class GraphClassifier(BaseEstimator, ClassifierMixin, abc.ABC):
         Returns the name of the classifier.
         (Must be implemented by subclasses as the name is specific)
         """
-        return self.model_mame
+        return self.model_name
 
     @property
     def model_attributes(self) -> dict:

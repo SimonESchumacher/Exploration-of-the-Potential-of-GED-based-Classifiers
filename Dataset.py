@@ -493,13 +493,13 @@ class Dataset:
             self.shuffle = shuffle
             self.test_size = test_size
             self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.nx_graphs, self.target, test_size=test_size, random_state=random_state, stratify=stratify, shuffle=shuffle)
-            self.X_train = [g for g in self.X_train]
-            self.X_test = [g for g in self.X_test]
+            # self.X_train = [g for g in self.X_train]
+            # self.X_test = [g for g in self.X_test]
             return self.X_train, self.X_test, self.y_train, self.y_test
         else:
             X_train, X_test, y_train, y_test = train_test_split(self.nx_graphs, self.target, test_size=test_size, random_state=random_state, stratify=stratify, shuffle=shuffle)
-            X_train = [g for g in X_train]
-            X_test = [g for g in X_test]
+            # X_train = [g for g in X_train]
+            # X_test = [g for g in X_test]
             return X_train, X_test, y_train, y_test
     def split_fold(self,train_index, test_index):
         """

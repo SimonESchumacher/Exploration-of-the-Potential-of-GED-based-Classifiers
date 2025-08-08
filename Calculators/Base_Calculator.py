@@ -6,12 +6,12 @@ from time import time
 import numpy as np
 import networkx as nx
 import tqdm
-from Base_Calculator import Base_Calculator
 DEBUG = True
 
-class Dummy_Calculator(Base_Calculator):
+class Base_Calculator():
     # add class variable, as copy of itself for backup
-
+    backup = None
+    
     def __init__(self, GED_edit_cost="CONSTANT", GED_calc_method="BIPARTITE", dataset=None, labels=None, activate: bool = True):
         """
         Initialize the Dummy_Calculator with the specified edit cost and method.
@@ -21,8 +21,6 @@ class Dummy_Calculator(Base_Calculator):
         if ((hasattr(Base_Calculator, 'backup') and Base_Calculator.backup is not None)
             and (Base_Calculator.backup.GED_edit_cost == GED_edit_cost and Base_Calculator.backup.GED_calc_method == GED_calc_method)):
             backup = Base_Calculator.backup
-            # if DEBUG:
-            #     print(f"Using backup Dummy_Calculator with GED_edit_cost={backup.GED_edit_cost} and GED_calc_method={backup.GED_calc_method}")
             self.GED_edit_cost = backup.GED_edit_cost
             self.GED_calc_method = backup.GED_calc_method
             self.isclalculated = backup.isclalculated
@@ -35,9 +33,9 @@ class Dummy_Calculator(Base_Calculator):
             self.labels = backup.labels
             self.isactive = backup.isactive
             self.runtime = backup.runtime
-            self.maxLowerBound = backup.maxLowerBound
-            self.maxUpperBound = backup.maxUpperBound
-            self.max_MeanDistance = backup.max_MeanDistance
+
+            # if DEBUG:
+            #     print("Base_Calculator initialized from backup.")
         else:
             self.GED_edit_cost = GED_edit_cost
             self.GED_calc_method = GED_calc_method
@@ -69,10 +67,6 @@ class Dummy_Calculator(Base_Calculator):
     def add_graphs(self, graphs,labels=None):
         self.isclalculated = False
         self.isactive = False
-        if not hasattr(self, 'dataset'):
-            self.dataset = []
-        if not hasattr(self, 'labels'):
-            self.labels = []
         for graph in graphs:
             if not isinstance(graph, nx.Graph):
                 raise TypeError("All graphs must be of type networkx.Graph")
@@ -80,8 +74,9 @@ class Dummy_Calculator(Base_Calculator):
         if labels is not None:
             if len(labels) != len(graphs):
                 raise ValueError("Labels length must match the number of graphs.")
-            # self.labels.extend(labels)  
-             
+            self.labels.extend(labels)  
+        self.graphindexes = range(len(self.dataset))
+      
 
     def set_method(self,GED_calc_method):
         self.GED_calc_method = GED_calc_method
@@ -98,19 +93,8 @@ class Dummy_Calculator(Base_Calculator):
         self.dataset_edge_count = np.zeros(len(self.dataset))
         self.dataset_node_count = np.zeros(len(self.dataset))
         if DEBUG:
-            iters = tqdm.tqdm(enumerate(self.dataset), desc='Adding graphs to Dummy_Calculator', total=len(self.dataset))
-        else:
-            iters = enumerate(self.dataset)
-        for idx, graph in iters:
-            if not isinstance(graph, nx.Graph):
-                raise TypeError("All graphs must be of type networkx.Graph")
-            rnd=2
-            self.dataset_edge_count[idx] = graph.number_of_edges() #+ np.random.randint(-rnd, rnd)  # add some random noise to edges
-            self.dataset_node_count[idx] = graph.number_of_nodes() #+ np.random.randint(-rnd, rnd)  # add some random noise to nodes
-            # self.dataset_edge_count[idx] = (idx)/20
-            # self.dataset_node_count[idx] = (idx)/20
-            # self.dataset_edge_count[idx]= idx +1
-            # self.dataset_node_count[idx]= idx
+            print(f"This thing is just spitting random numbers, so activating is pretty fast")
+
         self.lowerbound_matrix = np.zeros((len(self.dataset), len(self.dataset)))
         self.upperbound_matrix = np.zeros((len(self.dataset), len(self.dataset)))
         self.graphindexes = range(len(self.dataset))
@@ -133,23 +117,22 @@ class Dummy_Calculator(Base_Calculator):
         else:
             return None
 
-    def count_nodes(self, graph_index):
-        """Counts the number of nodes in the specified graph."""
-        if not self.isactive:
-            raise ValueError("Calculator is not active. Call activate() first.")
-        return self.dataset_node_count[graph_index]
-    def count_edges(self, graph_index):
-        """Counts the number of edges in the specified graph."""
-        if not self.isactive:
-            raise ValueError("Calculator is not active. Call activate() first.")
-        return self.dataset_edge_count[graph_index]
     def run_method(self, graph1_index, graph2_index):
         """        Runs the GED method for the specified graph indexes.
         """
         if not self.isactive:
             raise ValueError("Calculator is not active. Call activate() first.")
-        self.upperbound_matrix[graph1_index][graph2_index] = math.fabs(self.count_edges(graph1_index) - self.count_edges(graph2_index))
-        self.lowerbound_matrix[graph1_index][graph2_index] = math.fabs(self.count_nodes(graph1_index) - self.count_nodes(graph2_index))
+        # generate 2 random integers, the higer one is upper bound the lower one is lower bound
+        # n1 = np.random.randint(0, 100)
+        # n2 = np.random.randint(0, 100)
+        n1= 0
+        n2= 0
+        if n1 > n2:
+            self.upperbound_matrix[graph1_index][graph2_index] = n1
+            self.lowerbound_matrix[graph1_index][graph2_index] = n2
+        else:
+            self.upperbound_matrix[graph1_index][graph2_index] = n2
+            self.lowerbound_matrix[graph1_index][graph2_index] = n1
     def calculate(self):
         """
         Computes the GED matrix for the dataset.
@@ -200,6 +183,8 @@ class Dummy_Calculator(Base_Calculator):
         return None  # Dummy implementation, as gedlibpy is not available in this context
     def get_assignment_matrix(self, graph1_index, graph2_index):
         return None  # Dummy implementation, as gedlibpy is not available in this context
+    def get_node_image(self, graph1_index, graph2_index,node_index):
+        return None
     # special funtions handmade
     def get_mean_distance(self, graph1_index, graph2_index):
         return (self.get_lower_bound(graph1_index, graph2_index) + self.get_upper_bound(graph1_index, graph2_index)) / 2
@@ -233,6 +218,19 @@ class Dummy_Calculator(Base_Calculator):
             return self.get_similarity(graph1_index, graph2_index, method=bound)
         else:
             raise ValueError("Invalid method. Choose from 'LowerBound-Distance', 'UpperBound-Distance', 'Mean-Distance', 'LowerBound-Similarity', 'UpperBound-Similarity', or 'Mean-Similarity'.")
+    def get_complete_matrix(self, method="Mean-Distance",x_graphindexes=None, y_graphindexes=None):
+        if x_graphindexes is None:
+            x_graphindexes = self.graphindexes
+        if y_graphindexes is None:
+            y_graphindexes =  x_graphindexes
+        matrix = np.zeros((len(x_graphindexes), len(y_graphindexes)))
+        if not self.isclalculated:
+            raise ValueError("GED matrix has not been computed yet. Call compute_complete_matrix() first.")
+        else:
+            for i in range(len(x_graphindexes)):
+                for j in range(len(y_graphindexes)):
+                    matrix[i, j] = self.compare(x_graphindexes[i], y_graphindexes[j], method)
+        return matrix
     def deactivate(self):
         self.isclalculated = False
         self.isactive = False
@@ -244,7 +242,19 @@ class Dummy_Calculator(Base_Calculator):
         self.labels = []
         self.isactive = False
         self.isclalculated = False
-
+    def get_params(self, deep=True):
+        """
+        Returns the parameters of the GEDLIB_Calculator.
+        """
+        return {
+            "GED_edit_cost": self.GED_edit_cost,
+            "GED_calc_method": self.GED_calc_method,
+            # "isactive": self.isactive,
+            # "isclalculated": self.isclalculated,
+            # "dataset_length": len(self.dataset),
+            # "graphindexes_length": len(self.graphindexes),
+            # "labels_length": len(self.labels) if hasattr(self, 'labels') else 0
+        }
     def set_params(self, **params):
         """
         Sets the attributes of the GEDLIB_Calculator.
@@ -263,14 +273,21 @@ class Dummy_Calculator(Base_Calculator):
             if was_calculated:
                 self.calculate()
         return self             
-    
+    def make_backup(self):
+        # set itself to the backup class variable
+        Base_Calculator.backup = self
+    def get_name(self):
+        """
+        Returns the name of the calculator.
+        """
+        return f"{self.__class__.__name__}"
     @classmethod
     def get_param_grid(cls):
         """
         Get the parameter grid for hyperparameter tuning.
         """
         return {
-            # "GED_calc_method": ['BRANCH', 'BIPARTITE'],
+            "GED_calc_method": ['BRANCH', 'BIPARTITE'],
             "GED_edit_cost": ['CONSTANT']
             #, "gamma": [0.1, 0.5, 1.0]
         }

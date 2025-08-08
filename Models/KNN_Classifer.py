@@ -16,7 +16,7 @@ DEBUG = False # Set to False to disable debug prints
 class KNN(GraphClassifier):
     def __init__(self, n_neighbors=1, weights='uniform', algorithm='auto', leaf_size=30,
                   metric=None,metric_name="unspecified",random_state=None,
-                  attributes:dict=None): 
+                  attributes:dict=None, **kwargs): 
         
         self.n_neighbors = n_neighbors
         self.weights = weights
@@ -42,7 +42,8 @@ class KNN(GraphClassifier):
         super().__init__(
             classifier=classifier,
             model_name=f"({n_neighbors})-NN_Classifier_{self.metric_name}",
-            modelattributes=attributes
+            modelattributes=attributes,
+            **kwargs
         )
         
         if DEBUG:
@@ -56,31 +57,30 @@ class KNN(GraphClassifier):
     def get_params(self, deep=True):
         return super().get_params(deep)
     def set_params(self, **params):
-        # Iterate over provided parameters
-        for parameter, value in params.items():
-            if DEBUG:
-                print(f"KNN: set_params: Setting {parameter} to {value}")
-            # Handle parameters that belong to the KNNClassifier itself
-            if parameter == 'n_neighbors':
-                self.n_neighbors = value
-                self.classifier.set_params(n_neighbors=self.n_neighbors)
-            elif parameter == 'weights':
-                self.weights = value
-                self.classifier.set_params(weights=self.weights)
-            elif parameter == 'algorithm':
-                self.algorithm = value
-                self.classifier.set_params(algorithm=self.algorithm)
-            elif parameter == 'leaf_size':
-                self.leaf_size = value
-                self.classifier.set_params(leaf_size=self.leaf_size)
-            elif parameter == 'metric':
-                self.metric = value
-                self.classifier.set_params(metric=self.metric)
-            else:
-                
-                super().set_params(**{parameter: value})
+        """
+        Set the parameters of this estimator and its underlying classifier.
+        Uses the underlying classifier's set_params for all matching parameters.
+        """
         if DEBUG:
-            print(f"KNN: set_params: Set parameters for KNNClassifier.")
+            print(f"KNN: set_params: Received params: {params}")
+
+        # Set parameters for the underlying classifier
+        classifier_params = self.classifier.get_params()
+        classifier_update = {k: v for k, v in params.items() if k in classifier_params}
+        if classifier_update:
+            self.classifier.set_params(**classifier_update)
+            for k, v in classifier_update.items():
+                setattr(self, k, v)
+                if DEBUG:
+                    print(f"KNN: set_params: Set {k} to {v} in classifier and self.")
+
+        # Set remaining parameters using super
+        remaining_params = {k: v for k, v in params.items() if k not in classifier_params}
+        if remaining_params:
+            super().set_params(**remaining_params)
+            if DEBUG:
+                print(f"KNN: set_params: Set remaining params via super: {remaining_params}")
+
         return self
     def fit(self, X, y=None):
         """

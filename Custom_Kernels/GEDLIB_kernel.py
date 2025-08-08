@@ -5,7 +5,7 @@ import numpy as np
 import os
 import sys
 import tqdm
-from Base_Calculator import Base_Calculator
+from Calculators.Base_Calculator import Base_Calculator
 
 sys.path.append(os.getcwd())
 DEBUG = False  # Set to True for debug prints

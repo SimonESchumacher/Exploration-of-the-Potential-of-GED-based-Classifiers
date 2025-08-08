@@ -6,7 +6,7 @@ import os
 import sys
 import tqdm
 sys.path.append(os.getcwd())
-from Base_Calculator import Base_Calculator
+from Calculators.Base_Calculator import Base_Calculator
 from Custom_Kernels.GEDLIB_kernel import GEDKernel
 
 DEBUG = False  # Set to True for debug prints

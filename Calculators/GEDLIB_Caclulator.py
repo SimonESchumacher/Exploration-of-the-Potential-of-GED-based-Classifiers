@@ -6,7 +6,7 @@ import numpy as np
 import networkx as nx
 import tqdm
 from gedlibpy import gedlibpy 
-from Base_Calculator import Base_Calculator
+from Calculators.Base_Calculator import Base_Calculator
 DEBUG = True
 
 class GEDLIB_Calculator(Base_Calculator):

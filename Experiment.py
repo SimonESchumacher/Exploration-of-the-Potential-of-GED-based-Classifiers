@@ -22,7 +22,7 @@ TEST_SIZE = get_conifg_param('Experiment', 'test_size', type='float') # default 
 RESULTS_FILE = get_conifg_param('Experiment', 'results_filepath', type='str') # default "experiment_log.xlsx"
 DIAGNOSTIC_FILE =get_conifg_param('Experiment', 'disgnostics_filepath', type='str') 
 # DATASET_NAMES = ["MUTAG", "PROTEINS_full", "COLLAB", "IMDB-BINARY", "IMDB-MULTI"]
-DEBUG = get_conifg_param(module="Experiment",parametername="DEBUG",type="bool") # Set to False to disable debug prints
+DEBUG = get_conifg_param(module="Experiment",parametername="DEBUG",type="bool")# Set to False to disable debug prints
 # load config file with the models, with teir specifcations
 # load the config file
 REPORT_SETTING=get_conifg_param(module="Experiment",parametername="report_setting",type='str') # for f1_score, precision, recall
@@ -165,10 +165,10 @@ class experiment:
     def split_data(self):
         
         X_train, X_test, y_train, y_test = self.dataset.train_test_split(test_size=TEST_SIZE, random_state=RANDOM_STATE)
-        if DEBUG:
-            print(f"Successfully split Data:{self.dataset_name} into training (len:{len(X_train)}) and testing (len:{len(X_test)})sets.")
-            print("Dataset Attributes:")
-            print(self.dataset.attributes())
+        # if DEBUG:
+        #     print(f"Successfully split Data:{self.dataset_name} into training (len:{len(X_train)}) and testing (len:{len(X_test)})sets.")
+        #     print("Dataset Attributes:")
+        #     print(self.dataset.attributes())
         return X_train, X_test, y_train, y_test
     
     def inner_model_fit(self, G_train, y_train):
@@ -323,7 +323,7 @@ class experiment:
             print(f"Starting hyperparameter tuning for {self.model_name} on dataset {self.dataset_name} with parameters: {param_grid}")
         hyperparameter_tuning_start_time = datetime.now()
         if tuning_method == 'grid':
-            hyperparameter_tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs)
+            hyperparameter_tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, error_score='raise')
         elif tuning_method == 'random':
             hyperparameter_tuner = RandomizedSearchCV(estimator=self.model, param_distributions=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, n_iter=10)
         if DEBUG:
