@@ -12,14 +12,14 @@ from Models.Graph_Classifier import GraphClassifier
 from Models.KNN_Classifer import KNN
 from Graph_Tools import convert_nx_to_grakel_graph
 from Calculators import Base_Calculator, Dummy_Calculator
-from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
+# from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
 # from Calculators.Dummy_Calculator import Dummy_Calculator
 DEBUG = False  # Set to False to disable debug prints
 
 class GED_KNN(KNN):
 
     def __init__(self,
-                 ged_calculator:GEDLIB_Calculator=None, comparison_method="Mean-Similarity",
+                 ged_calculator:Base_Calculator=None, comparison_method="Mean-Similarity",
                  attributes : dict=dict() ,**kwargs):
         """
         Initialize the GED K-NN Classifier with the given parameters.

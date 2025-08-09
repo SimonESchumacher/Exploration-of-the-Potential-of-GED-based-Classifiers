@@ -15,7 +15,7 @@ from Models.SVC.GED.Trivial_GED_SVC import Trivial_GED_SVC
 from Custom_Kernels.GEDLIB_kernel import GEDKernel
 from Calculators.Dummy_Calculator import Dummy_Calculator
 from Calculators.Base_Calculator import Base_Calculator
-from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
+# from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
 from Models.SVC.GED.GED_Diffu_SVC import DIFFUSION_GED_SVC
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from Models.KNN.GEDLIB_KNN import GED_KNN
@@ -23,7 +23,7 @@ import pandas as pd
 
 if __name__ == "__main__":
     # ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
-    ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
+    ged_calculator = Dummy_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
     # ged_calculator = Base_Calculator()
     DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="label",load_now=False)
     DATASET.load()
@@ -44,6 +44,6 @@ if __name__ == "__main__":
         print(f"Running experiment for {classifier.__class__.__name__}")
         expi=experiment(f"{classifier.__class__.__name__}",DATASET,dataset_name=DATASET.name,model=classifier,model_name=classifier.get_name)
         # accuracy, report = expi.run_simple()
-        accuracy, report = expi.run_kfold(k=5)
+        # accuracy, report = expi.run_kfold(k=5)
         print(classifier.get_name)
-        # results ,best_model, best_params = expi.run_hyperparameter_tuning(tuning_method='grid', scoring='f1', cv=5, verbose=1, n_jobs=1)
+        results ,best_model, best_params = expi.run_hyperparameter_tuning(tuning_method='grid', scoring='f1', cv=5, verbose=1, n_jobs=2)

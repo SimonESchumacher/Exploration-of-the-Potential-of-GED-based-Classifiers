@@ -35,8 +35,9 @@ class Base_GED_SVC(SupportVectorMachine):
                 svc_kwargs[key] = value
         self.ged_calculator = ged_calculator
         self.initKernel(ged_calculator=ged_calculator, **kernel_kwargs)
-        self.kernel_name = self.kernel.kernel_name
-        attributes.update(self.kernel.attributes)
+        if self.kernel is not None:    
+            self.kernel_name = self.kernel.kernel_name
+            attributes.update(self.kernel.attributes)
         attributes.update({
             "ged_calculator_name": ged_calculator.get_name() if ged_calculator else None
         })

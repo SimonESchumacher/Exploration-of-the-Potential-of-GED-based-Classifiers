@@ -10,7 +10,6 @@ import sys
 import os
 sys.path.append(os.getcwd())
 from Models.Graph_Classifier import GraphClassifier
-from Graph_Tools import convert_nx_to_grakel_graph
 DEBUG = False # Set to False to disable debug prints
 
 class KNN(GraphClassifier):
