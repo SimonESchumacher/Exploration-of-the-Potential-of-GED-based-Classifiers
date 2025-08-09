@@ -17,11 +17,13 @@ class SupportVectorMachine(GraphClassifier):
     # Support Vector Machine Classifier for Graphs
     # with different Kernels
     def __init__(self, kernel_type="precomputed", C=1.0, random_state=None,kernelfunction=None,kernel_name="unspecified",class_weight=None,attributes=None, **kwargs):
-        if kernelfunction is None:
-            raise ValueError("kernelfunction must be provided.")
+        
+        self.kernel_type = kernel_type
+        if kernelfunction is None and kernel_type == "precomputed":
+            self.kernel_type ='linear'
+        #     self.kernel = "None"
         self.kernel = kernelfunction
         self.kernel_name = kernel_name
-        self.kernel_type = kernel_type
         self.C = C
         self.class_weight = class_weight
         self.random_state = random_state
@@ -71,7 +73,7 @@ class SupportVectorMachine(GraphClassifier):
             elif parameter.startswith('classifier_'):
                 self.classifier.set_params(**{parameter.split('_', 1)[1]: value})
             # Pass kernel__* params to kernel
-            elif parameter.startswith('KERNEL_'):
+            elif parameter.startswith('KERNEL_') and hasattr(self.kernel, 'set_params'):
                 self.kernel.set_params(**{parameter.split('_', 1)[1]: value})
             else:
                 # Fallback to parent class
@@ -138,9 +140,9 @@ class SupportVectorMachine(GraphClassifier):
     def get_param_grid(cls):
         param_grid = GraphClassifier.get_param_grid()
         param_grid.update({
-            'C': [0.1, 0.5, 1.0, 10.0],
-            # 'kernel_type': ['poly', 'rbf', 'precomputed'],
-            'kernel_type': ['linear', 'poly', 'rbf', 'sigmoid', 'precomputed'],
+            'C': [0.1, 0.5],
+            'kernel_type': ['poly', 'rbf', 'precomputed'],
+            # 'kernel_type': ['linear', 'poly', 'rbf', 'sigmoid', 'precomputed'],
             'class_weight': [None, 'balanced'],
         })
         return param_grid

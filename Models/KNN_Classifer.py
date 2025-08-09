@@ -16,7 +16,7 @@ DEBUG = False # Set to False to disable debug prints
 class KNN(GraphClassifier):
     def __init__(self, n_neighbors=1, weights='uniform', algorithm='auto', leaf_size=30,
                   metric=None,metric_name="unspecified",random_state=None,
-                  attributes:dict=None, **kwargs): 
+                  attributes:dict=dict(), **kwargs): 
         
         self.n_neighbors = n_neighbors
         self.weights = weights
@@ -165,11 +165,12 @@ class KNN(GraphClassifier):
     def get_param_grid(cls):
         param_grid = GraphClassifier.get_param_grid()
         param_grid.update({
-            'n_neighbors': [1, 3, 5, 7, 9],
-            'weights': ['uniform', 'distance'],
-            'algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute'],
-            'leaf_size': [10, 20, 30, 40, 50],
-            'metric': ['euclidean', 'manhattan', 'minkowski', 'chebyshev']
+            'n_neighbors': [1, 3, 5],
+            # 'weights': ['uniform', 'distance'],
+            # 'algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute'],
+            # 'leaf_size': [10, 20, 30, 40, 50],
+            # 'metric': ['euclidean', 'manhattan', 'minkowski', 'chebyshev','precomputed']
+            'metric': ['euclidean','precomputed']  # KNN with precomputed metric
         })
 
         return param_grid

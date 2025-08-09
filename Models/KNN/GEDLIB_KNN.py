@@ -11,16 +11,16 @@ sys.path.append(os.getcwd())
 from Models.Graph_Classifier import GraphClassifier
 from Models.KNN_Classifer import KNN
 from Graph_Tools import convert_nx_to_grakel_graph
-from GED import GraphEditDistanceCalculator
-from Base_Calculator import Base_Calculator
+from Calculators import Base_Calculator, Dummy_Calculator
+from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
+# from Calculators.Dummy_Calculator import Dummy_Calculator
 DEBUG = False  # Set to False to disable debug prints
 
 class GED_KNN(KNN):
 
-    def __init__(self,approximation=None,
-                 n_neighbors=1,weights='uniform', algorithm='auto', leaf_size=30,
-                 ged_calculator:Base_Calculator=None, comparison_method="Mean-Similarity",
-                 attributes : dict=None ):
+    def __init__(self,
+                 ged_calculator:GEDLIB_Calculator=None, comparison_method="Mean-Similarity",
+                 attributes : dict=dict() ,**kwargs):
         """
         Initialize the GED K-NN Classifier with the given parameters.
         """
@@ -28,32 +28,25 @@ class GED_KNN(KNN):
         self.ged_calculator = ged_calculator
         self.comparison_method = comparison_method
         self.node_del_cost = 1.0
-        if attributes is None:
-            attributes = {
-                "ged_calculator": ged_calculator,
-                "comparison_method": comparison_method
-            }
-        else:
-            attributes["ged_calculator"] = ged_calculator
-            attributes["comparison_method"] = comparison_method
+        attributes.update({
+            "ged_calculator": ged_calculator.get_name() if ged_calculator else "None",
+            "comparison_method": comparison_method
+        })
         super().__init__(
-            n_neighbors=n_neighbors,
-            weights=weights,
-            algorithm=algorithm,
-            leaf_size=leaf_size,
             metric="precomputed",
             metric_name="GED",
-            random_state=None,
-            attributes=attributes
+            attributes=attributes,
+            **kwargs
         )
         if DEBUG:
             print(f"Initialized GED_KNNClassifier")
 
     def fit_transform(self, X, y=None):
+        X=[int(X[i].name) for i in range(len(X))]
         """
         save the traiing Graphs and transform Data into matrix.
         """
-        self.X_fit =X.copy()
+        self.X_fit =X
         distance_matrix=self.ged_calculator.get_complete_matrix(method=self.comparison_method,x_graphindexes=self.X_fit)
         if DEBUG:
             print(f"Fitting {len(X)} graphs into distance matrix.")
@@ -69,6 +62,7 @@ class GED_KNN(KNN):
         """
         Transform the input graphs into a distance matrix using the GED calculator.
         """
+        X=[int(X[i].name) for i in range(len(X))]
         if DEBUG:
             print(f"Transforming {len(X)} graphs into distance matrix.")
             print(self.X_fit)
@@ -90,7 +84,6 @@ class GED_KNN(KNN):
     def set_params(self, **params):
         need_new_GED =False
         calculator_params = {}
-        kernel_params = {}
         if DEBUG:
             print(f"Setting parameters for GED_SVC")
         for parameter, value in params.items():
@@ -110,9 +103,8 @@ class GED_KNN(KNN):
         if need_new_GED:
             if DEBUG:
                 print(f"Reinitializing GED calculator with parameters: {calculator_params}")
-            self.kernel.get_calculator().set_params(**calculator_params)
-        self.kernel.set_params(**kernel_params)
-        return self    
+            self.ged_calculator.set_params(**calculator_params)
+        return self
     @classmethod
     def get_param_grid(cls):
         """
@@ -120,7 +112,7 @@ class GED_KNN(KNN):
         """
         param_grid = super().get_param_grid()
         param_grid.update({
-           "Comparison_Method": ["Mean-Distance", "Mean-Similarity", "LowerBound-Distance", "UpperBound-Distance", "LowerBound-Similarity", "UpperBound-Similarity"],
+           "comparison_method": ["Mean-Distance", "Mean-Similarity", "LowerBound-Distance", "UpperBound-Distance", "LowerBound-Similarity", "UpperBound-Similarity"],
         })
         return param_grid
 

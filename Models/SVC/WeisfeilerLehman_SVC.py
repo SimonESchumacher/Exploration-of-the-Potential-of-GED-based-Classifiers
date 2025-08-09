@@ -126,7 +126,7 @@ class WeisfeilerLehman_SVC(SupportVectorMachine):
     def get_param_grid(cls):
         param_grid = SupportVectorMachine.get_param_grid()
         param_grid.update({
-            'n_iter': [1, 2, 4, 5, 7]
+            'n_iter': [1,4, 5, 7]
             #, 'normalize_kernel': [True, False] # Not really needed
         })
         return param_grid

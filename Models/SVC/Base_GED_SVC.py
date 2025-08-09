@@ -64,20 +64,22 @@ class Base_GED_SVC(SupportVectorMachine):
         calculator_params = dict()
         for key, value in params.items():
             if key.startswith("GED_"):
-                calculator_params[key[len("GED_"):]] = value
+                calculator_params[key] = value
             else:
                 svc_kwargs[key] = value
         if len(calculator_params)>0:
-            self.kernel.set_params(**calculator_params)
+            self.ged_calculator.set_params(**calculator_params)
         super().set_params(**svc_kwargs)
         return self
     
     def fit_transform(self, X, y=None):
+        X=[int(X[i].name) for i in range(len(X))]
         if DEBUG:
             print(f"Fitting GED_SVC with {len(X)} graphs")
         k_train=self.kernel.fit_transform(X, y)
         return  k_train
     def transform(self, X):
+        X=[int(X[i].name) for i in range(len(X))]
         if DEBUG:
             print(f"Transforming with GED_SVC with {len(X)} graphs")
         k_test = self.kernel.transform(X)
@@ -206,5 +208,5 @@ class Base_Kernel(Kernel):
         Get the parameter grid for hyperparameter tuning.
         """
         return {
-            "KERNEL_comparison_method": ['Mean-Distance', 'UpperBound-Distance', 'LowerBound-Distance']
+            # "KERNEL_comparison_method": ['Mean-Distance', 'UpperBound-Distance', 'LowerBound-Distance']
         }

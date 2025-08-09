@@ -74,10 +74,10 @@ class experiment:
 
     # TODO: less attributes to be called
     # for now asssue, initialized Dataset and Model in the constructor
-    def __init__(self, name, dataset, datset_name, model, model_name=None, ged_calculator=None):
+    def __init__(self, name, dataset, dataset_name, model, model_name=None, ged_calculator=None):
         self.experiment_name = name
         self.dataset = dataset
-        self.dataset_name = datset_name
+        self.dataset_name = dataset_name
         self.model = model
         self.model_name = model_name if model_name else model.__class__.__name__
         self.ged_calculator = ged_calculator

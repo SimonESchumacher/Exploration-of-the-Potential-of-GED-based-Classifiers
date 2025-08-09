@@ -6,7 +6,7 @@ import os
 sys.path.append(os.getcwd())
 from Models.SVC.WeisfeilerLehman_SVC import WeisfeilerLehman_SVC
 from Models.Graph_Classifier import GraphClassifier
-from Models.SVC.Baseline_SVC import VertexHistogram_SVC,EdgeHistogram_SVC, CombinedHistogram_SVC
+from Models.SVC.Baseline_SVC import VertexHistogram_SVC,EdgeHistogram_SVC, CombinedHistogram_SVC,NX_Histogram_SVC
 # from Models.GED_SVC import GED_SVC as GED_SVC
 # from Models.GED_gkl_SVC import GED_SVC as GED_gkl_SVC
 from Models.Blind_Classifier import Blind_Classifier 
@@ -19,22 +19,23 @@ from Calculators.Base_Calculator import Base_Calculator
 from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
 from Models.SVC.GED.GED_Diffu_SVC import DIFFUSION_GED_SVC
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
+from Models.KNN.GEDLIB_KNN import GED_KNN
 # from Models.GED_KNN import GED_KNN
 import pandas as pd
 
 # classifier = GED_SVC(gamma=1.0, method='BIPARTITE', normalize_ged=True, similarity=True, C=1.0)
 if __name__ == "__main__":
-    ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
-    # ged_calculator = None
-    DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="label",load_now=False)
+    # ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
+    ged_calculator = None
+    DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",load_now=False)
     DATASET.load()
     # classifier = Base_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced')
-    classifier = DIFFUSION_GED_SVC(C=1.0, KERNEL_llambda=1.0, ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", KERNEL_diffusion_function="exp_diff_kernel", class_weight='balanced')
-
+    # classifier = DIFFUSION_GED_SVC(C=1.0, KERNEL_llambda=1.0, ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", KERNEL_diffusion_function="exp_diff_kernel", class_weight='balanced')
+    # classifier = GED_KNN(ged_calculator=ged_calculator, comparison_method="Mean-Similarity", n_neighbors=5, weights='uniform', algorithm='auto')    
     # Kernel = Trivial_GED_Kernel(ged_calculator=ged_calculator, comparison_method="Mean-Distance", similarity_function="k1")
     # Kernel = GEDKernel(ged_calculator=ged_calculator, comparison_method="Mean-Similarity")
     # classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", class_weight='balanced', C=1.0)
-
+    classifier = NX_Histogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=DATASET.get_edge_labels, get_node_labels=DATASET.get_node_labels,Histogram_Type="combined")
     # Kernel = GEDKernel(method="BRANCH", edit_cost="CONSTANT",comparison_method="Mean-Similarity")
     # classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", C=1.0)
     # ged_calculator = classifier.get_calculator()
@@ -56,7 +57,7 @@ if __name__ == "__main__":
     # define experiment 
     exp_instance = experiment(f"Fucntionality_test_{DATASET.name}_with_{classifier.get_name}",
                             dataset=DATASET,
-                                datset_name=DATASET.name,
+                                dataset_name=DATASET.name,
                                 model=classifier,
                                 model_name=classifier.get_name)
     accuracy, report = exp_instance.run_simple()
