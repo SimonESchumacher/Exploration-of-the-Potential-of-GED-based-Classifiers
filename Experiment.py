@@ -22,7 +22,7 @@ TEST_SIZE = get_conifg_param('Experiment', 'test_size', type='float') # default 
 RESULTS_FILE = get_conifg_param('Experiment', 'results_filepath', type='str') # default "experiment_log.xlsx"
 DIAGNOSTIC_FILE =get_conifg_param('Experiment', 'disgnostics_filepath', type='str') 
 # DATASET_NAMES = ["MUTAG", "PROTEINS_full", "COLLAB", "IMDB-BINARY", "IMDB-MULTI"]
-DEBUG = get_conifg_param(module="Experiment",parametername="DEBUG",type="bool") # Set to False to disable debug prints
+DEBUG = get_conifg_param(module="Experiment",parametername="DEBUG",type="bool")# Set to False to disable debug prints
 # load config file with the models, with teir specifcations
 # load the config file
 REPORT_SETTING=get_conifg_param(module="Experiment",parametername="report_setting",type='str') # for f1_score, precision, recall
@@ -33,51 +33,14 @@ SAVE_LOGS = get_conifg_param(module="Experiment",parametername="save_logs",type=
 
 DATASET_HYPERPARAM = get_conifg_param(module="Experiment",parametername="dataset_hyperparams",type='bool') # default False
 CALCULATOR_HYPERPARAM = get_conifg_param(module="Experiment",parametername="calculator_hyperparams",type='bool') # default False
-
 class experiment:
 
-    # def __init__(self, name, dataset, datset_name, model, model_name=None):
-    #     self.experiment_name = name
-    #     self.dataset = dataset
-    #     self.dataset_name = datset_name
-    #     self.model :GraphClassifier= model
-    #     self.model_name = model_name if model_name else model.__class__.__name__
-    #     # Results file Collums (to be added):
-    #     # experiment_name, dataset_name, model_name,filename,saving timestamp,timstamp_experiment_run,testsize,has_edge_labels,has_node_labels,dataset_mean_Nodes,dataset_mean_edges,dataset_Num_clases,datset_domain, accuracy, f1_score, precision, recall, 
-    #     self.diagnostic_log = {
-    #         "experiment_name": self.experiment_name,
-    #         "dataset_name": self.dataset_name,
-    #         "model_name": self.model_name,
-    #         "filename": None,  # To be set after saving the model
-    #         "dataset_load_duration": None,  # To be set after loading the dataset
-    #         "saving_timestamp": None,  # To be set after saving the model
-    #         "timestamp_experiment_run": pd.Timestamp.now(),
-    #         "Error": None,  # To be set if an error occurs
 
-    #     }
-    #     self.results_log = {
-    #         "experiment_name": self.experiment_name,
-    #         "dataset_name": self.dataset_name,
-    #         "model_name": self.model_name,
-    #         "testsize": TEST_SIZE,
-    #         "training_duration": None,  # To be set after training
-    #         "testing_duration": None,  # To be set after testing
-    #         "accuracy": None,
-    #         "f1_score": None,
-    #         "precision": None,
-    #         "recall": None,
-    #         "roc_auc": None,
-    #         "saving_timestamp": None,  # To be set after saving the model
-    #         "timestamp_experiment_run": pd.Timestamp.now(),
-    #     }
-
-
-    # TODO: less attributes to be called
     # for now asssue, initialized Dataset and Model in the constructor
-    def __init__(self, name, dataset, datset_name, model, model_name=None, ged_calculator=None):
+    def __init__(self, name, dataset, dataset_name, model, model_name=None, ged_calculator=None):
         self.experiment_name = name
         self.dataset = dataset
-        self.dataset_name = datset_name
+        self.dataset_name = dataset_name
         self.model = model
         self.model_name = model_name if model_name else model.__class__.__name__
         self.ged_calculator = ged_calculator
@@ -165,10 +128,10 @@ class experiment:
     def split_data(self):
         
         X_train, X_test, y_train, y_test = self.dataset.train_test_split(test_size=TEST_SIZE, random_state=RANDOM_STATE)
-        if DEBUG:
-            print(f"Successfully split Data:{self.dataset_name} into training (len:{len(X_train)}) and testing (len:{len(X_test)})sets.")
-            print("Dataset Attributes:")
-            print(self.dataset.attributes())
+        # if DEBUG:
+        #     print(f"Successfully split Data:{self.dataset_name} into training (len:{len(X_train)}) and testing (len:{len(X_test)})sets.")
+        #     print("Dataset Attributes:")
+        #     print(self.dataset.attributes())
         return X_train, X_test, y_train, y_test
     
     def inner_model_fit(self, G_train, y_train):
@@ -323,7 +286,7 @@ class experiment:
             print(f"Starting hyperparameter tuning for {self.model_name} on dataset {self.dataset_name} with parameters: {param_grid}")
         hyperparameter_tuning_start_time = datetime.now()
         if tuning_method == 'grid':
-            hyperparameter_tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs)
+            hyperparameter_tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, error_score='raise')
         elif tuning_method == 'random':
             hyperparameter_tuner = RandomizedSearchCV(estimator=self.model, param_distributions=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, n_iter=10)
         if DEBUG:

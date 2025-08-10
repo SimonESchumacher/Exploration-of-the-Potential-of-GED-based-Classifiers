@@ -86,7 +86,6 @@ class Random_Classifier(GraphClassifier):
             print(f"Model is not fitted: {e}")
             traceback.print_exc()
             raise e
-        print("successfully checked if model is fitted")
         # Ensure X is a valid array
 
         
@@ -125,6 +124,7 @@ class Random_Classifier(GraphClassifier):
         """
         param_grid = GraphClassifier.get_param_grid()
         param_grid.update({
-            'strategy': ['most_frequent', 'stratified', 'uniform', 'constant']
+            'strategy': ['most_frequent', 'stratified', 'uniform']
             # ,'constant': [0, 1]  # Only relevant if strategy is 'constant'
             })
+        return param_grid

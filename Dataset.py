@@ -106,7 +106,7 @@ def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", u
     else:
         iterable = range(num_graphs)
     for i in iterable:
-        G = nx.Graph()
+        G = nx.Graph(name=f"{i}")
         nodes_in_graph_i = np.where(node_to_graph_map == i)[0]
 
         if len(nodes_in_graph_i) == 0:  # Handle empty graphs
@@ -328,6 +328,39 @@ def calculate_dataset_attributes(data: tuple, source: str, domain: str = None, N
     mean_nodes = np.mean([G.number_of_nodes() for G in graph_list])
     mean_edges = np.mean([G.number_of_edges() for G in graph_list])
     label_distribution = {label: np.sum(targets == label) / num_graphs for label in set(targets)}
+    # get the distinct node labels that apprear int the dataset
+    node_labels = set()
+    edge_labels = set()
+    for G in graph_list:
+        for _, data in G.nodes(data=True):
+            if 'label' in data:
+                node_labels.add(data['label'])
+            else:
+                node_labels.add("None")  # If no label, add None
+        for _, _, data in G.edges(data=True):
+            if 'label' in data:
+                edge_labels.add(data['label'])
+            else:
+                edge_labels.add("None")  # If no weight, add None
+    node_labels = sorted(node_labels)  # Sort for consistency
+    edge_labels = sorted(edge_labels)
+    node_histogram = np.zeros(shape=(len(node_labels), num_graphs))
+    edge_histogram = np.zeros(shape=(len(edge_labels), num_graphs))
+    # iterate through all the graphs and add up the appreance to the histograms
+    for i, G in enumerate(graph_list):
+        for _, data in G.nodes(data=True):
+            if 'label' in data:
+                node_histogram[node_labels.index(data['label']), i] += 1
+            else:
+                node_histogram[node_labels.index("None"), i] += 1
+        for _, _, data in G.edges(data=True):
+            if 'label' in data:
+                edge_histogram[edge_labels.index(data['label']), i] += 1
+            else:
+                edge_histogram[edge_labels.index("None"), i] += 1
+    # compute the sum of the histograms as integers
+    node_histogram_mean = np.sum(node_histogram, axis=1).astype(int)
+    edge_histogram_mean = np.sum(edge_histogram, axis=1).astype(int)
 
     dataset_characteristics = {
         'name': Name,
@@ -339,17 +372,25 @@ def calculate_dataset_attributes(data: tuple, source: str, domain: str = None, N
         'has_edge_labels': has_edge_labels,
         'mean_nodes': mean_nodes,
         'mean_edges': mean_edges,
-        'label_distribution': str(label_distribution)
+        'label_distribution': str(label_distribution),
+        'node_labels': node_labels,
+        'edge_labels': edge_labels,
+        'node_histogram_mean': node_histogram_mean,
+        'edge_histogram_mean': edge_histogram_mean
     }
     if save:
         datasets_log = pd.read_excel(DATASTE_LOG_FILE, index_col=0)
-        if Name not in datasets_log['name'].values:
-            new_entry = pd.Series(dataset_characteristics)
-            datasets_log = datasets_log.append(new_entry, ignore_index=True)
+        if datasets_log.empty:
+            datasets_log = pd.DataFrame(dataset_characteristics, index=[0])
             datasets_log.to_excel(DATASTE_LOG_FILE)
         else:
-            if DEBUG:
-                print(f"Dataset '{Name}' already exists in the log file. Skipping save.")
+            if Name not in datasets_log['name'].values:
+                new_entry = pd.Series(dataset_characteristics)
+                datasets_log = pd.concat([datasets_log,new_entry], ignore_index=True)
+                datasets_log.to_excel(DATASTE_LOG_FILE)
+            else:
+                if DEBUG:
+                    print(f"Dataset '{Name}' already exists in the log file. Skipping save.")
     return dataset_characteristics
 def extract_simple_graph_features(data): 
     _,graph_list, targets = data  
@@ -382,7 +423,7 @@ class Dataset:
             self.nx_graphs= self.data[0]
             self.target = self.data[1]
             try:
-                self.characteristics = calculate_dataset_attributes(self.data, source, domain, name)
+                self.characteristics = calculate_dataset_attributes(self.data, source, domain, name, save=True)
             except Exception as e:
                 print(f"An unexpected error occurred while initializing the dataset: {e}")
                 print("happend while loading dataset attributes")
@@ -407,7 +448,7 @@ class Dataset:
                 self.ged_calculator.add_graphs(self.nx_graphs.copy(), self.target)
                 if DEBUG:
                     print(f"Calculating GED for between graphs")
-                self.nx_graphs=self.ged_calculator.activate()
+                self.graphindexes=self.ged_calculator.activate()
                 start_time = pd.Timestamp.now()
                 self.ged_calculator.calculate()
                 end_time = pd.Timestamp.now()
@@ -420,7 +461,7 @@ class Dataset:
         self.nx_graphs = self.data[0]
         self.target = self.data[1]
         try:
-            self.characteristics = calculate_dataset_attributes(self.data, self.source, self.domain, self.name)
+            self.characteristics = calculate_dataset_attributes(self.data, self.source, self.domain, self.name, save=True)
         except Exception as e:
             print(f"An unexpected error occurred while initializing the dataset: {e}")
             print("happend while loading dataset attributes")
@@ -445,7 +486,7 @@ class Dataset:
             self.ged_calculator.add_graphs(self.nx_graphs.copy(), self.target)
             if DEBUG:
                 print(f"Calculating GED for between graphs")
-            self.nx_graphs=self.ged_calculator.activate()
+            self.graphindexes=self.ged_calculator.activate()
             start_time = pd.Timestamp.now()
             self.ged_calculator.calculate()
             end_time = pd.Timestamp.now()
@@ -459,7 +500,7 @@ class Dataset:
         # TODO: probalpy a reaload of the ged_calculator
         if new_ged_calculator and self.ged_calculator is not None:
             self.ged_calculator.add_graphs(self.nx_graphs.copy(), self.target)
-            self.nx_graphs = self.ged_calculator.activate()
+            self.graphindexes = self.ged_calculator.activate()
             start_time = pd.Timestamp.now()
             self.ged_calculator.calculate()
             end_time = pd.Timestamp.now()
@@ -493,13 +534,13 @@ class Dataset:
             self.shuffle = shuffle
             self.test_size = test_size
             self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.nx_graphs, self.target, test_size=test_size, random_state=random_state, stratify=stratify, shuffle=shuffle)
-            self.X_train = [g for g in self.X_train]
-            self.X_test = [g for g in self.X_test]
+            # self.X_train = [g for g in self.X_train]
+            # self.X_test = [g for g in self.X_test]
             return self.X_train, self.X_test, self.y_train, self.y_test
         else:
             X_train, X_test, y_train, y_test = train_test_split(self.nx_graphs, self.target, test_size=test_size, random_state=random_state, stratify=stratify, shuffle=shuffle)
-            X_train = [g for g in X_train]
-            X_test = [g for g in X_test]
+            # X_train = [g for g in X_train]
+            # X_test = [g for g in X_test]
             return X_train, X_test, y_train, y_test
     def split_fold(self,train_index, test_index):
         """
@@ -531,4 +572,47 @@ class Dataset:
             'use_node_labels': [self.Node_label_name,None],
             'use_edge_labels': [self.Edge_label_name,None],
         }
+    # sttribute Funktions for the classifers
+    # infoation allowed to use for training
+    def get_node_labels(self):
+        """
+        Returns the node labels used in the dataset.
+        """
+        if self.characteristics['has_node_labels']:
+            return self.characteristics['node_labels']
+        else:
+            return [0]
+    def get_edge_labels(self):
+        """
+        Returns the edge labels used in the dataset.
+        """
+        if self.characteristics['has_edge_labels']:
+            return self.characteristics['edge_labels']
+        else:
+            return [0]
+    def get_mean_edges(self):
+        """
+        Returns the mean number of edges in the dataset.
+        """
+        return self.characteristics['mean_edges']
+    def get_mean_nodes(self):
+        """
+        Returns the mean number of nodes in the dataset.
+        """
+        return self.characteristics['mean_nodes']
+    def get_num_graphs(self):
+        """ Returns the number of graphs in the dataset.
+        """
+        return self.characteristics['num_graphs']
+    def get_num_classes(self):
+        """ Returns the number of classes in the dataset.
+        """
+        return self.characteristics['num_classes']
+    # functions not allowed to use for training
+    def get_label_distribution(self):
+        """ Returns the label distribution of the dataset.
+        """
+        return self.characteristics['label_distribution']
+    
+
    
