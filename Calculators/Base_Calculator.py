@@ -1,6 +1,7 @@
 # GED computation with Graphkit Learn
 # impoerts
 
+import gc
 import math
 from time import time
 import numpy as np
@@ -149,6 +150,8 @@ class Base_Calculator():
                 else:
                     iters2 = range(i,len(self.graphindexes))
                 for j in iters2:
+                    if i < 20:
+                        continue
                     if i == j:
                         self.upperbound_matrix[i][j] = 0
                         self.lowerbound_matrix[i][j] = 0
@@ -163,6 +166,7 @@ class Base_Calculator():
                         self.maxLowerBound = lower_bound
                     if mean_distance > self.max_MeanDistance:
                         self.max_MeanDistance = mean_distance
+                gc.collect()  # Collect garbage to free memory
             self.isclalculated = True
             print("GED matrix computed.")
      

@@ -1,6 +1,7 @@
 # GED computation with Graphkit Learn
 # impoerts
 
+import gc
 import math
 import os
 import sys
@@ -36,9 +37,14 @@ class NetworkXGEDCalculator(Base_Calculator):
             raise ValueError(f"Unknown GED_edit_cost: {GED_edit_cost}")
 
     def run_method(self, graph1_index, graph2_index):
-        distance = nx.graph_edit_distance(
-            self.dataset[graph1_index],
-            self.dataset[graph2_index],
+        self.upperbound_matrix[graph1_index][graph2_index] = 0
+        self.lowerbound_matrix[graph1_index][graph2_index] = np.inf
+        count = 0
+        sum_cost = 0
+
+        gernator = nx.optimize_graph_edit_distance(
+            G1=self.dataset[graph1_index],
+            G2=self.dataset[graph2_index],
             node_match=self.node_match,
             edge_match=self.edge_match,
             node_subst_cost=self.node_subst_cost,
@@ -47,8 +53,21 @@ class NetworkXGEDCalculator(Base_Calculator):
             edge_subst_cost=self.edge_subst_cost,
             edge_ins_cost=self.edge_ins_cost,
             edge_del_cost=self.edge_del_cost,
-            timeout=self.timeout
+            upper_bound=100    
+            # timeout=self.timeout
         )
-        self.upperbound_matrix[graph1_index][graph2_index] = distance
-        self.lowerbound_matrix[graph1_index][graph2_index] = distance
+        try:
+            dist = min(gernator)
+        except sys.exception as e:
+            print("Waring, no results")
+        self.lowerbound_matrix[graph1_index][graph2_index] = dist
+        self.upperbound_matrix[graph1_index][graph2_index] = dist
+        gc.collect()
+
+        # print(v)
+        # mean = sum_cost / count if count > 0 else 0
+        # print(f"Count of edit operations: {count}")
+        # print(f"Distance: {self.upperbound_matrix[graph1_index][graph2_index]}")
+        
+         
             
