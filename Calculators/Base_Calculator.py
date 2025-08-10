@@ -24,6 +24,16 @@ class Base_Calculator():
             backup = Base_Calculator.backup
             self.GED_edit_cost = backup.GED_edit_cost
             self.GED_calc_method = backup.GED_calc_method
+            self.isclalculated = backup.isclalculated
+            self.isactive = backup.isactive
+            self.dataset = backup.dataset
+            self.graphindexes = backup.graphindexes
+            self.labels = backup.labels
+            self.runtime = backup.runtime
+
+            self.max_MeanDistance = backup.max_MeanDistance
+            self.maxUpperBound = backup.maxUpperBound
+            self.maxLowerBound = backup.maxLowerBound
 
             self.lowerbound_matrix = backup.lowerbound_matrix
             self.upperbound_matrix = backup.upperbound_matrix
@@ -55,7 +65,7 @@ class Base_Calculator():
             if DEBUG:
                 print(f"Initialized Dummy_Calculator with GED_edit_cost={self.GED_edit_cost} and GED_calc_method={self.GED_calc_method}")
             self.make_backup()  # backup itself for later use
-
+    
     def add_graphs(self, graphs,labels=None):
         self.isclalculated = False
         self.isactive = False
@@ -229,7 +239,15 @@ class Base_Calculator():
             y_graphindexes =  x_graphindexes
         matrix = np.zeros((len(x_graphindexes), len(y_graphindexes)))
         if not self.isclalculated:
-            raise ValueError("GED matrix has not been computed yet. Call compute_complete_matrix() first.")
+            # check if the lowerbound matrix is completely empty or only filled with 0
+            # raise ValueError("Calculator is not calculated. Call calculate() first.")   
+            if np.all(self.lowerbound_matrix == 0) and np.all(self.upperbound_matrix == 0):
+                raise ValueError("GED matrix has not been computed yet. Call calculate() first.")
+            else:
+                for i in range(len(x_graphindexes)):
+                    for j in range(len(y_graphindexes)):
+                        matrix[i, j] = self.compare(x_graphindexes[i], y_graphindexes[j], method)
+            
         else:
             for i in range(len(x_graphindexes)):
                 for j in range(len(y_graphindexes)):

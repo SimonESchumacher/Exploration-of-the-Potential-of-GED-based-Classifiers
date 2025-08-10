@@ -17,6 +17,8 @@ from Calculators.Dummy_Calculator import Dummy_Calculator
 from Calculators.Base_Calculator import Base_Calculator
 # from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
 from Models.SVC.GED.GED_Diffu_SVC import DIFFUSION_GED_SVC
+from Models.SVC.GED.Zero_GED_SVC import ZERO_GED_SVC
+from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from Models.KNN.GEDLIB_KNN import GED_KNN
 import pandas as pd
@@ -38,7 +40,9 @@ if __name__ == "__main__":
         GED_KNN(ged_calculator=ged_calculator, comparison_method="Mean-Distance", n_neighbors=1, weights='uniform', algorithm='auto'),
         Base_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0, kernel_type="precomputed", class_weight='balanced'),
         DIFFUSION_GED_SVC(kernel_type='precomputed',C=1.0, KERNEL_llambda=1.0, ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", KERNEL_diffusion_function="exp_diff_kernel", class_weight='balanced'),
-        Trivial_GED_SVC(kernel_type='precomputed',ged_calculator=ged_calculator, comparison_method="Mean-Distance", similarity_function="k1")
+        Trivial_GED_SVC(kernel_type='precomputed',ged_calculator=ged_calculator, comparison_method="Mean-Distance", similarity_function="k1"),
+        Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',I_size=5, selection_method="random"),
+        ZERO_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced',KERNEL_I_size=5, KERNEL_aggregation_method="sum")
         ]
     for classifier in classifiers:
         print(f"Running experiment for {classifier.__class__.__name__}")
