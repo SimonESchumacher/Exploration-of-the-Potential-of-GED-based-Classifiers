@@ -33,46 +33,9 @@ SAVE_LOGS = get_conifg_param(module="Experiment",parametername="save_logs",type=
 
 DATASET_HYPERPARAM = get_conifg_param(module="Experiment",parametername="dataset_hyperparams",type='bool') # default False
 CALCULATOR_HYPERPARAM = get_conifg_param(module="Experiment",parametername="calculator_hyperparams",type='bool') # default False
-
 class experiment:
 
-    # def __init__(self, name, dataset, datset_name, model, model_name=None):
-    #     self.experiment_name = name
-    #     self.dataset = dataset
-    #     self.dataset_name = datset_name
-    #     self.model :GraphClassifier= model
-    #     self.model_name = model_name if model_name else model.__class__.__name__
-    #     # Results file Collums (to be added):
-    #     # experiment_name, dataset_name, model_name,filename,saving timestamp,timstamp_experiment_run,testsize,has_edge_labels,has_node_labels,dataset_mean_Nodes,dataset_mean_edges,dataset_Num_clases,datset_domain, accuracy, f1_score, precision, recall, 
-    #     self.diagnostic_log = {
-    #         "experiment_name": self.experiment_name,
-    #         "dataset_name": self.dataset_name,
-    #         "model_name": self.model_name,
-    #         "filename": None,  # To be set after saving the model
-    #         "dataset_load_duration": None,  # To be set after loading the dataset
-    #         "saving_timestamp": None,  # To be set after saving the model
-    #         "timestamp_experiment_run": pd.Timestamp.now(),
-    #         "Error": None,  # To be set if an error occurs
 
-    #     }
-    #     self.results_log = {
-    #         "experiment_name": self.experiment_name,
-    #         "dataset_name": self.dataset_name,
-    #         "model_name": self.model_name,
-    #         "testsize": TEST_SIZE,
-    #         "training_duration": None,  # To be set after training
-    #         "testing_duration": None,  # To be set after testing
-    #         "accuracy": None,
-    #         "f1_score": None,
-    #         "precision": None,
-    #         "recall": None,
-    #         "roc_auc": None,
-    #         "saving_timestamp": None,  # To be set after saving the model
-    #         "timestamp_experiment_run": pd.Timestamp.now(),
-    #     }
-
-
-    # TODO: less attributes to be called
     # for now asssue, initialized Dataset and Model in the constructor
     def __init__(self, name, dataset, dataset_name, model, model_name=None, ged_calculator=None):
         self.experiment_name = name

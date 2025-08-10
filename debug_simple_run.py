@@ -15,8 +15,9 @@ from Models.KNN_Classifer import KNN
 from Models.SVC.GED.Trivial_GED_SVC import Trivial_GED_SVC
 from Custom_Kernels.GEDLIB_kernel import GEDKernel
 from Calculators.Dummy_Calculator import Dummy_Calculator
+from Calculators.NetworkX_GED_Calculator import NetworkXGEDCalculator
 from Calculators.Base_Calculator import Base_Calculator
-# from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
+from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
 from Models.SVC.GED.GED_Diffu_SVC import DIFFUSION_GED_SVC
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from Models.SVC.GED.Zero_GED_SVC import ZERO_GED_SVC
@@ -27,9 +28,9 @@ import pandas as pd
 
 # classifier = GED_SVC(gamma=1.0, method='BIPARTITE', normalize_ged=True, similarity=True, C=1.0)
 if __name__ == "__main__":
-    ged_calculator = Dummy_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
+    ged_calculator = NetworkXGEDCalculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
     # ged_calculator = None
-    DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",load_now=False)
+    DATASET= Dataset(name="PTC_FR", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",load_now=False)
     DATASET.load()
     # classifier = ZERO_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced',KERNEL_I_size=5, KERNEL_aggregation_method="sum")
     classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',I_size=5, selection_method="random")

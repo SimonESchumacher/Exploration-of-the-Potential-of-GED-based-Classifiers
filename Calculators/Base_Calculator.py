@@ -23,27 +23,18 @@ class Base_Calculator():
             backup = Base_Calculator.backup
             self.GED_edit_cost = backup.GED_edit_cost
             self.GED_calc_method = backup.GED_calc_method
-            self.isclalculated = backup.isclalculated
-            self.dataset_edge_count = backup.dataset_edge_count
-            self.dataset_node_count = backup.dataset_node_count
+
             self.lowerbound_matrix = backup.lowerbound_matrix
             self.upperbound_matrix = backup.upperbound_matrix
-            self.dataset = backup.dataset
-            self.graphindexes = backup.graphindexes
-            self.labels = backup.labels
-            self.isactive = backup.isactive
-            self.runtime = backup.runtime
+            
+            
 
-            # if DEBUG:
-            #     print("Base_Calculator initialized from backup.")
+          
         else:
             self.GED_edit_cost = GED_edit_cost
             self.GED_calc_method = GED_calc_method
             self.isclalculated = False
-            self.dataset_edge_count = None
-            self.dataset_node_count = None
-            self.lowerbound_matrix = None # is in reality the diffrence of number of nodes
-            self.upperbound_matrix = None # is in reality the diffrence of number of edges
+
             if dataset is not None:
                 self.dataset : list[nx.Graph] = dataset
                 if labels is not None:
@@ -90,11 +81,6 @@ class Base_Calculator():
 
     def activate(self):
         self.isclalculated = False
-        self.dataset_edge_count = np.zeros(len(self.dataset))
-        self.dataset_node_count = np.zeros(len(self.dataset))
-        if DEBUG:
-            print(f"This thing is just spitting random numbers, so activating is pretty fast")
-
         self.lowerbound_matrix = np.zeros((len(self.dataset), len(self.dataset)))
         self.upperbound_matrix = np.zeros((len(self.dataset), len(self.dataset)))
         self.graphindexes = range(len(self.dataset))
@@ -123,16 +109,22 @@ class Base_Calculator():
         if not self.isactive:
             raise ValueError("Calculator is not active. Call activate() first.")
         # generate 2 random integers, the higer one is upper bound the lower one is lower bound
-        # n1 = np.random.randint(0, 100)
-        # n2 = np.random.randint(0, 100)
-        n1= 0
-        n2= 0
+        n1 = np.random.randint(0, 100)
+        n2 = np.random.randint(0, 100)
+        # n1= 0
+        # n2= 0
         if n1 > n2:
             self.upperbound_matrix[graph1_index][graph2_index] = n1
             self.lowerbound_matrix[graph1_index][graph2_index] = n2
+
+            self.upperbound_matrix[graph2_index][graph1_index] = n1
+            self.lowerbound_matrix[graph2_index][graph1_index] = n2
         else:
             self.upperbound_matrix[graph1_index][graph2_index] = n2
             self.lowerbound_matrix[graph1_index][graph2_index] = n1
+
+            self.upperbound_matrix[graph2_index][graph1_index] = n2
+            self.lowerbound_matrix[graph2_index][graph1_index] = n1
     def calculate(self):
         """
         Computes the GED matrix for the dataset.
@@ -148,11 +140,19 @@ class Base_Calculator():
             self.maxLowerBound = 0
             self.max_MeanDistance = 0
             if DEBUG:
-                iters = tqdm.tqdm(self.graphindexes, desc='Computing GED Matrix', total=len(self.graphindexes))
+                iters1 = tqdm.tqdm(self.graphindexes, desc='Computing GED Matrix', total=len(self.graphindexes))               
             else:
-                iters = self.graphindexes
-            for i in iters:
-                for j in self.graphindexes:
+                iters1 = self.graphindexes
+            for i in iters1:
+                if DEBUG:
+                    iters2 = tqdm.tqdm(range(i,len(self.graphindexes)), desc=f"Subtask {i}", leave=False)
+                else:
+                    iters2 = range(i,len(self.graphindexes))
+                for j in iters2:
+                    if i == j:
+                        self.upperbound_matrix[i][j] = 0
+                        self.lowerbound_matrix[i][j] = 0
+                        continue
                     self.run_method(i, j)
                     upper_bound = self.upperbound_matrix[i][j]
                     lower_bound = self.lowerbound_matrix[i][j]
