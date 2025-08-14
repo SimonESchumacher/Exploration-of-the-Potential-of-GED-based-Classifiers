@@ -45,7 +45,7 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
             raise ValueError(f"Unknown selection method: {self.selection_method}")
         return self.real_transform(X)
     def transform(self, X):
-       X=[int(X[i].name) for i in range(len(X))]
+       X=[int(i.name) for i in X]
        return self.real_transform(X)
     
     def real_transform(self, X):
