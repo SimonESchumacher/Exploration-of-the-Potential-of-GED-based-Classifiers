@@ -22,7 +22,7 @@ class SupportVectorMachine(GraphClassifier):
         if kernelfunction is None and kernel_type == "precomputed":
             self.kernel_type ='linear'
         #     self.kernel = "None"
-        self.kernel = kernelfunction
+        self.kernel_fuct = kernelfunction
         self.kernel_name = kernel_name
         self.C = C
         self.class_weight = class_weight
@@ -52,11 +52,11 @@ class SupportVectorMachine(GraphClassifier):
     # TODO: this does not feel like a good move
     def fit_transform(self, X, y=None):
         X = [convert_nx_to_grakel_graph(g) for g in X]
-        return self.kernel.fit_transform(X)
+        return self.kernel_fuct.fit_transform(X)
     # TODO: this does not feel like a good move
     def transform(self, X):
         X = [convert_nx_to_grakel_graph(g) for g in X]
-        return self.kernel.transform(X)
+        return self.kernel_fuct.transform(X)
     def get_params(self, deep=True):
         return super().get_params(deep)
     def set_params(self, **params):
@@ -73,8 +73,8 @@ class SupportVectorMachine(GraphClassifier):
             elif parameter.startswith('classifier_'):
                 self.classifier.set_params(**{parameter.split('_', 1)[1]: value})
             # Pass kernel__* params to kernel
-            elif parameter.startswith('KERNEL_') and hasattr(self.kernel, 'set_params'):
-                self.kernel.set_params(**{parameter.split('_', 1)[1]: value})
+            elif parameter.startswith('KERNEL_') and hasattr(self.kernel_fuct, 'set_params'):
+                self.kernel_fuct.set_params(**{parameter.split('_', 1)[1]: value})
             else:
                 # Fallback to parent class
                 super().set_params(**{parameter: value})
@@ -141,7 +141,7 @@ class SupportVectorMachine(GraphClassifier):
         param_grid = GraphClassifier.get_param_grid()
         param_grid.update({
             'C': [0.1, 0.5],
-            'kernel_type': ['poly', 'precomputed'],
+            'kernel_type': ['poly', 'linear'],
             # 'kernel_type': ['linear', 'poly', 'rbf', 'sigmoid', 'precomputed'],
             'class_weight': [None, 'balanced'],
         })

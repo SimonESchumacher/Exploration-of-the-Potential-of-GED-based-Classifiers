@@ -309,6 +309,8 @@ def select_Prototype(G, ged_calculator:Base_Calculator, selection_method="CPS",s
         return select_SpanningTree(G, ged_calculator=ged_calculator, size=size)
     elif selection_method == "k-CPS":
         return select_k_Centers(G, ged_calculator=ged_calculator, size=size)
+    else:
+        raise ValueError(f"Unknown selection method: {selection_method}")
     
 def Composite_Selection(G, ged_calculator:Base_Calculator, composite_set:set=set(), size=3):
     """

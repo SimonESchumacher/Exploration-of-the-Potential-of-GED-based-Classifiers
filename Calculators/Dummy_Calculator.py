@@ -66,6 +66,19 @@ class Dummy_Calculator(Base_Calculator):
             #, "gamma": [0.1, 0.5, 1.0]
         }
     
+class Dummy_Calculator2D(Dummy_Calculator):
+    def run_method(self, graph1_index, graph2_index):
+        
+        cords_graph1 =np.array(math.fabs(self.count_edges(graph1_index)), math.fabs(self.count_nodes(graph1_index)))
+        cords_graph2 =np.array(math.fabs(self.count_edges(graph2_index)), math.fabs(self.count_nodes(graph2_index)))
+        # Euclidean distance between the two points
+        distance = ((cords_graph1[0] - cords_graph2[0]) ** 2 + (cords_graph1[1] - cords_graph2[1]) ** 2)
+        self.upperbound_matrix[graph1_index][graph2_index] = distance
+        self.lowerbound_matrix[graph1_index][graph2_index] = distance
+
+        self.upperbound_matrix[graph2_index][graph1_index] = self.upperbound_matrix[graph1_index][graph2_index]
+        self.lowerbound_matrix[graph2_index][graph1_index] = self.lowerbound_matrix[graph1_index][graph2_index]
+        
     
     
     
