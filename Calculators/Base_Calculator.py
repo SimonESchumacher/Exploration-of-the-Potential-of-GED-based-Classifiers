@@ -12,8 +12,8 @@ DEBUG = True
 class Base_Calculator():
     # add class variable, as copy of itself for backup
     backup = None
-    
-    def __init__(self, GED_edit_cost="CONSTANT", GED_calc_method="BIPARTITE", dataset=None, labels=None, activate: bool = True):
+
+    def __init__(self, GED_edit_cost="CONSTANT", GED_calc_method="BIPARTITE", dataset=None, labels=None, activate: bool = True, need_node_map: bool = False, **kwargs):
         """
         Initialize the Dummy_Calculator with the specified edit cost and method.
 
@@ -37,15 +37,15 @@ class Base_Calculator():
 
             self.lowerbound_matrix = backup.lowerbound_matrix
             self.upperbound_matrix = backup.upperbound_matrix
-            
-            
+            self.need_node_map = backup.need_node_map
+            self.node_map_matrix = backup.node_map_matrix if hasattr(backup, 'node_map_matrix') else None
 
           
         else:
             self.GED_edit_cost = GED_edit_cost
             self.GED_calc_method = GED_calc_method
             self.isclalculated = False
-
+            self.need_node_map = need_node_map
             if dataset is not None:
                 self.dataset : list[nx.Graph] = dataset
                 if labels is not None:
@@ -94,6 +94,10 @@ class Base_Calculator():
         self.isclalculated = False
         self.lowerbound_matrix = np.zeros((len(self.dataset), len(self.dataset)))
         self.upperbound_matrix = np.zeros((len(self.dataset), len(self.dataset)))
+        if self.need_node_map:
+            self.node_map_matrix = [[None for _ in range(len(self.dataset))] for _ in range(len(self.dataset))]
+        else:
+            self.node_map_matrix = None
         self.graphindexes = range(len(self.dataset))
         self.isactive = True
         return self.graphindexes
@@ -136,6 +140,12 @@ class Base_Calculator():
 
             self.upperbound_matrix[graph2_index][graph1_index] = n2
             self.lowerbound_matrix[graph2_index][graph1_index] = n1
+        if self.need_node_map:         
+           node_map = []
+           self.node_map_matrix[graph1_index][graph2_index] = node_map  # Dummy implementation, as gedlibpy is not available in this context
+           self.node_map_matrix[graph2_index][graph1_index] = node_map  # Dummy implementation, as gedlibpy is not available in this context
+           raise NotImplementedError("Node map functionality is not implemented in Base_Calculator.")
+
     def calculate(self):
         """
         Computes the GED matrix for the dataset.
@@ -155,16 +165,13 @@ class Base_Calculator():
             else:
                 iters1 = self.graphindexes
             for i in iters1:
-                if DEBUG:
-                    iters2 = tqdm.tqdm(range(i,len(self.graphindexes)), desc=f"Subtask {i}", leave=False)
-                else:
-                    iters2 = range(i,len(self.graphindexes))
+                iters2 = range(i,len(self.graphindexes))
                 for j in iters2:
-                    if i < 20:
-                        continue
                     if i == j:
                         self.upperbound_matrix[i][j] = 0
                         self.lowerbound_matrix[i][j] = 0
+                        if self.need_node_map:
+                            self.node_map_matrix[i][j] = [(n, n) for n in range(self.dataset[i].number_of_nodes())]
                         continue
                     self.run_method(i, j)
                     upper_bound = self.upperbound_matrix[i][j]
@@ -188,7 +195,11 @@ class Base_Calculator():
     def get_upper_bound(self, graph1_index, graph2_index):
         return self.upperbound_matrix[graph1_index][graph2_index]
     def get_node_map(self, graph1_index, graph2_index):
-        return None  # Dummy implementation, as gedlibpy is not available in this context
+        if not self.isactive:
+            raise ValueError("Calculator is not active. Call activate() first.")
+        if not self.need_node_map:
+            raise ValueError("Node map was not requested during initialization (need_node_map=False).")
+        return self.node_map_matrix[graph1_index][graph2_index]
     def get_all_map(self, graph1_index, graph2_index):
         return None  # Dummy implementation, as gedlibpy is not available in this context
     def get_forward_map(self, graph1_index, graph2_index):

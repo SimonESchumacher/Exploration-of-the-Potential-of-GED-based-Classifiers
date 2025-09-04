@@ -613,6 +613,16 @@ class Dataset:
         """ Returns the label distribution of the dataset.
         """
         return self.characteristics['label_distribution']
+    def get_graphs(self):
+        """ Returns the list of graphs in the dataset.
+        """
+        return self.nx_graphs
+    def get_targets(self):
+        """ Returns the target labels of the dataset.
+        """
+        return self.target
+    def get_graph_pair(self, index):
+        return self.nx_graphs[index], self.target[index]
     
 
    

@@ -17,23 +17,25 @@ from Custom_Kernels.GEDLIB_kernel import GEDKernel
 from Calculators.Dummy_Calculator import Dummy_Calculator
 from Calculators.NetworkX_GED_Calculator import NetworkXGEDCalculator
 from Calculators.Base_Calculator import Base_Calculator
-# from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
+from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
 from Models.SVC.GED.GED_Diffu_SVC import DIFFUSION_GED_SVC
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from Models.SVC.GED.Zero_GED_SVC import ZERO_GED_SVC
 from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
 from Models.KNN.GEDLIB_KNN import GED_KNN
+from Models.SVC.GED.RandomWalk_edit import Random_walk_edit_SVC
 # from Models.GED_KNN import GED_KNN
 import pandas as pd
 
 # classifier = GED_SVC(gamma=1.0, method='BIPARTITE', normalize_ged=True, similarity=True, C=1.0)
 if __name__ == "__main__":
-    ged_calculator = NetworkXGEDCalculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
+    ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT", need_node_map=True)
     # ged_calculator = None
     DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",load_now=False)
     DATASET.load()
     # classifier = ZERO_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced',KERNEL_I_size=5, KERNEL_aggregation_method="sum")
-    classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',I_size=5, selection_method="random")
+    # classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',I_size=5, selection_method="random")
+    classifier = Random_walk_edit_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", KERNEL_decay_lambda=0.1, KERNEL_max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
     # classifier = Base_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced')
     # classifier = DIFFUSION_GED_SVC(C=1.0, KERNEL_llambda=1.0, ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", KERNEL_diffusion_function="exp_diff_kernel", class_weight='balanced')
     # classifier = GED_KNN(ged_calculator=ged_calculator, comparison_method="Mean-Similarity", n_neighbors=5, weights='uniform', algorithm='auto')    
@@ -65,7 +67,10 @@ if __name__ == "__main__":
                                 dataset_name=DATASET.name,
                                 model=classifier,
                                 model_name=classifier.get_name)
+    start_time = pd.Timestamp.now()
     accuracy, report = exp_instance.run_simple()
+    runtime = pd.Timestamp.now() - start_time
+    print(f"Experiment completed in {runtime}")
 # accuracy, report = exp_instance.run_kfold()
 # print(report)
 

@@ -50,7 +50,11 @@ class Dummy_Calculator(Base_Calculator):
 
         self.upperbound_matrix[graph2_index][graph1_index] = self.upperbound_matrix[graph1_index][graph2_index]
         self.lowerbound_matrix[graph2_index][graph1_index] = self.lowerbound_matrix[graph1_index][graph2_index]
-
+        if self.need_node_map:
+            node_map = []
+            self.node_map_matrix[graph1_index][graph2_index] = node_map
+            self.node_map_matrix[graph2_index][graph1_index] = node_map
+            raise NotImplementedError("Node map functionality is not implemented in Dummy_Calculator.")
     @classmethod
     def get_param_grid(cls):
         """
