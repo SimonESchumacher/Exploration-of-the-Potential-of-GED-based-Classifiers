@@ -24,7 +24,7 @@ from Models.SVC.GED.Zero_GED_SVC import ZERO_GED_SVC
 from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
 from Models.KNN.GEDLIB_KNN import GED_KNN
 from Models.SVC.GED.RandomWalk_edit import Random_walk_edit_SVC
-from Models.SVC.GED.simiple_prototype_GED_SVC2 import Simple_Prototype_GED_SVC2
+
 # from Models.GED_KNN import GED_KNN
 import pandas as pd
 
@@ -32,19 +32,21 @@ import pandas as pd
 if __name__ == "__main__":
     ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
     # ged_calculator = None
-    DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",load_now=False)
+    DATASET= Dataset(name="ENZYMES", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",load_now=False)
     DATASET.load()
-    # classifier = ZERO_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced',KERNEL_I_size=5, KERNEL_aggregation_method="sum")
+
+    # classifier = ZERO_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="precomputed", KERNEL_classwise=False,KERNEL_I_size=8, KERNEL_aggregation_method="sum")
     # classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',I_size=5, selection_method="random")
     # classifier = Random_walk_edit_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", KERNEL_decay_lambda=0.1, KERNEL_max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
-    classifier = Simple_Prototype_GED_SVC2(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',I_size=5, selection_method="RPS")
+    # classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',KERNEL_prototype_size=5, KERNEL_selection_method="RPS", KERNEL_classwise=False, KERNEL_single_class=False)
+
     # classifier = Base_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced')
     # classifier = DIFFUSION_GED_SVC(C=1.0, KERNEL_llambda=1.0, ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", KERNEL_diffusion_function="exp_diff_kernel", class_weight='balanced')
     # classifier = GED_KNN(ged_calculator=ged_calculator, comparison_method="Mean-Similarity", n_neighbors=5, weights='uniform', algorithm='auto')    
     # Kernel = Trivial_GED_Kernel(ged_calculator=ged_calculator, comparison_method="Mean-Distance", similarity_function="k1")
     # Kernel = GEDKernel(ged_calculator=ged_calculator, comparison_method="Mean-Similarity")
     # classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", class_weight='balanced', C=1.0)
-    # classifier = NX_Histogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=DATASET.get_edge_labels, get_node_labels=DATASET.get_node_labels,Histogram_Type="combined")
+    classifier = NX_Histogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=DATASET.get_edge_labels, get_node_labels=DATASET.get_node_labels,Histogram_Type="combined")
     # Kernel = GEDKernel(method="BRANCH", edit_cost="CONSTANT",comparison_method="Mean-Similarity")
     # classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", C=1.0)
     # ged_calculator = classifier.get_calculator()
@@ -68,7 +70,8 @@ if __name__ == "__main__":
                             dataset=DATASET,
                                 dataset_name=DATASET.name,
                                 model=classifier,
-                                model_name=classifier.get_name)
+                                model_name=classifier.get_name
+                                ,ged_calculator=ged_calculator)
     start_time = pd.Timestamp.now()
     accuracy, report = exp_instance.run_simple()
     runtime = pd.Timestamp.now() - start_time

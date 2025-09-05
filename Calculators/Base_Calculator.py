@@ -78,7 +78,8 @@ class Base_Calculator():
                 raise ValueError("Labels length must match the number of graphs.")
             self.labels.extend(labels)  
         self.graphindexes = range(len(self.dataset))
-      
+    def get_Name(self):
+        return "Base_Calculator"
 
     def set_method(self,GED_calc_method):
         self.GED_calc_method = GED_calc_method

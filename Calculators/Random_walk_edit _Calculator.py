@@ -22,7 +22,8 @@ class Random_walk_edit_Calculator(GEDLIB_Calculator):
 
         self.sum_bulid_product_graph_time = 0
         self.sum_random_walk_time = 0
-
+    def get_Name(self):
+        return "Random_walk_edit_Calculator"
     def run_method(self, graph1_index, graph2_index):
         if not self.isactive:
             raise ValueError("Calculator is not active. Call activate() first.")

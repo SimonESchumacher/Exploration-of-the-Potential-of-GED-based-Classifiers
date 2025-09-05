@@ -311,8 +311,8 @@ def select_Prototype(G, ged_calculator:Base_Calculator, selection_method="CPS",s
         return select_k_Centers(G, ged_calculator=ged_calculator, size=size)
     else:
         raise ValueError(f"Unknown selection method: {selection_method}")
-    
-def Composite_Selection(G, ged_calculator:Base_Calculator, composite_set:set=set(), size=3):
+
+def unstratified_Composite_Selection(G, ged_calculator:Base_Calculator, composite_set:set=set(), size=3):
     """
     Selects a composite prototype from the given graphs G using the specified composite set.
     """
@@ -320,6 +320,8 @@ def Composite_Selection(G, ged_calculator:Base_Calculator, composite_set:set=set
         # If no composite set is provided, use a default selection method
         return select_CPS(G, ged_calculator=ged_calculator, size=size)
     else:
+        if isinstance(composite_set, str):
+            composite_set={composite_set: size}
         # the set must have a the psoibilites a long  with the number of graphs for that method
         # the sum of the numbers must add up to the size
         prototypes=[]
@@ -328,3 +330,89 @@ def Composite_Selection(G, ged_calculator:Base_Calculator, composite_set:set=set
         for method, count in composite_set.items():
             prototypes.extend(select_Prototype(G, ged_calculator=ged_calculator, selection_method=method, size=count))
         return prototypes
+
+def Composite_Selection(G, ged_calculator: Base_Calculator, y=None, composite_set: set = set(), size=3):
+    """
+    Selects a composite prototype from the given graphs G using the specified composite set.
+    """
+    if y is None:
+        return unstratified_Composite_Selection(G, ged_calculator=ged_calculator, composite_set=composite_set, size=size)
+    else:
+        # stratified selection
+        unique_classes = np.unique(y)
+        num_classes = len(unique_classes)
+        if size < num_classes:
+            raise ValueError(f"Size {size} must be at least the number of classes {num_classes}")
+        # we divide the size by the number of classes to get the number of prototypes per class
+        size_per_class = size // num_classes
+        prototypes = []
+        for cls in unique_classes:
+            # get the graphs of the current class
+            G_cls = [G[i] for i in range(len(G)) if y[i] == cls]
+            if len(G_cls) < size_per_class:
+                raise ValueError(f"Not enough graphs in class {cls} to select {size_per_class} prototypes")
+            prototypes.extend(unstratified_Composite_Selection(G_cls, ged_calculator=ged_calculator, composite_set=composite_set, size=size_per_class))
+        return prototypes
+def single_class_prototype_selection(G, ged_calculator: Base_Calculator, y=None, selection_method="CPS", size=3):
+    """
+    Selects prototypes form the most popular class in y using the specified selection method.
+    """
+    if y is None:
+        return select_Prototype(G, ged_calculator=ged_calculator, selection_method=selection_method, size=size)
+    else:
+        # stratified selection
+        unique_classes = np.unique(y)
+        # find the most popular class
+        class_counts = {cls: np.sum(y == cls) for cls in unique_classes}
+        most_popular_class = max(class_counts, key=class_counts.get)
+        # get the graphs of the most popular class
+        G_cls = [G[i] for i in range(len(G)) if y[i] == most_popular_class]
+        if len(G_cls) < size:
+            raise ValueError(f"Not enough graphs in class {most_popular_class} to select {size} prototypes")
+    
+        return select_Prototype(G_cls, ged_calculator=ged_calculator, selection_method=selection_method, size=size)
+def Select_Prototypes(G, ged_calculator: Base_Calculator, y=None, classwise=False, single_class=False, selection_method="CPS", size=3, comparison_method="Mean-Distance"):
+    """
+    Selects prototypes from the given graphs G using the specified selection method.
+    """
+    if classwise and single_class:
+        raise ValueError("classwise and single_class cannot be both True")
+    if ged_calculator is None:
+        raise ValueError("ged_calculator must be provided")
+    if size < 1:
+        raise ValueError("size must be at least 1")
+    if selection_method not in ["CPS", "RPS", "BPS", "TPS", "SPS", "k-CPS"]:
+        raise ValueError(f"Unknown selection method: {selection_method}")
+    if single_class:
+        return single_class_prototype_selection(G, ged_calculator=ged_calculator, y=y, selection_method=selection_method, size=size)
+    elif classwise:
+        return Composite_Selection(G, ged_calculator=ged_calculator, y=y, composite_set=selection_method, size=size)
+    else:
+        return unstratified_Composite_Selection(G, ged_calculator=ged_calculator, composite_set=selection_method, size=size)
+
+class Prototype_Selector:
+    def __init__(self, ged_calculator: Base_Calculator = None, size=3, selection_method="CPS", classwise=False, single_class=False):
+        self.ged_calculator = ged_calculator
+        self.size = size
+        self.selection_method = selection_method
+        self.classwise = classwise
+        self.single_class = single_class
+        self.attributes = {"size": size, "selection_method": selection_method, "classwise": classwise, "single_class": single_class}
+        if self.classwise and self.single_class:
+            raise ValueError("classwise and single_class cannot be both True")
+        if self.ged_calculator is None:
+            raise ValueError("ged_calculator must be provided")
+        if self.size < 1:
+            raise ValueError("size must be at least 1")
+        if self.selection_method not in ["CPS", "RPS", "BPS", "TPS", "SPS", "k-CPS"]:
+            raise ValueError(f"Unknown selection method: {self.selection_method}")
+        if single_class:
+            self.method=lambda G, y=None: single_class_prototype_selection(G, ged_calculator=self.ged_calculator, y=y, selection_method=self.selection_method, size=self.size)
+        elif classwise:
+            self.method=lambda G, y=None: Composite_Selection(G, ged_calculator=self.ged_calculator, y=y, composite_set=selection_method, size=self.size)
+        else:
+            self.method=lambda G, y=None: unstratified_Composite_Selection(G, ged_calculator=self.ged_calculator, y=y, composite_set=selection_method, size=self.size)
+    def select(self, G, y=None):
+        return self.method(G, y=y)
+    def get_attributes(self):
+        return self.attributes

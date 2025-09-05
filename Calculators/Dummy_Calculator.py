@@ -29,7 +29,8 @@ class Dummy_Calculator(Base_Calculator):
             # self.dataset_edge_count[idx]= idx +1
             # self.dataset_node_count[idx]= idx
         return super().activate()
-
+    def get_Name(self):
+        return "Dummy_Calculator"
     def count_nodes(self, graph_index):
         """Counts the number of nodes in the specified graph."""
         if not self.isactive:

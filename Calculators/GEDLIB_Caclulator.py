@@ -56,7 +56,8 @@ class GEDLIB_Calculator(Base_Calculator):
     def get_node_image(self, graph1_index, graph2_index,node_index):
         return gedlibpy.get_node_image(graph1_index, graph2_index,node_index)
     # special funtions handmade
-
+    def get_Name(self):
+        return "GEDLIB_Calculator"
     @classmethod
     def get_param_grid(cls):
         """
