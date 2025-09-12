@@ -30,9 +30,9 @@ import pandas as pd
 
 # classifier = GED_SVC(gamma=1.0, method='BIPARTITE', normalize_ged=True, similarity=True, C=1.0)
 if __name__ == "__main__":
-    ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
-    # ged_calculator = None
-    DATASET= Dataset(name="ENZYMES", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",load_now=False)
+    # ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
+    ged_calculator = None
+    DATASET= Dataset(name="Letter-high", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",load_now=False)
     DATASET.load()
 
     # classifier = ZERO_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="precomputed", KERNEL_classwise=False,KERNEL_I_size=8, KERNEL_aggregation_method="sum")
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     # Kernel = Trivial_GED_Kernel(ged_calculator=ged_calculator, comparison_method="Mean-Distance", similarity_function="k1")
     # Kernel = GEDKernel(ged_calculator=ged_calculator, comparison_method="Mean-Similarity")
     # classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", class_weight='balanced', C=1.0)
-    classifier = NX_Histogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=DATASET.get_edge_labels, get_node_labels=DATASET.get_node_labels,Histogram_Type="combined")
+    # classifier = NX_Histogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=DATASET.get_edge_labels, get_node_labels=DATASET.get_node_labels,Histogram_Type="combined")
     # Kernel = GEDKernel(method="BRANCH", edit_cost="CONSTANT",comparison_method="Mean-Similarity")
     # classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", C=1.0)
     # ged_calculator = classifier.get_calculator()
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     # define the model
 
     # classifier = WeisfeilerLehman_SVC(n_iter=5,C=1.0, normalize_kernel=True) # You can tune n_iter and normalize
-    # classifier = CombinedHistogram_SVC(kernel_type="rbf",C=1.0)
+    classifier = CombinedHistogram_SVC(kernel_type="rbf",C=1.0)
     # classifier = GED_SVC(gamma=1.0, node_del_cost=1.0, node_ins_cost=1.0, edge_del_cost=1.0, edge_ins_cost=1.0, approximation=None, kernel_type="rbf", C=0.1)
     # classifier = Blind_Classifier()
     # classifier = Random_Classifier(random_state=42, strategy='uniform', constant=None)
@@ -86,4 +86,4 @@ if __name__ == "__main__":
     print()
     print("Starting hyperparameter tuning...")
 
-    results ,best_model, best_params = exp_instance.run_hyperparameter_tuning(tuning_method='grid', scoring='f1', cv=5, verbose=1, n_jobs=1)
+    results ,best_model, best_params = exp_instance.run_hyperparameter_tuning(tuning_method='grid', scoring='accuracy', cv=5, verbose=1, n_jobs=1)

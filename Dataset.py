@@ -50,7 +50,7 @@ def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", u
     # Load graph labels
     with open(graph_labels_file, 'r') as f:
         graph_labels_raw = [int(line.strip()) for line in f]
-    y = np.array([(1 if label == 1 else 0) for label in graph_labels_raw])
+    y = np.array([label for label in graph_labels_raw])
     print(f"Loaded {len(y)} graph labels.")
 
     # Try to load node labels if available
@@ -205,7 +205,7 @@ def load_dataset_into_networkx_multi(data_dir, dataset_name, use_node_labels="la
     # Load graph labels
     with open(graph_labels_file, 'r') as f:
         graph_labels_raw = [int(line.strip()) for line in f]
-    y = np.array([(1 if label == 1 else 0) for label in graph_labels_raw])
+    y = np.array([label for label in graph_labels_raw])
     print(f"Loaded {len(y)} graph labels.")
 
     # Try to load node labels if available
