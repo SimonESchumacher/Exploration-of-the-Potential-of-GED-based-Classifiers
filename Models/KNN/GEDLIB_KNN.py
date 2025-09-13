@@ -20,7 +20,7 @@ class GED_KNN(KNN):
 
     def __init__(self,
                  ged_calculator:Base_Calculator=None, comparison_method="Mean-Similarity",
-                 attributes : dict=dict() ,**kwargs):
+                 attributes : dict=dict(),similarity=False ,**kwargs):
         """
         Initialize the GED K-NN Classifier with the given parameters.
         """
@@ -28,6 +28,7 @@ class GED_KNN(KNN):
         self.ged_calculator = ged_calculator
         self.comparison_method = comparison_method
         self.node_del_cost = 1.0
+        self.similarity = similarity
         attributes.update({
             "ged_calculator": ged_calculator.get_name() if ged_calculator else "None",
             "comparison_method": comparison_method
@@ -48,6 +49,8 @@ class GED_KNN(KNN):
         """
         self.X_fit =X
         distance_matrix=self.ged_calculator.get_complete_matrix(method=self.comparison_method,x_graphindexes=self.X_fit)
+        self.max_distance = distance_matrix.max() 
+        similarity_matrix = self.max_distance - distance_matrix
         if DEBUG:
             print(f"Fitting {len(X)} graphs into distance matrix.")
             print("Fitted Graphs:")
@@ -56,7 +59,8 @@ class GED_KNN(KNN):
             print(distance_matrix)
             print("Initial Data")
             print(X)
-        
+        if self.similarity:
+            return similarity_matrix
         return distance_matrix
     def transform(self, X):
         """
@@ -68,8 +72,11 @@ class GED_KNN(KNN):
             print(self.X_fit)
             print(X)
         distance_matrix = self.ged_calculator.get_complete_matrix(method=self.comparison_method, x_graphindexes=X, y_graphindexes=self.X_fit)
+        similarity_matrix = self.max_distance - distance_matrix 
         if DEBUG:
             print("Transformed Data:")
+        if self.similarity:
+            return similarity_matrix
         return distance_matrix
     def get_params(self,deep=True):
         """

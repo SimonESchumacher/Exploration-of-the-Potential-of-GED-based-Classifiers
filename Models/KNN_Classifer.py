@@ -165,11 +165,11 @@ class KNN(GraphClassifier):
         param_grid = GraphClassifier.get_param_grid()
         param_grid.update({
             'n_neighbors': [1, 3, 5],
-            # 'weights': ['uniform', 'distance'],
+            'weights': ['uniform', 'distance'],
             # 'algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute'],
             # 'leaf_size': [10, 20, 30, 40, 50],
-            # 'metric': ['euclidean', 'manhattan', 'minkowski', 'chebyshev','precomputed']
-            'metric': ['euclidean','precomputed']  # KNN with precomputed metric
+            'metric': ['euclidean', 'precomputed']
+            # 'metric': ['euclidean','precomputed']  # KNN with precomputed metric
         })
 
         return param_grid

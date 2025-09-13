@@ -91,11 +91,11 @@ class ZERO_GED_Kernel(Base_Kernel):
         param_grid = Base_Kernel.get_param_grid()
         param_grid.update({
             "KERNEL_I_size": [1,  3,  5,10],
-            # "KERNEL_aggregation_method": ["sum", "prod"],
-            # "KERNEL_classwise": [False, True],
-            # "KERNEL_single_class": [False, True],
-            "KERNEL_selection_method": ["RPS", "CPS","BPS","TPS","SPS","k-CPS"]
-            # "seletion_method": ["random", "statified_random"]
+            "KERNEL_aggregation_method": ["sum", "prod"],
+            "KERNEL_classwise": [False, True],
+            "KERNEL_single_class": [False, True],
+            "KERNEL_selection_method": ["RPS", "CPS","BPS","TPS","SPS","k-CPS"],
+            "selection_method": ["random", "statified_random"]
         })
         return param_grid
 

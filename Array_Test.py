@@ -25,17 +25,20 @@ from Models.KNN.GEDLIB_KNN import GED_KNN
 import pandas as pd
 
 if __name__ == "__main__":
+    ged_calculator = GEDLIB_Calculator(GED_calc_method="BRANCH", GED_edit_cost="CONSTANT",need_node_map=True)
     # ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
-    ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
     # ged_calculator = Base_Calculator()
-    DATASET= Dataset(name="ENZYMES", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="label",load_now=False)
+    # ged_calculator = "GEDLIB_Calculator"
+
+    DATASET= Dataset(name="PTC_FR", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="label",load_now=False)
     DATASET.load()
+    ged_calculator = DATASET.get_calculator()
     classifiers: list[GraphClassifier] = [
         WeisfeilerLehman_SVC(n_iter=5,C=1.0, normalize_kernel=True), 
         VertexHistogram_SVC(),
         EdgeHistogram_SVC(kernel_type='precomputed'),
         CombinedHistogram_SVC(kernel_type='precomputed'),
-        NX_Histogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=DATASET.get_edge_labels, get_node_labels=DATASET.get_node_labels,Histogram_Type="combined"),
+        # NX_Histogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=DATASET.get_edge_labels, get_node_labels=DATASET.get_node_labels,Histogram_Type="combined"),
         Blind_Classifier(),
         Random_Classifier(),
         GED_KNN(ged_calculator=ged_calculator, comparison_method="Mean-Distance", n_neighbors=1, weights='uniform', algorithm='auto'),
@@ -50,10 +53,10 @@ if __name__ == "__main__":
         
         print(f"Running experiment for {classifier.__class__.__name__}")
         expi=experiment(f"{classifier.__class__.__name__}",DATASET,dataset_name=DATASET.name,model=classifier,model_name=classifier.get_name,ged_calculator=ged_calculator)
-        # accuracy, report = expi.run_simple()
+        accuracy, report = expi.run_simple()
         # accuracy, report = expi.run_kfold(k=5)
         print(classifier.get_name)
-        results ,best_model, best_params = expi.run_hyperparameter_tuning(tuning_method='grid', scoring='f1', cv=5, verbose=1, n_jobs=2)
+        results ,best_model, best_params = expi.run_hyperparameter_tuning(tuning_method='grid', scoring='accuracy', cv=5, verbose=1, n_jobs=8)
         del classifier
         del expi
 

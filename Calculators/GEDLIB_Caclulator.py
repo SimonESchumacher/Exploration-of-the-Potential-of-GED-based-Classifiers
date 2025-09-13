@@ -9,7 +9,6 @@ import sys
 import os
 # add the current directory to the system path
 sys.path.append(os.getcwd())
-print("Current Calck Directory:", os.getcwd())
 from gedlibpy import librariesImport
 from gedlibpy import gedlibpy
 from Calculators.Base_Calculator import Base_Calculator

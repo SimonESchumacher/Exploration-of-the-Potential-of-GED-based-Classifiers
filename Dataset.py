@@ -153,15 +153,15 @@ def _build_single_graph(
     Helper function to build a single NetworkX graph.
     This function will be executed by a worker process.
     """
-    G = nx.Graph()
+    G = nx.Graph(name=f"{graph_index}")
     if not nodes_in_graph.size == 0:
         # Add nodes with optional labels and attributes
         for node_idx_global in nodes_in_graph:
             node_data = {}
             if USE_NODE_LABELS and node_labels:
-                node_data["label"] = str(node_labels[node_idx_global])
+                node_data["label"] = str(node_labels.get(node_idx_global, None))
             if USE_NODE_ATTRIBUTES and node_attributes and use_node_attributes:
-                node_data[use_node_attributes] = str(node_attributes[node_idx_global])
+                node_data[use_node_attributes] = str(node_attributes.get(node_idx_global, None))
             G.add_node(node_idx_global, **node_data)
         
         # Add edges within the current graph with optional labels and attributes
@@ -185,24 +185,23 @@ def _build_single_graph(
 
 def load_dataset_into_networkx_multi(data_dir, dataset_name, use_node_labels="label", use_edge_labels="label", use_node_attributes:str=None, use_edge_attributes:str=None):
     """
-    General function to load datasets into NetworkX using multiprocessing.
+    General function to load datasets into NetworkX.
+    Handles cases where node labels or edge labels may be missing.
     """
     print(f"Loading {dataset_name} into NetworkX from {data_dir}...")
     adj_file = os.path.join(data_dir, f"{dataset_name}_A.txt")
     graph_indicator_file = os.path.join(data_dir, f"{dataset_name}_graph_indicator.txt")
     graph_labels_file = os.path.join(data_dir, f"{dataset_name}_graph_labels.txt")
 
-    # Load edges
+    # Load edges 
     with open(adj_file, 'r') as f:
         edges_raw = [list(map(int, line.strip().split(','))) for line in f]
-    edges = [(u - 1, v - 1) for u, v in edges_raw]
+    edges = [(u - 1, v - 1) for u, v in edges_raw]  # Convert to 0-indexed
     print(f"Loaded {len(edges)} edges.")
-
     # Load node-to-graph mapping
     with open(graph_indicator_file, 'r') as f:
         node_to_graph_map = np.array([int(line.strip()) for line in f]) - 1
     print(f"Loaded {len(node_to_graph_map)} node-to-graph mappings.")
-    
     # Load graph labels
     with open(graph_labels_file, 'r') as f:
         graph_labels_raw = [int(line.strip()) for line in f]
@@ -212,6 +211,7 @@ def load_dataset_into_networkx_multi(data_dir, dataset_name, use_node_labels="la
     # Try to load node labels if available
     node_labels = None
     if USE_NODE_LABELS and use_node_labels is not None:
+        # if use_node_labels is a boolean of value True, we assume labels are in the format "label"
         if use_node_labels is True:
             use_node_labels = "label"
         node_labels_file = os.path.join(data_dir, f"{dataset_name}_node_labels.txt")
@@ -230,10 +230,11 @@ def load_dataset_into_networkx_multi(data_dir, dataset_name, use_node_labels="la
         if os.path.exists(edge_labels_file):
             with open(edge_labels_file, 'r') as f:
                 edge_labels_raw = [int(line.strip()) for line in f]
+            # edge labels should be mapped to their node pair
             edge_labels = {(u, v): label for (u, v), label in zip(edges, edge_labels_raw)}
             print(f"Loaded edge labels for {len(edge_labels)} edges.")
     
-    # Try to load node attributes if available
+    # Try to load node attributes if availabl
     node_attributes = None
     if USE_NODE_ATTRIBUTES and use_node_attributes is not None:
         node_attributes_file = os.path.join(data_dir, f"{dataset_name}_node_attributes.txt")
@@ -252,7 +253,6 @@ def load_dataset_into_networkx_multi(data_dir, dataset_name, use_node_labels="la
                 edge_attributes_raw = [list(map(float, line.strip().split(','))) for line in f]
             edge_attributes = {i: attr for i, attr in enumerate(edge_attributes_raw)}
             print(f"Loaded edge attributes for {len(edge_attributes)} edges.")
-
     # --- Start of parallelization ---
     num_graphs = np.max(node_to_graph_map) + 1
     
@@ -286,7 +286,7 @@ def load_dataset(source,name,use_node_labels=None,use_node_attributes=None,use_e
     # dataset_path = f"{LOCAL_DATA_PATH}/{source}/{name}"
     if source == 'TUD':
         try:       
-            nx_graphs, y = load_dataset_into_networkx(dataset_path, name, use_node_labels=use_node_labels, use_node_attributes=use_node_attributes, use_edge_labels=use_edge_labels, use_edge_attributes=use_edge_attributes)  
+            nx_graphs, y = load_dataset_into_networkx_multi(dataset_path, name, use_node_labels=use_node_labels, use_node_attributes=use_node_attributes, use_edge_labels=use_edge_labels, use_edge_attributes=use_edge_attributes)  
         except FileNotFoundError as e:
             print(f"Error: {e}")
             print(f"The Dataset '{name}' could not be loaded from directory: {dataset_path}")

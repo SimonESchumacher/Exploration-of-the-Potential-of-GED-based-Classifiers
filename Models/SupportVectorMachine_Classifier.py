@@ -140,7 +140,7 @@ class SupportVectorMachine(GraphClassifier):
     def get_param_grid(cls):
         param_grid = GraphClassifier.get_param_grid()
         param_grid.update({
-            'C': [0.1, 0.5],
+            'C': [0.1, 0.5,0.25, 0.75],
             # 'kernel_type': ['poly', 'linear'],
             "kernel_type": ['precomputed'],
             # 'kernel_type': ['linear', 'poly', 'rbf', 'sigmoid', 'precomputed'],

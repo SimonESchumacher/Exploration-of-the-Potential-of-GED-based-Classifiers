@@ -182,7 +182,10 @@ class experiment:
         self.results_log["testing_duration"] = datetime.now() - test_start_time
         accuracy = accuracy_score(y_test, y_pred)
         f1 = f1_score(y_test, y_pred, average=REPORT_SETTING)
-        roc_auc = roc_auc_score(y_test, y_pred, multi_class='ovr')
+        try:
+            roc_auc = roc_auc_score(y_test, y_pred, multi_class='ovr')
+        except np.AxisError:
+            roc_auc = 0.0
         precision = precision_score(y_test, y_pred, average=REPORT_SETTING)
         recall = recall_score(y_test, y_pred, average=REPORT_SETTING)
         # maybe i shoudl split this to a defirent file and make a diffrence between k_fold and simple
@@ -319,7 +322,10 @@ class experiment:
         f1 = f1_score(y_test, y_pred, average=REPORT_SETTING)
         precision = precision_score(y_test, y_pred, average=REPORT_SETTING)
         recall = recall_score(y_test, y_pred, average=REPORT_SETTING)
-        roc_auc = roc_auc_score(y_test, y_pred, multi_class='ovr')
+        try:
+            roc_auc = roc_auc_score(y_test, y_pred, multi_class='ovr')
+        except np.AxisError:
+            roc_auc = 0.0
         self.results_log["accuracy"] = accuracy
         self.results_log["f1_score"] = f1
         self.results_log["precision"] = precision

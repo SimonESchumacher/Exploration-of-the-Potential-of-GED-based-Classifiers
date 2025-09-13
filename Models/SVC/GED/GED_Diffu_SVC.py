@@ -21,10 +21,12 @@ class DIFFUSION_GED_SVC(Base_GED_SVC):
         return param_grid
 
 class Diffusion_Kernel(Base_Kernel):
-    def __init__(self, ged_calculator:Base_Calculator=None, llambda=0.5, diffusion_function="exp_diff_kernel", attributes:dict=dict(), **kwargs):
+    def __init__(self, ged_calculator:Base_Calculator=None, llambda=0.5,t_iterations=10, diffusion_function="exp_diff_kernel", attributes:dict=dict(), **kwargs):
         self.KERNEL_llambda = llambda
+        self.KERNEL_t_iterations = t_iterations
         self.KERNEL_diffusion_function = diffusion_function # Lafferty, 2002  ; aternative "von_Neumann_diff_kernel"  Kandola et al., 2002
         attributes.update({"KERNEL_llambda": llambda,
+                           "KERNEL_t_iterations": t_iterations,
                            "KERNEL_diffusion_Kernel": diffusion_function})
         super().__init__(ged_calculator=ged_calculator, attributes=attributes, **kwargs)
         if DEBUG:
@@ -45,15 +47,24 @@ class Diffusion_Kernel(Base_Kernel):
             self.MaxD = np.max(D)
         B = self.MaxD - D
         if self.KERNEL_diffusion_function == "exp_diff_kernel":
-            K =np.exp(self.KERNEL_llambda * B)
-        elif self.KERNEL_diffusion_function == "von_Neumann_diff_kernel":
-            B_exp =B
-            llambda_exp = self.KERNEL_llambda
-            K = llambda_exp * B_exp
-            for i in range(1, 10):  # Example for 10 iterations
+            K=0
+            llambda_exp = 1.0
+            B_exp = 1
+            k_factorial = 1
+            for i in range(0,self.KERNEL_t_iterations):
+                K += llambda_exp * B_exp * (1/k_factorial)
                 B_exp = B_exp * B
                 llambda_exp = llambda_exp * self.KERNEL_llambda
+                k_factorial = k_factorial * (i + 1)
+
+        elif self.KERNEL_diffusion_function == "von_Neumann_diff_kernel":
+            B_exp = 1
+            llambda_exp = 1.0
+            K = 0
+            for i in range(0, self.KERNEL_t_iterations):  # Example for 10 iterations
                 K += llambda_exp * B_exp
+                B_exp = B_exp * B
+                llambda_exp = llambda_exp * self.KERNEL_llambda
         else:
             raise ValueError(f"Unknown diffusion kernel: {self.KERNEL_diffusion_function}")
         self.K=K
@@ -66,6 +77,7 @@ class Diffusion_Kernel(Base_Kernel):
         param_grid = Base_Kernel.get_param_grid()
         param_grid.update({
             "KERNEL_llambda": [0.1, 0.5, 1.0],
-            "KERNEL_diffusion_function": ["exp_diff_kernel", "von_Neumann_diff_kernel"]
+            "KERNEL_diffusion_function": ["exp_diff_kernel", "von_Neumann_diff_kernel"],
+            "Kernel_iteration_t": [5, 10, 20]
         })
         return param_grid
