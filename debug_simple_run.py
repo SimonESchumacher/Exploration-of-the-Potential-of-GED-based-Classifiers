@@ -31,10 +31,11 @@ import pandas as pd
 # classifier = GED_SVC(gamma=1.0, method='BIPARTITE', normalize_ged=True, similarity=True, C=1.0)
 if __name__ == "__main__":
     # ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
-    ged_calculator = None
-    DATASET= Dataset(name="Letter-high", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",load_now=False)
+    # ged_calculator = None
+    ged_calculator = "GEDLIB_Calculator"
+    DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",load_now=False)
     DATASET.load()
-
+    ged_calculator = DATASET.get_calculator()
     # classifier = ZERO_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="precomputed", KERNEL_classwise=False,KERNEL_I_size=8, KERNEL_aggregation_method="sum")
     # classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',I_size=5, selection_method="random")
     # classifier = Random_walk_edit_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", KERNEL_decay_lambda=0.1, KERNEL_max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
@@ -42,7 +43,7 @@ if __name__ == "__main__":
 
     # classifier = Base_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced')
     # classifier = DIFFUSION_GED_SVC(C=1.0, KERNEL_llambda=1.0, ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", KERNEL_diffusion_function="exp_diff_kernel", class_weight='balanced')
-    # classifier = GED_KNN(ged_calculator=ged_calculator, comparison_method="Mean-Similarity", n_neighbors=5, weights='uniform', algorithm='auto')    
+    classifier = GED_KNN(ged_calculator=ged_calculator, comparison_method="Mean-Distance", n_neighbors=5, weights='uniform', algorithm='auto')    
     # Kernel = Trivial_GED_Kernel(ged_calculator=ged_calculator, comparison_method="Mean-Distance", similarity_function="k1")
     # Kernel = GEDKernel(ged_calculator=ged_calculator, comparison_method="Mean-Similarity")
     # classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", class_weight='balanced', C=1.0)
@@ -57,7 +58,7 @@ if __name__ == "__main__":
     # define the model
 
     # classifier = WeisfeilerLehman_SVC(n_iter=5,C=1.0, normalize_kernel=True) # You can tune n_iter and normalize
-    classifier = CombinedHistogram_SVC(kernel_type="rbf",C=1.0)
+    # classifier = CombinedHistogram_SVC(kernel_type="rbf",C=1.0)
     # classifier = GED_SVC(gamma=1.0, node_del_cost=1.0, node_ins_cost=1.0, edge_del_cost=1.0, edge_ins_cost=1.0, approximation=None, kernel_type="rbf", C=0.1)
     # classifier = Blind_Classifier()
     # classifier = Random_Classifier(random_state=42, strategy='uniform', constant=None)

@@ -7,6 +7,8 @@ from time import time
 import numpy as np
 import networkx as nx
 import tqdm
+import sys
+import joblib
 DEBUG = True
 
 class Base_Calculator():
@@ -31,9 +33,6 @@ class Base_Calculator():
             self.labels = backup.labels
             self.runtime = backup.runtime
 
-            self.max_MeanDistance = backup.max_MeanDistance
-            self.maxUpperBound = backup.maxUpperBound
-            self.maxLowerBound = backup.maxLowerBound
 
             self.lowerbound_matrix = backup.lowerbound_matrix
             self.upperbound_matrix = backup.upperbound_matrix
@@ -78,6 +77,21 @@ class Base_Calculator():
                 raise ValueError("Labels length must match the number of graphs.")
             self.labels.extend(labels)  
         self.graphindexes = range(len(self.dataset))
+    
+    def save_calculator(self,datasetName):
+        filename = self.get_name() + f"_{datasetName}.joblib"
+        filepath = "presaved_data/" + filename
+        joblib.dump(self, filepath,)
+    
+    @classmethod
+    def load_calculator(cls,Calculator_type, datasetName):
+        filename = Calculator_type + f"_{datasetName}.joblib"
+        filepath = "presaved_data/" + filename
+        calculator = joblib.load(filepath)
+        if not isinstance(calculator, cls):
+            raise TypeError(f"Loaded object is not of type {cls.__name__}")
+        return calculator
+
     def get_Name(self):
         return "Base_Calculator"
 
@@ -158,9 +172,6 @@ class Base_Calculator():
             print("GED matrix already calculated.")
         else:
             # Start the timer
-            self.maxUpperBound = 0
-            self.maxLowerBound = 0
-            self.max_MeanDistance = 0
             if DEBUG:
                 iters1 = tqdm.tqdm(self.graphindexes, desc='Computing GED Matrix', total=len(self.graphindexes))               
             else:
@@ -175,15 +186,6 @@ class Base_Calculator():
                             self.node_map_matrix[i][j] = [(n, n) for n in range(self.dataset[i].number_of_nodes())]
                         continue
                     self.run_method(i, j)
-                    upper_bound = self.upperbound_matrix[i][j]
-                    lower_bound = self.lowerbound_matrix[i][j]
-                    mean_distance = (upper_bound + lower_bound) / 2
-                    if upper_bound > self.maxUpperBound:
-                        self.maxUpperBound = upper_bound
-                    if lower_bound > self.maxLowerBound:
-                        self.maxLowerBound = lower_bound
-                    if mean_distance > self.max_MeanDistance:
-                        self.max_MeanDistance = mean_distance
                 gc.collect()  # Collect garbage to free memory
             self.isclalculated = True
             print("GED matrix computed.")
@@ -224,16 +226,7 @@ class Base_Calculator():
         else:
             raise ValueError("Invalid method. Choose from 'Mean', 'LowerBound', or 'UpperBound'.")
     
-    def get_similarity(self, graph1_index, graph2_index,method="LowerBound"):    
-        distance = self.get_distance(graph1_index, graph2_index, method=method)
-        if method == "LowerBound":
-            return 1 - (distance / self.maxLowerBound) if self.maxLowerBound > 0 else 0
-        elif method == "UpperBound":
-            return 1 - (distance / self.maxUpperBound) if self.maxUpperBound > 0 else 0
-        elif method == "Mean":
-            return 1 - (distance / self.max_MeanDistance) if self.max_MeanDistance > 0 else 0
-        else:
-            raise ValueError("Invalid method. Choose from 'LowerBound', 'UpperBound', or 'Mean'.")
+
         
 
     def compare(self, graph1_index, graph2_index, method):
@@ -241,7 +234,7 @@ class Base_Calculator():
         if distance == "Distance":
             return self.get_distance(graph1_index, graph2_index, method=bound)
         elif distance == "Similarity":
-            return self.get_similarity(graph1_index, graph2_index, method=bound)
+            raise NotImplementedError("Similarity is not currently implemented")
         else:
             raise ValueError("Invalid method. Choose from 'LowerBound-Distance', 'UpperBound-Distance', 'Mean-Distance', 'LowerBound-Similarity', 'UpperBound-Similarity', or 'Mean-Similarity'.")
     def get_complete_matrix(self, method="Mean-Distance",x_graphindexes=None, y_graphindexes=None):

@@ -9,6 +9,7 @@ import numpy as np
 import os
 import pandas as pd
 from sklearn.model_selection import KFold
+from Calculators.Base_Calculator import Base_Calculator
 from config_loader import get_conifg_param
 
 LOCAL_DATA_PATH = get_conifg_param('Dataset', 'local_data_path', type='str') # Path to the local data directory
@@ -288,7 +289,7 @@ def load_dataset(source,name,use_node_labels=None,use_node_attributes=None,use_e
             nx_graphs, y = load_dataset_into_networkx(dataset_path, name, use_node_labels=use_node_labels, use_node_attributes=use_node_attributes, use_edge_labels=use_edge_labels, use_edge_attributes=use_edge_attributes)  
         except FileNotFoundError as e:
             print(f"Error: {e}")
-            print(f"The Dataset '{name}' could not be laoded from directory: {dataset_path}")
+            print(f"The Dataset '{name}' could not be loaded from directory: {dataset_path}")
             raise e
         return nx_graphs, y
     else:
@@ -386,7 +387,7 @@ def calculate_dataset_attributes(data: tuple, source: str, domain: str = None, N
         else:
             if Name not in datasets_log['name'].values:
                 new_entry = pd.Series(dataset_characteristics)
-                datasets_log = pd.concat([datasets_log,new_entry], ignore_index=True)
+                datasets_log = pd.concat([datasets_log,new_entry], ignore_index=False)
                 datasets_log.to_excel(DATASTE_LOG_FILE)
             else:
                 if DEBUG:
@@ -411,7 +412,7 @@ def extract_simple_graph_features(data):
 
 class Dataset:
 
-    def __init__(self, name,source, domain=None,ged_calculator=None, use_node_labels="label", use_node_attributes="label", use_edge_labels=None, use_edge_attributes=None,load_now=True):
+    def __init__(self, name,source, domain=None,ged_calculator=None, use_node_labels="label", use_node_attributes="label", use_edge_labels=None, use_edge_attributes=None,load_now=True,save_calculator=True):
         self.name = name
         self.ged_calculator = ged_calculator
         self.source = source
@@ -419,46 +420,13 @@ class Dataset:
         self.Node_label_name = use_node_labels
         self.Edge_label_name = use_edge_labels
         if load_now:
-            self.data= load_dataset(source,name,use_node_labels=use_node_labels,use_node_attributes=use_node_attributes,use_edge_labels=use_edge_labels,use_edge_attributes=use_edge_attributes)
-            self.nx_graphs= self.data[0]
-            self.target = self.data[1]
-            try:
-                self.characteristics = calculate_dataset_attributes(self.data, source, domain, name, save=True)
-            except Exception as e:
-                print(f"An unexpected error occurred while initializing the dataset: {e}")
-                print("happend while loading dataset attributes")
-                print(f"Problematic Dataset: {name} from source: {source}")
-                self.characteristics = {
-                    'name': name,
-                    'source': source,
-                    'domain': domain,
-                    'num_graphs': 0,
-                    'num_classes': 0,
-                    'has_node_labels': False,
-                    'has_edge_labels': False,
-                    'mean_nodes': 0,
-                    'mean_edges': 0,
-                    'label_distribution': 'N/A'
-                }
-                raise e
-            if DEBUG:
-                print(f"Now setting up the Calculator")
-            
-            if self.ged_calculator is not None:
-                self.ged_calculator.add_graphs(self.nx_graphs.copy(), self.target)
-                if DEBUG:
-                    print(f"Calculating GED for between graphs")
-                self.graphindexes=self.ged_calculator.activate()
-                start_time = pd.Timestamp.now()
-                self.ged_calculator.calculate()
-                end_time = pd.Timestamp.now()
-                self.ged_calculator.runtime = (end_time - start_time).total_seconds()     
+            self.load()
+   
 
         
-        
-    def load(self):
+    def load(self,save_calculator=True):
         self.data = load_dataset(self.source, self.name, use_node_labels=self.Node_label_name, use_node_attributes=self.Node_label_name, use_edge_labels=self.Edge_label_name, use_edge_attributes=self.Edge_label_name)
-        self.nx_graphs = self.data[0]
+        self.nx_graphs= self.data[0]
         self.target = self.data[1]
         try:
             self.characteristics = calculate_dataset_attributes(self.data, self.source, self.domain, self.name, save=True)
@@ -481,16 +449,27 @@ class Dataset:
             raise e
         if DEBUG:
             print(f"Now setting up the Calculator")
+        
         if self.ged_calculator is not None:
-            self.ged_calculator = self.ged_calculator
-            self.ged_calculator.add_graphs(self.nx_graphs.copy(), self.target)
-            if DEBUG:
-                print(f"Calculating GED for between graphs")
-            self.graphindexes=self.ged_calculator.activate()
             start_time = pd.Timestamp.now()
-            self.ged_calculator.calculate()
+            # if the type is string, than we load it from the presaved data
+            if isinstance(self.ged_calculator,str):
+                self.ged_calculator =Base_Calculator.load_calculator(self.ged_calculator,self.name)
+                self.ged_calculator.make_backup()
+                saving_usless = True
+            else:
+                saving_usless = False
+                self.ged_calculator.add_graphs(self.nx_graphs.copy(), self.target)
+                if DEBUG:
+                    print(f"Calculating GED for between graphs")
+                self.graphindexes=self.ged_calculator.activate()
+                self.ged_calculator.calculate()
             end_time = pd.Timestamp.now()
-            self.ged_calculator.runtime = (end_time - start_time).total_seconds()    
+            self.ged_calculator.runtime = (end_time - start_time).total_seconds()
+            if save_calculator and not saving_usless:
+                if DEBUG:
+                    print(f"Saving the Calculator for later use")
+                self.ged_calculator.save_calculator(self.name)    
 
     def change_dataset_params(self,new_ged_calculator=False, use_node_labels=None, use_node_attributes=None, use_edge_labels=None, use_edge_attributes=None):
         # realoads the dataset with the new parameters
@@ -522,6 +501,9 @@ class Dataset:
             return super().__getattribute__(name)
     def attributes(self):
         return self.characteristics
+    
+    def get_calculator(self):
+        return self.ged_calculator
     
     def train_test_split(self, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=None,shuffle=SHUFFLE,saveSplit=False):
         """

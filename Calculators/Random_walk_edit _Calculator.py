@@ -87,7 +87,8 @@ def build_restricted_product_graph(g1: nx.Graph, g2: nx.Graph, node_matches : li
             # label = g1.edges[(u1, v1)].get('label', None)
             restricted_graph.add_edge((u1, u2), (v1, v2))
             # print(f"Added edge between ({u1}, {u2}) and ({v1}, {v2}) with label {label}")
-
+def get_Name(self):
+        return "Random_walk_Edit_Calculator"
 
 
 
