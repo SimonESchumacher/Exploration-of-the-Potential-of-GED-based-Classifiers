@@ -129,7 +129,7 @@ class NX_Histogram_SVC(SupportVectorMachine):
                     if 'label' in data:
                         feature_vectors[i][self.node_labels.index(data['label'])] += 1
                     else:
-                        feature_vectors[i][self.node_labels.index("None")] += 1
+                        feature_vectors[i][0] += 1
                 elif self.Histogram_Type == "edge+1":
                     feature_vectors[i][0] += 1
             for _, _, data in G.edges(data=True):
@@ -137,7 +137,7 @@ class NX_Histogram_SVC(SupportVectorMachine):
                     if 'label' in data:
                         feature_vectors[i][num_node_labels+self.edge_labels.index(data['label'])] += 1
                     else:
-                        feature_vectors[i][num_node_labels + self.edge_labels.index("None")] += 1
+                        feature_vectors[i][num_node_labels ] += 1
                 elif self.Histogram_Type == "node+1":
                     feature_vectors[i][num_node_labels] += 1
         if DEBUG:

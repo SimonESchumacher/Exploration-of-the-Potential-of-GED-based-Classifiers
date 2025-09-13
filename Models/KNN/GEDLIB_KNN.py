@@ -112,7 +112,7 @@ class GED_KNN(KNN):
         """
         param_grid = super().get_param_grid()
         param_grid.update({
-           "comparison_method": ["Mean-Distance", "Mean-Similarity", "LowerBound-Distance", "UpperBound-Distance", "LowerBound-Similarity", "UpperBound-Similarity"],
+           "comparison_method": ["Mean-Distance", "LowerBound-Distance", "UpperBound-Distance"],
         })
         return param_grid
 

@@ -7,7 +7,7 @@ import networkx as nx
 import tqdm
 from gedlibpy import gedlibpy 
 from Calculators.Base_Calculator import Base_Calculator
-DEBUG = True
+DEBUG = False
 
 class GEDLIB_Calculator(Base_Calculator):
 
@@ -38,11 +38,14 @@ class GEDLIB_Calculator(Base_Calculator):
 
         self.upperbound_matrix[graph2_index][graph1_index] = self.upperbound_matrix[graph1_index][graph2_index]
         self.lowerbound_matrix[graph2_index][graph1_index] = self.lowerbound_matrix[graph1_index][graph2_index]
-    
+        if self.need_node_map:
+            node_map = gedlibpy.get_node_map(graph1_index, graph2_index)
+            self.node_map_matrix[graph1_index][graph2_index] = node_map
+            self.node_map_matrix[graph2_index][graph1_index] = [(b,a) for (a,b) in node_map]
     # Things that the Real GEDLIB Calculator can output
-    def get_node_map(self, graph1_index, graph2_index):
-        return gedlibpy.get_node_map(graph1_index, graph2_index)
     def get_all_map(self, graph1_index, graph2_index):
+        if not self.isactive:
+            raise ValueError("Calculator is not active. Call activate() first.")
         return gedlibpy.get_all_map(graph1_index, graph2_index)
     def get_forward_map(self, graph1_index, graph2_index):
         return gedlibpy.get_forward_map(graph1_index, graph2_index)
@@ -53,7 +56,8 @@ class GEDLIB_Calculator(Base_Calculator):
     def get_node_image(self, graph1_index, graph2_index,node_index):
         return gedlibpy.get_node_image(graph1_index, graph2_index,node_index)
     # special funtions handmade
-
+    def get_Name(self):
+        return "GEDLIB_Calculator"
     @classmethod
     def get_param_grid(cls):
         """

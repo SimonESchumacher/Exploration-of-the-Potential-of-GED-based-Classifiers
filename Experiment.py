@@ -55,12 +55,13 @@ class experiment:
             "saving_timestamp": None,  # To be set after saving the model
             "timestamp_experiment_run": pd.Timestamp.now(),
             "Error": None,  # To be set if an error occurs
-
         }
         self.results_log = {
             "experiment_name": self.experiment_name,
             "dataset_name": self.dataset_name,
             "model_name": self.model_name,
+            "Calculator_name": self.ged_calculator.get_Name() if self.ged_calculator else "None",
+            "Action": None,
             "testsize": TEST_SIZE,
             "training_duration": None,  # To be set after training
             "testing_duration": None,  # To be set after testing
@@ -190,7 +191,8 @@ class experiment:
         self.results_log["roc_auc"] = roc_auc
         self.results_log["precision"] = precision
         self.results_log["recall"] = recall
-
+        self.results_log["Action"] = "Simple Train-Test Split"
+        self.results_log["Calculator_name"] = self.ged_calculator.get_Name() if self.ged_calculator else "None"
         classification_report_str = classification_report(y_test, y_pred)
         print(f"Model {self.model_name} tested on {len(G_test)} graphs with accuracy: {accuracy:.4f}")
         print("\nClassification Report:")
@@ -265,11 +267,13 @@ class experiment:
             self.results_log["recall"] = np.mean(recalls)
         else:
             raise ValueError(f"Unknown error acknowledgment method: {erroraccnolagement}. Use 'std', 'confidence interval', or 'none'.")
+        self.results_log["Action"] = "K-Fold Cross-Validation"
+        self.results_log["Calculator_name"] = self.ged_calculator.get_Name() if self.ged_calculator else "NO Calculator"
         print(f"Model {self.model_name} trained and tested with K-Fold cross-validation (k={k}).")
         print(f"Mean Accuracy: {self.results_log['accuracy']}")
         return np.mean(accuracies) ,classification_report_str
     
-    def run_hyperparameter_tuning(self, tuning_method='grid',scoring='accuracy',cv=5, verbose=2, n_jobs=1):
+    def run_hyperparameter_tuning(self, tuning_method='grid',scoring='accuracy',cv=5, verbose=2, n_jobs=5):
 
 
 
@@ -321,6 +325,9 @@ class experiment:
         self.results_log["precision"] = precision
         self.results_log["recall"] = recall
         self.results_log["roc_auc"] = roc_auc
+        self.results_log["Action"] = f"Hyperparameter Tuning ({tuning_method})"
+        self.results_log["Calculator_name"] = self.ged_calculator.get_Name() if self.ged_calculator else "no Calculator"
+
         if DEBUG:
             classification_report_str = classification_report(y_test, y_pred)
             print(f"Best Model tested on the test set with accuracy: {accuracy:.4f}")
