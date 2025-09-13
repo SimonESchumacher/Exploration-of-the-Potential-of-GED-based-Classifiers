@@ -4,3 +4,6 @@ gedlib/
 gedlibpy/
 __pycache__/
 presaved_data/
+.vscode/settings.json
+venv/
+requirements.txt

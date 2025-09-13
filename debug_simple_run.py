@@ -23,16 +23,17 @@ from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from Models.SVC.GED.Zero_GED_SVC import ZERO_GED_SVC
 from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
 from Models.KNN.GEDLIB_KNN import GED_KNN
-from Models.SVC.GED.RandomWalk_edit import Random_walk_edit_SVC
-
+# from Models.SVC.GED.RandomWalk_edit import Random_walk_edit_SVC
+# import os
+print("Current Working Directory:", os.getcwd())
 # from Models.GED_KNN import GED_KNN
 import pandas as pd
 
 # classifier = GED_SVC(gamma=1.0, method='BIPARTITE', normalize_ged=True, similarity=True, C=1.0)
 if __name__ == "__main__":
-    # ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
+    ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
     # ged_calculator = None
-    ged_calculator = "GEDLIB_Calculator"
+    # ged_calculator = "GEDLIB_Calculator"
     DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",load_now=False)
     DATASET.load()
     ged_calculator = DATASET.get_calculator()
