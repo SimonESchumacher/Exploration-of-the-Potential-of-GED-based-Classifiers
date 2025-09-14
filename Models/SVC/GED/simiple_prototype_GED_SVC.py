@@ -62,6 +62,11 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
         if DEBUG:
             print(f"SVC: set_params: Set parameters for SupportVectorMachine.")
         return self
+    def get_calculator(self):
+        """
+        Returns the GED calculator instance.
+        """  
+        return self.feature_extractor.ged_calculator
     @classmethod
     def get_param_grid(cls):
         param_grid = simple_prototype_GED_Feature_Extractor.get_param_grid()
@@ -95,7 +100,7 @@ class simple_prototype_GED_Feature_Extractor:
         self.attributes = attributes
         if DEBUG:
             print(f"Initialized simple_prototype_GED_Kernel with prototypes_size={self.prototypes_size}, selection_method={self.selection_method}")
-
+    
 
     def fit_transform(self, X, y=None):
         # select the Prototypes

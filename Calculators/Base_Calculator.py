@@ -9,7 +9,7 @@ import networkx as nx
 import tqdm
 import sys
 import joblib
-DEBUG = True
+DEBUG = False
 
 class Base_Calculator():
     # add class variable, as copy of itself for backup
@@ -22,7 +22,7 @@ class Base_Calculator():
         """
         # check if there is backup, which has the same parameters as the requested one
         if ((hasattr(Base_Calculator, 'backup') and Base_Calculator.backup is not None)
-            and (Base_Calculator.backup.GED_edit_cost == GED_edit_cost and Base_Calculator.backup.GED_calc_method == GED_calc_method)):
+            and (Base_Calculator.backup.GED_edit_cost == GED_edit_cost and Base_Calculator.backup.GED_calc_method == GED_calc_method) and (self.__class__ == self.backup.__class__)):
             backup = Base_Calculator.backup
             self.GED_edit_cost = backup.GED_edit_cost
             self.GED_calc_method = backup.GED_calc_method

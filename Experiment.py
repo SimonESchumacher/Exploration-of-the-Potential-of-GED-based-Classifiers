@@ -290,17 +290,17 @@ class experiment:
 
 
         if DEBUG:
-            print(f"Starting hyperparameter tuning for {self.model_name} on dataset {self.dataset_name} with parameters: {param_grid}")
+            print(f"Starting hyperparameter tuning for {self.model_name} \n on dataset {self.dataset_name} with parameters: \n {param_grid}")
         hyperparameter_tuning_start_time = datetime.now()
         if tuning_method == 'grid':
             hyperparameter_tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, error_score='raise')
         elif tuning_method == 'random':
             hyperparameter_tuner = RandomizedSearchCV(estimator=self.model, param_distributions=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, n_iter=10)
-        if DEBUG:
-            print("stating hyperparameter tuning...")  
+        # if DEBUG:
+            # print("stating hyperparameter tuning...")  
         hyperparameter_tuner.fit(X_train, y_train)
-        if DEBUG:
-            print("Hyperparameter tuning completed.")
+        # if DEBUG:
+            # print("Hyperparameter tuning completed.")
         best_model = hyperparameter_tuner.best_estimator_
         best_params = hyperparameter_tuner.best_params_
         best_score = hyperparameter_tuner.best_score_
@@ -374,7 +374,6 @@ class experiment:
             print("Model training failed. Exiting experiment.")
             return None
         accuracy, y_pred, report = self.test_model(G_test, y_test)
-        print(f"Model {self.model_name} achieved accuracy: {accuracy:.4f}")
         # Save results
         self.save_log_to_excel()
         return accuracy, report
@@ -387,4 +386,185 @@ class experiment:
         # Save results
         self.save_log_to_excel()
         return accuracy, report
+    
+    def run_speed_test(self):
+        start_time = pd.Timestamp.now()
+        G_train, G_test, y_train, y_test = self.split_data() 
+        self.inner_model_fit(G_train, y_train)
+        trained_model = self.model
+        if trained_model is None:
+            print("Model training failed. Exiting experiment.")
+            return None
+        self.inner_model_predict(G_test)
+        # Save results
+        training_duration = pd.Timestamp.now() - start_time
+        return training_duration
+    
+    def silent_hyperparameter_tuning(self,X_train,y_train,scoring='accuracy',cv=5, verbose=0, n_jobs=1,param_grid=None):
+        hyperparameter_tuning_start_time = datetime.now()
+        hyperparameter_tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, error_score='raise')
+
+        hyperparameter_tuner.fit(X_train, y_train)
+        best_model = hyperparameter_tuner.best_estimator_
+        best_params = hyperparameter_tuner.best_params_
+        best_score = hyperparameter_tuner.best_score_
+        tuning_duration = datetime.now() - hyperparameter_tuning_start_time
+        return best_model, best_params, best_score, tuning_duration
+
+    def overfitting_simple_run(self,X_train, X_test, y_train, y_test,test_DF):
+        fit_start_time = datetime.now()
+        self.inner_model_fit(X_train, y_train)
+        y_test_pred = self.inner_model_predict(X_test)
+        duration = datetime.now() - fit_start_time
+        test_DF["Best_model_duration"] = duration
+        
+        accuracy_test = accuracy_score(y_test, y_test_pred)
+        f1_test = f1_score(y_test, y_test_pred, average=REPORT_SETTING)
+        try:
+            roc_auc_test = roc_auc_score(y_test, y_test_pred, multi_class='ovr')
+        except np.AxisError:
+            roc_auc_test = 0.0
+        classification_report_str = classification_report(y_test, y_test_pred)
+
+
+        # now test on train set
+        y_train_pred = self.inner_model_predict(X_train)
+        accuracy_train = accuracy_score(y_train, y_train_pred)
+        f1_train = f1_score(y_train, y_train_pred, average=REPORT_SETTING)
+        try:
+            roc_auc_train = roc_auc_score(y_train, y_train_pred, multi_class='ovr')
+        except np.AxisError:
+            roc_auc_train = 0.0
+
+        # caclulate the diffrence of f1 , roc and accuracy between train and test
+        diff_accuracy = accuracy_train - accuracy_test
+        diff_f1 = f1_train - f1_test
+        diff_roc_auc = roc_auc_train - roc_auc_test
+        test_DF["OF_diff_accuracy"] = diff_accuracy
+        test_DF["OF_diff_f1"] = diff_f1
+        test_DF["OF_diff_roc_auc"] = diff_roc_auc
+
+        test_DF["OF_test_accuracy"] = accuracy_test
+        test_DF["OF_test_f1"] = f1_test
+        test_DF["OF_test_roc_auc"] = roc_auc_test
+
+        test_DF["OF_train_accuracy"] = accuracy_train
+        test_DF["OF_train_f1"] = f1_train
+        test_DF["OF_train_roc_auc"] = roc_auc_train
+
+        test_DF["Classifcation_report"] = classification_report_str
+
+        # Save results
+        return classification_report_str
+
+
+    def run_silent_k_fold(self, k=5,test_DF=None):
+        
+        
+        is_first_fold = True
+        durations_fit = []
+        durattions_test = []
+        accuracies = []
+        f1_scores = []
+        roc_aucs = []
+        precisions = []
+        recalls = []
+        for X_train, X_test, y_train_fold, y_test_fold in self.dataset.split_k_fold(k=k, random_state=RANDOM_STATE):
+            fit_start_time = datetime.now()
+            self.inner_model_fit(X_train, y_train_fold)
+            durations_fit.append((datetime.now() - fit_start_time).total_seconds())
+            test_start_time = datetime.now()
+            y_pred = self.inner_model_predict(X_test)
+            durattions_test.append((datetime.now() - test_start_time).total_seconds())
+
+            accuracies.append(accuracy_score(y_test_fold, y_pred))
+            f1_scores.append(f1_score(y_test_fold, y_pred, average=REPORT_SETTING))
+            try:
+                roc_aucs.append(roc_auc_score(y_test_fold, y_pred, multi_class='ovr'))
+            except np.AxisError:
+                roc_aucs.append(0.0)
+            precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0))
+            recalls.append(recall_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0))
+        erroraccnolagement = ERRORINTERVAL_SETTING
+        if erroraccnolagement == "std":
+            test_DF["k_fold_accuracy"] = np.mean(accuracies) + " " + np.std(accuracies)
+            test_DF["k_fold_f1_score"] = np.mean(f1_scores) + " " + np.std(f1_scores)
+            test_DF["k_fold_roc_auc"] = np.mean(roc_aucs) + " " + np.std(roc_aucs)
+            test_DF["k_fold_precision"] = np.mean(precisions) + " " + np.std(precisions)
+            test_DF["k_fold_recall"] = np.mean(recalls) + " " + np.std(recalls)
+        elif erroraccnolagement == "confidence interval":
+            # Calculate confidence intervals for each metric
+            n = len(accuracies)
+            confidence = 0.95
+            z_score = stats.norm.ppf((1 + confidence) / 2)
+            test_DF["k_fold_accuracy"] = f"{np.mean(accuracies)} ∓ { z_score * np.std(accuracies) / np.sqrt(n)}"
+            test_DF["k_fold_f1_score"] = f"{np.mean(f1_scores)} ∓ { z_score * np.std(f1_scores) / np.sqrt(n)}"
+            test_DF["k_fold_roc_auc"] = f"{np.mean(roc_aucs)} ∓ { z_score * np.std(roc_aucs) / np.sqrt(n)}"
+            test_DF["k_fold_precision"] = f"{np.mean(precisions)} ∓ { z_score * np.std(precisions) / np.sqrt(n)}"
+            test_DF["k_fold_recall"] = f"{np.mean(recalls)} ∓ { z_score * np.std(recalls) / np.sqrt(n)}"
+        elif erroraccnolagement == "none":
+            test_DF["k_fold_accuracy"] = np.mean(accuracies)
+            test_DF["k_fold_f1_score"] = np.mean(f1_scores)
+            test_DF["k_fold_roc_auc"] = np.mean(roc_aucs)
+            test_DF["k_fold_precision"] = np.mean(precisions)
+            test_DF["k_fold_recall"] = np.mean(recalls)
+        else:
+            raise ValueError(f"Unknown error acknowledgment method: {erroraccnolagement}. Use 'std', 'confidence interval', or 'none'.")
+
+      
+
+    def run_extensive_test(self,test_DF,should_print=False,scoring='accuracy',cv=5, verbose=0, n_jobs=8):
+        if should_print:
+           print("\n--------------------------------------------------------------------")
+           print(f"Running extensive test for model:\n {self.model_name}")
+        duration1train =self.run_speed_test()
+        test_DF["train_test_duration"] = duration1train
+        test_DF["model_name"] = self.model_name
+        test_DF["Calculator_name"] = self.model.get_calculator().get_Name() if self.model.get_calculator() else "None"
+        param_grid = self.model.get_param_grid()
+        # multipy all posibilities for the param grid times 5
+        total_combinations = cv
+        for key in param_grid:
+            total_combinations *= len(param_grid[key])
+        total_combinations += cv +1
+        estimated_test_duration = duration1train * total_combinations
+        if should_print:
+            print(f"Estimated test duration: {estimated_test_duration}")
+        if should_print:
+            print(f"Parameter grid: {param_grid}")
+        X_train, X_test, y_train, y_test = self.split_data()
+        # hyperparameter tuning with cross validation
+        best_model, best_params, best_score, tuning_duration = self.silent_hyperparameter_tuning(X_train, y_train, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, param_grid=param_grid)
+        test_DF["tuning_duration"] = tuning_duration
+        test_DF["tuning_best_params"] = str(best_params)
+        test_DF["tuning_best_score"] = best_score
+        if should_print:
+            print(f"Hyperparameter tuning completed in {tuning_duration}.\n  Best score: {best_score:.4f}")
+            print(f"Best parameters: {best_params}")
+        # single train test with the best model
+        # goal here is to compare results with the hyperparameter tuning results
+        # but also to compare train and test metrics for overfitting
+        self.model = best_model
+        classification_report= self.overfitting_simple_run(X_train, X_test, y_train, y_test,test_DF)
+        if should_print:
+            print("Overfitting simple test completed.")
+            print("Classification Report:")
+            print(classification_report)
+        # perform k_fold Crossvalidation with the best model
+        self.run_silent_k_fold(k=cv,test_DF=test_DF)
+        if should_print:
+            print("Extensive test completed.")
+            print("--------------------------------------------------------------------\n")
+        return test_DF
+    
+    def get_estimated_tuning_time(self,cv=5):
+        duration1train =self.run_speed_test()
+        param_grid = self.model.get_param_grid()
+        # multipy all posibilities for the param grid times 5
+        total_combinations = cv
+        for key in param_grid:
+            total_combinations *= len(param_grid[key])
+        total_combinations += cv +1
+        estimated_test_duration = duration1train * total_combinations
+        return estimated_test_duration
     

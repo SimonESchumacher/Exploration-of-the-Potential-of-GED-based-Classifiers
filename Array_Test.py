@@ -30,7 +30,7 @@ if __name__ == "__main__":
     # ged_calculator = Base_Calculator()
     # ged_calculator = "GEDLIB_Calculator"
 
-    DATASET= Dataset(name="PTC_FR", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="label",load_now=False)
+    DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="label",load_now=False)
     DATASET.load()
     ged_calculator = DATASET.get_calculator()
     classifiers: list[GraphClassifier] = [
@@ -41,11 +41,11 @@ if __name__ == "__main__":
         # NX_Histogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=DATASET.get_edge_labels, get_node_labels=DATASET.get_node_labels,Histogram_Type="combined"),
         Blind_Classifier(),
         Random_Classifier(),
-        GED_KNN(ged_calculator=ged_calculator, comparison_method="Mean-Distance", n_neighbors=1, weights='uniform', algorithm='auto'),
+        # GED_KNN(ged_calculator=ged_calculator, comparison_method="Mean-Distance", n_neighbors=1, weights='uniform', algorithm='auto'),
         Base_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0, kernel_type="precomputed", class_weight='balanced'),
-        DIFFUSION_GED_SVC(kernel_type='precomputed',C=1.0, KERNEL_llambda=1.0, ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", KERNEL_diffusion_function="exp_diff_kernel", class_weight='balanced'),
-        Trivial_GED_SVC(kernel_type='precomputed',ged_calculator=ged_calculator, comparison_method="Mean-Distance", similarity_function="k1"),
-        Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',KERNEL_prototype_size=5, KERNEL_selection_method="RPS", KERNEL_classwise=False, KERNEL_single_class=False),
+        # DIFFUSION_GED_SVC(kernel_type='precomputed',C=1.0, KERNEL_llambda=1.0, ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", KERNEL_diffusion_function="exp_diff_kernel", class_weight='balanced'),
+        # Trivial_GED_SVC(kernel_type='precomputed',ged_calculator=ged_calculator, comparison_method="Mean-Distance", similarity_function="k1"),
+        # Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',KERNEL_prototype_size=5, KERNEL_selection_method="RPS", KERNEL_classwise=False, KERNEL_single_class=False),
         ZERO_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="precomputed", KERNEL_classwise=False,KERNEL_I_size=8, KERNEL_aggregation_method="sum"),
         Random_walk_edit_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", KERNEL_decay_lambda=0.1, KERNEL_max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
         ]

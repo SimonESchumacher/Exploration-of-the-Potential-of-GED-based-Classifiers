@@ -19,7 +19,7 @@ DEBUG = False  # Set to True for debug prints
 class ZERO_GED_SVC(Base_GED_SVC):
     
     def initKernel(self, ged_calculator: Base_Calculator = None, **kernel_kwargs):
-        self.kernel = ZERO_GED_Kernel(ged_calculator=ged_calculator, **kernel_kwargs)
+        self.kernel = ZERO_GED_Kernel(ged_calculator=ged_calculator,KERNEL_name="Zero-GED", **kernel_kwargs)
 
     @classmethod
     def get_param_grid(cls):
@@ -48,7 +48,7 @@ class ZERO_GED_Kernel(Base_Kernel):
                            "KERNEL_single_class": self.single_class,
                            "KERNEL_selection_method": self.selection_method,
                            "KERNEL_comparison_method": self.comparison_method})
-        super().__init__(ged_calculator=ged_calculator, attributes=attributes, **kwargs)
+        super().__init__(ged_calculator=ged_calculator,KERNEL_name="Zero-GED", attributes=attributes, **kwargs)
         if DEBUG:
             print(f"Initialized ZERO_GED_Kernel with I_size={self.I_size}, aggregation_method={self.aggregation_method}")
     
@@ -92,10 +92,9 @@ class ZERO_GED_Kernel(Base_Kernel):
         param_grid.update({
             "KERNEL_I_size": [1,  3,  5,10],
             "KERNEL_aggregation_method": ["sum", "prod"],
-            "KERNEL_classwise": [False, True],
             "KERNEL_single_class": [False, True],
-            "KERNEL_selection_method": ["RPS", "CPS","BPS","TPS","SPS","k-CPS"],
-            "selection_method": ["random", "statified_random"]
+            "KERNEL_selection_method": ["RPS", "CPS","BPS","TPS","SPS","k-CPS"]
+            
         })
         return param_grid
 

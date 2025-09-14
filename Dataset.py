@@ -34,7 +34,8 @@ def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", u
     General function to load datasets into NetworkX.
     Handles cases where node labels or edge labels may be missing.
     """
-    print(f"Loading {dataset_name} into NetworkX from {data_dir}...")
+    if DEBUG:
+        print(f"Loading {dataset_name} into NetworkX from {data_dir}...")
     adj_file = os.path.join(data_dir, f"{dataset_name}_A.txt")
     graph_indicator_file = os.path.join(data_dir, f"{dataset_name}_graph_indicator.txt")
     graph_labels_file = os.path.join(data_dir, f"{dataset_name}_graph_labels.txt")
@@ -43,16 +44,19 @@ def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", u
     with open(adj_file, 'r') as f:
         edges_raw = [list(map(int, line.strip().split(','))) for line in f]
     edges = [(u - 1, v - 1) for u, v in edges_raw]  # Convert to 0-indexed
-    print(f"Loaded {len(edges)} edges.")
+    if DEBUG:
+        print(f"Loaded {len(edges)} edges.")
     # Load node-to-graph mapping
     with open(graph_indicator_file, 'r') as f:
         node_to_graph_map = np.array([int(line.strip()) for line in f]) - 1
-    print(f"Loaded {len(node_to_graph_map)} node-to-graph mappings.")
+    if DEBUG:
+        print(f"Loaded {len(node_to_graph_map)} node-to-graph mappings.")
     # Load graph labels
     with open(graph_labels_file, 'r') as f:
         graph_labels_raw = [int(line.strip()) for line in f]
     y = np.array([label for label in graph_labels_raw])
-    print(f"Loaded {len(y)} graph labels.")
+    if DEBUG:
+        print(f"Loaded {len(y)} graph labels.")
 
     # Try to load node labels if available
     node_labels = None
@@ -65,8 +69,9 @@ def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", u
             with open(node_labels_file, 'r') as f:
                 node_labels_raw = [int(line.strip()) for line in f]
             node_labels = {i: label for i, label in enumerate(node_labels_raw)}
-            print(f"Loaded node labels for {len(node_labels)} nodes.")
-    
+            if DEBUG:
+                print(f"Loaded node labels for {len(node_labels)} nodes.")
+
     # Try to load edge labels if available
     edge_labels = None
     if USE_EDGE_LABELS and use_edge_labels is not None:
@@ -78,9 +83,10 @@ def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", u
                 edge_labels_raw = [int(line.strip()) for line in f]
             # edge labels should be mapped to their node pair
             edge_labels = {(u, v): label for (u, v), label in zip(edges, edge_labels_raw)}
-            print(f"Loaded edge labels for {len(edge_labels)} edges.")
-    
-    # Try to load node attributes if availabl
+            if DEBUG:
+                print(f"Loaded edge labels for {len(edge_labels)} edges.")
+
+    # Try to load node attributes if available
     node_attributes = None
     if USE_NODE_ATTRIBUTES and use_node_attributes is not None:
         node_attributes_file = os.path.join(data_dir, f"{dataset_name}_node_attributes.txt")
@@ -88,7 +94,8 @@ def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", u
             with open(node_attributes_file, 'r') as f:
                 node_attributes_raw = [list(map(float, line.strip().split(','))) for line in f]
             node_attributes = {i: attr for i, attr in enumerate(node_attributes_raw)}
-            print(f"Loaded node attributes for {len(node_attributes)} nodes.")
+            if DEBUG:
+                print(f"Loaded node attributes for {len(node_attributes)} nodes.")
 
     # Try to load edge attributes if available
     edge_attributes = None
@@ -98,7 +105,8 @@ def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", u
             with open(edge_attributes_file, 'r') as f:
                 edge_attributes_raw = [list(map(float, line.strip().split(','))) for line in f]
             edge_attributes = {i: attr for i, attr in enumerate(edge_attributes_raw)}
-            print(f"Loaded edge attributes for {len(edge_attributes)} edges.")
+            if DEBUG:
+                print(f"Loaded edge attributes for {len(edge_attributes)} edges.")
 
     num_graphs = np.max(node_to_graph_map) + 1
     nx_graphs = []
@@ -135,7 +143,8 @@ def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", u
                     G.add_edge(u, v, **edge_data)
 
         nx_graphs.append(G)
-    print(f"Converted {num_graphs} graphs to NetworkX format.")
+    if DEBUG:
+        print(f"Converted {num_graphs} graphs to NetworkX format.")
     return nx_graphs, y
 
 def _build_single_graph(
@@ -197,16 +206,19 @@ def load_dataset_into_networkx_multi(data_dir, dataset_name, use_node_labels="la
     with open(adj_file, 'r') as f:
         edges_raw = [list(map(int, line.strip().split(','))) for line in f]
     edges = [(u - 1, v - 1) for u, v in edges_raw]  # Convert to 0-indexed
-    print(f"Loaded {len(edges)} edges.")
+    if DEBUG:
+        print(f"Loaded {len(edges)} edges.")
     # Load node-to-graph mapping
     with open(graph_indicator_file, 'r') as f:
         node_to_graph_map = np.array([int(line.strip()) for line in f]) - 1
-    print(f"Loaded {len(node_to_graph_map)} node-to-graph mappings.")
+    if DEBUG:
+        print(f"Loaded {len(node_to_graph_map)} node-to-graph mappings.")
     # Load graph labels
     with open(graph_labels_file, 'r') as f:
         graph_labels_raw = [int(line.strip()) for line in f]
     y = np.array([label for label in graph_labels_raw])
-    print(f"Loaded {len(y)} graph labels.")
+    if DEBUG:
+        print(f"Loaded {len(y)} graph labels.")
 
     # Try to load node labels if available
     node_labels = None
@@ -219,8 +231,9 @@ def load_dataset_into_networkx_multi(data_dir, dataset_name, use_node_labels="la
             with open(node_labels_file, 'r') as f:
                 node_labels_raw = [int(line.strip()) for line in f]
             node_labels = {i: label for i, label in enumerate(node_labels_raw)}
-            print(f"Loaded node labels for {len(node_labels)} nodes.")
-    
+            if DEBUG:
+                print(f"Loaded node labels for {len(node_labels)} nodes.")
+
     # Try to load edge labels if available
     edge_labels = None
     if USE_EDGE_LABELS and use_edge_labels is not None:
@@ -232,7 +245,8 @@ def load_dataset_into_networkx_multi(data_dir, dataset_name, use_node_labels="la
                 edge_labels_raw = [int(line.strip()) for line in f]
             # edge labels should be mapped to their node pair
             edge_labels = {(u, v): label for (u, v), label in zip(edges, edge_labels_raw)}
-            print(f"Loaded edge labels for {len(edge_labels)} edges.")
+            if DEBUG: 
+                print(f"Loaded edge labels for {len(edge_labels)} edges.")
     
     # Try to load node attributes if availabl
     node_attributes = None
@@ -242,7 +256,8 @@ def load_dataset_into_networkx_multi(data_dir, dataset_name, use_node_labels="la
             with open(node_attributes_file, 'r') as f:
                 node_attributes_raw = [list(map(float, line.strip().split(','))) for line in f]
             node_attributes = {i: attr for i, attr in enumerate(node_attributes_raw)}
-            print(f"Loaded node attributes for {len(node_attributes)} nodes.")
+            if DEBUG:
+                print(f"Loaded node attributes for {len(node_attributes)} nodes.")
 
     # Try to load edge attributes if available
     edge_attributes = None
@@ -252,7 +267,8 @@ def load_dataset_into_networkx_multi(data_dir, dataset_name, use_node_labels="la
             with open(edge_attributes_file, 'r') as f:
                 edge_attributes_raw = [list(map(float, line.strip().split(','))) for line in f]
             edge_attributes = {i: attr for i, attr in enumerate(edge_attributes_raw)}
-            print(f"Loaded edge attributes for {len(edge_attributes)} edges.")
+            if DEBUG:
+                print(f"Loaded edge attributes for {len(edge_attributes)} edges.")
     # --- Start of parallelization ---
     num_graphs = np.max(node_to_graph_map) + 1
     
@@ -273,8 +289,8 @@ def load_dataset_into_networkx_multi(data_dir, dataset_name, use_node_labels="la
             nx_graphs = list(tqdm(pool.starmap(_build_single_graph, worker_args), total=num_graphs, desc="Converting graphs to NetworkX format"))
         else:
             nx_graphs = pool.starmap(_build_single_graph, worker_args)
-
-    print(f"Converted {num_graphs} graphs to NetworkX format.")
+    if DEBUG:
+        print(f"Converted {num_graphs} graphs to NetworkX format.")
     return nx_graphs, y
 
 def load_dataset(source,name,use_node_labels=None,use_node_attributes=None,use_edge_labels=None,use_edge_attributes=None) -> tuple[list, list, np.ndarray]:

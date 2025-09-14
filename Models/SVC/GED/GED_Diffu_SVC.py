@@ -28,7 +28,7 @@ class Diffusion_Kernel(Base_Kernel):
         attributes.update({"KERNEL_llambda": llambda,
                            "KERNEL_t_iterations": t_iterations,
                            "KERNEL_diffusion_Kernel": diffusion_function})
-        super().__init__(ged_calculator=ged_calculator, attributes=attributes, **kwargs)
+        super().__init__(ged_calculator=ged_calculator, attributes=attributes,KERNEL_name="Diffusion-GED", **kwargs)
         if DEBUG:
             print(f"Initialized Diffusion Kernel with KERNEL_llambda={self.KERNEL_llambda}, KERNEL_diffusion_function={self.KERNEL_diffusion_function}")
 
@@ -78,6 +78,6 @@ class Diffusion_Kernel(Base_Kernel):
         param_grid.update({
             "KERNEL_llambda": [0.1, 0.5, 1.0],
             "KERNEL_diffusion_function": ["exp_diff_kernel", "von_Neumann_diff_kernel"],
-            "Kernel_iteration_t": [5, 10, 20]
+            "KERNEL_iteration_t": [5, 10, 20]
         })
         return param_grid
