@@ -99,9 +99,7 @@ class SupportVectorMachine(GraphClassifier):
         self.classifier.fit(X, y)
         self.post_fit(X, y)
         if DEBUG:
-            
             print("SVC model fitted successfully.")
-        # print(self.get_params())
         return self
     def predict(self, X):
         """

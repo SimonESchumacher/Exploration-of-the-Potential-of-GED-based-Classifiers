@@ -13,13 +13,21 @@ from Models.SupportVectorMachine_Classifier import SupportVectorMachine
 from Custom_Kernels.GEDLIB_kernel import GEDKernel
 from Models.SVC.Base_GED_SVC import Base_GED_SVC, Base_Kernel
 from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
-from Calculators.Prototype_Selction import Prototype_Selector, Select_Prototypes
+from Calculators.Prototype_Selction import Prototype_Selector, Select_Prototypes, buffered_prototype_selection
 DEBUG = False  # Set to True for debug prints
 
 class ZERO_GED_SVC(Base_GED_SVC):
-    
-    def initKernel(self, ged_calculator: Base_Calculator = None, **kernel_kwargs):
-        self.kernel = ZERO_GED_Kernel(ged_calculator=ged_calculator,KERNEL_name="Zero-GED", **kernel_kwargs)
+    def __init__(self,
+                    attributes: dict = dict(),
+                    ged_calculator: Base_Calculator = None,
+                    dataset_name: str = "Unknown",
+                    **kwargs):
+        self.dataset_name = dataset_name
+        self.kernel_name = "Zero-GED"
+        super().__init__(attributes=attributes, ged_calculator=ged_calculator, KERNEL_dataset_name=dataset_name, **kwargs)
+
+    def initKernel(self, ged_calculator: Base_Calculator, **kernel_kwargs):
+        self.kernel = ZERO_GED_Kernel(ged_calculator, **kernel_kwargs)
 
     @classmethod
     def get_param_grid(cls):
@@ -30,12 +38,14 @@ class ZERO_GED_SVC(Base_GED_SVC):
 
 
 class ZERO_GED_Kernel(Base_Kernel):
-    def __init__(self, ged_calculator: Base_Calculator = None,
-                  KERNEL_aggregation_method="sum", KERNEL_comparison_method="Mean-Distance",
-                  KERNEL_prototype_size=8,
-                  KERNEL_classwise=False, KERNEL_single_class=False,
-                  KERNEL_selection_method="RPS",
+    def __init__(self, ged_calculator: Base_Calculator,
+                  KERNEL_aggregation_method, KERNEL_comparison_method,
+                  KERNEL_prototype_size,
+                  KERNEL_classwise, KERNEL_single_class,
+                  KERNEL_selection_method,
+                  KERNEL_dataset_name,
                   attributes: dict = dict(), **kwargs):
+        self.KERNEL_dataset_name = KERNEL_dataset_name
         self.aggregation_method = KERNEL_aggregation_method
         self.comparison_method = KERNEL_comparison_method
         self.prototype_size = KERNEL_prototype_size
@@ -48,10 +58,10 @@ class ZERO_GED_Kernel(Base_Kernel):
                            "KERNEL_single_class": self.single_class,
                            "KERNEL_selection_method": self.selection_method,
                            "KERNEL_comparison_method": self.comparison_method})
-        super().__init__(ged_calculator=ged_calculator,KERNEL_name="Zero-GED", attributes=attributes, **kwargs)
+        super().__init__(ged_calculator,self.comparison_method,KERNEL_name="Zero-GED", attributes=attributes, **kwargs)
         if DEBUG:
-            print(f"Initialized ZERO_GED_Kernel with I_size={self.I_size}, aggregation_method={self.aggregation_method}")
-    
+            print(f"Initialized ZERO_GED_Kernel with prototype_size={self.prototype_size}, aggregation_method={self.aggregation_method}")
+
     def compare(self, g1, g2):
         distance=0
         d_g1_g2 =self.ged_calculator.compare(g1, g2, method=self.comparison_method)**2
@@ -68,7 +78,7 @@ class ZERO_GED_Kernel(Base_Kernel):
         """ Fit the kernel to the data and return the kernel matrix.
         """
         self.X_fit_graphs_ = X
-        self.prototypes = Select_Prototypes(X, y=y, ged_calculator=self.ged_calculator, size=self.prototype_size, classwise=self.classwise, single_class=self.single_class, selection_method=self.selection_method)
+        self.prototypes = buffered_prototype_selection(X, y=y, ged_calculator=self.ged_calculator, size=self.prototype_size, classwise=self.classwise, single_class=self.single_class, selection_method=self.selection_method, comparison_method=self.comparison_method, dataset_name=self.KERNEL_dataset_name)
         return self.transform(X)
     def transform(self, X):
         """ Transform the data using the fitted kernel.

@@ -10,22 +10,24 @@ from Calculators.Base_Calculator import Base_Calculator
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
 from Custom_Kernels.GEDLIB_kernel import GEDKernel
 from Models.SVC.Base_GED_SVC import Base_GED_SVC, Base_Kernel
-from Calculators.Prototype_Selction import select_Prototype, Prototype_Selector,Select_Prototypes
+from Calculators.Prototype_Selction import select_Prototype, Prototype_Selector,Select_Prototypes, buffered_prototype_selection
 DEBUG = False  # Set to True for debug prints
 
 class Simple_Prototype_GED_SVC(Base_GED_SVC):
     def __init__(self,
                  attributes: dict = dict(),
                  ged_calculator: Base_Calculator = None,
+                 dataset_name: str = None, # for finding errors
                  **kwargs):
-
-        self.kernel_name = "Simple_Prototype_GED"
+        self.dataset_name = dataset_name
+        self.kernel_name = "Simple_Prototype_GED" # messy TODO
+        kwargs.update({"KERNEL_dataset_name": dataset_name})
         super().__init__(attributes=attributes, ged_calculator=ged_calculator, **kwargs)
         attributes.update(self.feature_extractor.attributes)
-    
-    def initKernel(self, ged_calculator: Base_Calculator = None, KERNEL_comparison_method="Mean-Distance", **kernel_kwargs):
+
+    def initKernel(self, ged_calculator: Base_Calculator, **kernel_kwargs):
         self.kernel = None
-        self.feature_extractor = simple_prototype_GED_Feature_Extractor(ged_calculator=ged_calculator, KERNEL_comparison_method=KERNEL_comparison_method, **kernel_kwargs)
+        self.feature_extractor = simple_prototype_GED_Feature_Extractor(ged_calculator, **kernel_kwargs)
 
     def fit_transform(self, X, y=None):
         X=[int(X[i].name) for i in range(len(X))]
@@ -78,12 +80,15 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
         return param_grid
 
 class simple_prototype_GED_Feature_Extractor:
-    def __init__(self, ged_calculator: Base_Calculator = None,
-                  KERNEL_comparison_method="Mean-Distance",
-                  KERNEL_prototype_size=8,
-                  KERNEL_classwise=False, KERNEL_single_class=False,
-                  KERNEL_selection_method="RPS",
-                  attributes: dict = dict(), **kwargs):
+    def __init__(self, ged_calculator: Base_Calculator,
+                  KERNEL_comparison_method,
+                  KERNEL_prototype_size,
+                  KERNEL_classwise, KERNEL_single_class,
+                  KERNEL_selection_method,
+                  KERNEL_dataset_name,
+                  attributes: dict = dict(),
+                   **kwargs):
+        self.dataset_name = KERNEL_dataset_name
         self.ged_calculator = ged_calculator
         self.comparison_method = KERNEL_comparison_method
         self.prototypes_size = KERNEL_prototype_size
@@ -105,8 +110,8 @@ class simple_prototype_GED_Feature_Extractor:
     def fit_transform(self, X, y=None):
         # select the Prototypes
         self.X_fit_graphs_ = X # Store the training graphs for transform method
-
-        self.prototypes = Select_Prototypes(X, y=y, ged_calculator=self.ged_calculator, size=self.prototypes_size, classwise=self.classwise, single_class=self.single_class, selection_method=self.selection_method)
+       
+        self.prototypes = buffered_prototype_selection(X, y=y, ged_calculator=self.ged_calculator, size=self.prototypes_size, classwise=self.classwise, single_class=self.single_class, selection_method=self.selection_method, comparison_method=self.comparison_method, dataset_name=self.dataset_name)
         return self.transform(X)   
     def transform(self, X):
         feature_vectors = np.zeros((len(X), self.prototypes_size))

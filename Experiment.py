@@ -186,7 +186,7 @@ class experiment:
             roc_auc = roc_auc_score(y_test, y_pred, multi_class='ovr')
         except np.AxisError:
             roc_auc = 0.0
-        precision = precision_score(y_test, y_pred, average=REPORT_SETTING)
+        precision = precision_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0)
         recall = recall_score(y_test, y_pred, average=REPORT_SETTING)
         # maybe i shoudl split this to a defirent file and make a diffrence between k_fold and simple
         self.results_log["accuracy"] = accuracy
@@ -225,7 +225,7 @@ class experiment:
             accuracies.append(accuracy_score(y_test_fold, y_pred))
             f1_scores.append(f1_score(y_test_fold, y_pred, average=REPORT_SETTING))
             roc_aucs.append(roc_auc_score(y_test_fold, y_pred, multi_class='ovr'))
-            precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING))
+            precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0))
             recalls.append(recall_score(y_test_fold, y_pred, average=REPORT_SETTING))
             if DEBUG:
                 print(f"Accuracy for fold: {accuracies[-1]:.4f}, F1 Score: {f1_scores[-1]:.4f}, ")
@@ -320,7 +320,7 @@ class experiment:
         y_pred = best_model.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
         f1 = f1_score(y_test, y_pred, average=REPORT_SETTING)
-        precision = precision_score(y_test, y_pred, average=REPORT_SETTING)
+        precision = precision_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0)
         recall = recall_score(y_test, y_pred, average=REPORT_SETTING)
         try:
             roc_auc = roc_auc_score(y_test, y_pred, multi_class='ovr')
@@ -416,7 +416,7 @@ class experiment:
         self.inner_model_fit(X_train, y_train)
         y_test_pred = self.inner_model_predict(X_test)
         duration = datetime.now() - fit_start_time
-        test_DF["Best_model_duration"] = duration
+        test_DF["Best_model_duration"] = str(duration)
         
         accuracy_test = accuracy_score(y_test, y_test_pred)
         f1_test = f1_score(y_test, y_test_pred, average=REPORT_SETTING)
@@ -487,21 +487,27 @@ class experiment:
             recalls.append(recall_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0))
         erroraccnolagement = ERRORINTERVAL_SETTING
         if erroraccnolagement == "std":
-            test_DF["k_fold_accuracy"] = np.mean(accuracies) + " " + np.std(accuracies)
-            test_DF["k_fold_f1_score"] = np.mean(f1_scores) + " " + np.std(f1_scores)
-            test_DF["k_fold_roc_auc"] = np.mean(roc_aucs) + " " + np.std(roc_aucs)
-            test_DF["k_fold_precision"] = np.mean(precisions) + " " + np.std(precisions)
-            test_DF["k_fold_recall"] = np.mean(recalls) + " " + np.std(recalls)
+            test_DF["k_fold_accuracy"] = np.mean(accuracies) 
+            test_DF["k_fold_acc_std"] = np.std(accuracies)
+            test_DF["k_fold_f1_score"] = np.mean(f1_scores)
+            test_DF["k_fold_f1_std"] = np.std(f1_scores)
+            test_DF["k_fold_roc_auc"] = np.mean(roc_aucs)
+            test_DF["k_fold_roc_auc_std"] = np.std(roc_aucs)
+            test_DF["k_fold_precision"] = np.mean(precisions)
+            test_DF["k_fold_recall"] = np.mean(recalls)
         elif erroraccnolagement == "confidence interval":
             # Calculate confidence intervals for each metric
             n = len(accuracies)
             confidence = 0.95
             z_score = stats.norm.ppf((1 + confidence) / 2)
-            test_DF["k_fold_accuracy"] = f"{np.mean(accuracies)} ∓ { z_score * np.std(accuracies) / np.sqrt(n)}"
-            test_DF["k_fold_f1_score"] = f"{np.mean(f1_scores)} ∓ { z_score * np.std(f1_scores) / np.sqrt(n)}"
-            test_DF["k_fold_roc_auc"] = f"{np.mean(roc_aucs)} ∓ { z_score * np.std(roc_aucs) / np.sqrt(n)}"
-            test_DF["k_fold_precision"] = f"{np.mean(precisions)} ∓ { z_score * np.std(precisions) / np.sqrt(n)}"
-            test_DF["k_fold_recall"] = f"{np.mean(recalls)} ∓ { z_score * np.std(recalls) / np.sqrt(n)}"
+            test_DF["k_fold_accuracy"] = np.mean(accuracies)
+            test_DF["K_fold_acc_CI"] = z_score * np.std(accuracies) / np.sqrt(n)
+            test_DF["k_fold_f1_score"] = np.mean(f1_scores)
+            test_DF["K_fold_f1_CI"] = z_score * np.std(f1_scores) / np.sqrt(n)
+            test_DF["k_fold_roc_auc"] = np.mean(roc_aucs)
+            test_DF["K_fold_roc_auc_CI"] = z_score * np.std(roc_aucs) / np.sqrt(n)
+            test_DF["k_fold_precision"] = np.mean(precisions)
+            test_DF["k_fold_recall"] = np.mean(recalls)
         elif erroraccnolagement == "none":
             test_DF["k_fold_accuracy"] = np.mean(accuracies)
             test_DF["k_fold_f1_score"] = np.mean(f1_scores)
@@ -513,14 +519,14 @@ class experiment:
 
       
 
-    def run_extensive_test(self,test_DF,should_print=False,scoring='accuracy',cv=5, verbose=0, n_jobs=8):
+    def run_extensive_test(self,test_DF,should_print=False,scoring='accuracy',cv=5, verbose=0, n_jobs=-1):
         if should_print:
            print("\n--------------------------------------------------------------------")
            print(f"Running extensive test for model:\n {self.model_name}")
         duration1train =self.run_speed_test()
-        test_DF["train_test_duration"] = duration1train
         test_DF["model_name"] = self.model_name
         test_DF["Calculator_name"] = self.model.get_calculator().get_Name() if self.model.get_calculator() else "None"
+        test_DF["train_test_duration"] = str(duration1train)
         param_grid = self.model.get_param_grid()
         # multipy all posibilities for the param grid times 5
         total_combinations = cv
@@ -535,7 +541,7 @@ class experiment:
         X_train, X_test, y_train, y_test = self.split_data()
         # hyperparameter tuning with cross validation
         best_model, best_params, best_score, tuning_duration = self.silent_hyperparameter_tuning(X_train, y_train, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, param_grid=param_grid)
-        test_DF["tuning_duration"] = tuning_duration
+        test_DF["tuning_duration"] = str(tuning_duration)
         test_DF["tuning_best_params"] = str(best_params)
         test_DF["tuning_best_score"] = best_score
         if should_print:
@@ -554,6 +560,7 @@ class experiment:
         self.run_silent_k_fold(k=cv,test_DF=test_DF)
         if should_print:
             print("Extensive test completed.")
+            print(f"Time {pd.Timestamp.now()}")
             print("--------------------------------------------------------------------\n")
         return test_DF
     

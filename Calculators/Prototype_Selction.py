@@ -1,9 +1,12 @@
 # Prototype Selction
 import numpy as np
 import networkx as nx
-from Dataset import Dataset
 from Calculators.Base_Calculator import Base_Calculator
-
+import os
+import joblib
+import sys
+sys.path.append(os.getcwd())
+DEBUG = True  # Set to True for debug prints
 def medianGraph(G, ged_calculator:Base_Calculator) -> nx.Graph:
     return_index =False
     if isinstance(G, list[nx.Graph]):
@@ -390,6 +393,31 @@ def Select_Prototypes(G, ged_calculator: Base_Calculator, y=None, classwise=Fals
     else:
         return unstratified_Composite_Selection(G, ged_calculator=ged_calculator, composite_set=selection_method, size=size)
 
+def buffered_prototype_selection(G, ged_calculator: Base_Calculator, y, classwise, single_class, selection_method, size, comparison_method, dataset_name):
+    full_prototype_bzw_string = f"{ged_calculator.get_name()}_{selection_method}_{size}_{classwise}_{single_class}_{comparison_method}_{dataset_name}"
+    # load buffer dictionary with joblib
+    buffer_path = "prototype_selection_buffer"
+    joint_path = os.path.join("Calculators",buffer_path, "selections.joblib")
+    try:
+        buffer_dict :dict = joblib.load(joint_path)
+    except FileNotFoundError:
+        buffer_dict = {}
+    if selection_method != "RPS" and full_prototype_bzw_string in buffer_dict.keys():
+        prototypes = buffer_dict[full_prototype_bzw_string]
+        if DEBUG:
+            print(f"Loaded prototypes from buffer for {full_prototype_bzw_string}")
+            print(f"Prototypes: {prototypes}")
+        return prototypes
+    else:
+        prototypes = Select_Prototypes(G, ged_calculator=ged_calculator, y=y, classwise=classwise, single_class=single_class, selection_method=selection_method, size=size, comparison_method=comparison_method)
+        if DEBUG:
+            print(f"No buffer found for {full_prototype_bzw_string}. Selected prototypes: {prototypes}")
+        buffer_dict[full_prototype_bzw_string] = prototypes
+        # save buffer dictionary with joblib
+        os.makedirs(os.path.join("Calculators",buffer_path), exist_ok=True)
+        joblib.dump(buffer_dict, joint_path)
+        return prototypes
+
 class Prototype_Selector:
     def __init__(self, ged_calculator: Base_Calculator = None, size=3, selection_method="CPS", classwise=False, single_class=False):
         self.ged_calculator = ged_calculator
@@ -416,3 +444,14 @@ class Prototype_Selector:
         return self.method(G, y=y)
     def get_attributes(self):
         return self.attributes
+    
+buffer_path = "prototype_selection_buffer"
+joint_path = os.path.join("Calculators",buffer_path, "selections.joblib")
+try:
+    buffer_dict :dict = joblib.load(joint_path)
+except FileNotFoundError:
+    buffer_dict = {}
+
+print("Buffered prototype selections:")
+for key in list(buffer_dict.keys()):
+    print(f"Key: {key}, Prototypes: {buffer_dict[key]}")

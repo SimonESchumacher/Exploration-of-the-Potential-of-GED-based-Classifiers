@@ -10,8 +10,9 @@ from Calculators.Base_Calculator import Base_Calculator
 from Models.SVC.Base_GED_SVC import Base_GED_SVC, Base_Kernel
 DEBUG = False
 class DIFFUSION_GED_SVC(Base_GED_SVC):
-       
-    def initKernel(self, ged_calculator:Base_Calculator=None, **kernel_kwargs):
+
+    # definition can't be changed 
+    def initKernel(self, ged_calculator:Base_Calculator, **kernel_kwargs):
         self.kernel = Diffusion_Kernel(ged_calculator=ged_calculator, **kernel_kwargs)
 
     @classmethod
@@ -21,13 +22,13 @@ class DIFFUSION_GED_SVC(Base_GED_SVC):
         return param_grid
 
 class Diffusion_Kernel(Base_Kernel):
-    def __init__(self, ged_calculator:Base_Calculator=None, llambda=0.5,t_iterations=10, diffusion_function="exp_diff_kernel", attributes:dict=dict(), **kwargs):
-        self.KERNEL_llambda = llambda
-        self.KERNEL_t_iterations = t_iterations
-        self.KERNEL_diffusion_function = diffusion_function # Lafferty, 2002  ; aternative "von_Neumann_diff_kernel"  Kandola et al., 2002
-        attributes.update({"KERNEL_llambda": llambda,
-                           "KERNEL_t_iterations": t_iterations,
-                           "KERNEL_diffusion_Kernel": diffusion_function})
+    def __init__(self, ged_calculator:Base_Calculator, KERNEL_llambda,KERNEL_t_iterations, KERNEL_diffusion_function, attributes:dict=dict(), **kwargs):
+        self.KERNEL_llambda = KERNEL_llambda
+        self.KERNEL_t_iterations = KERNEL_t_iterations
+        self.KERNEL_diffusion_function = KERNEL_diffusion_function # Lafferty, 2002  ; aternative "von_Neumann_diff_kernel"  Kandola et al., 2002
+        attributes.update({"KERNEL_llambda": KERNEL_llambda,
+                           "KERNEL_t_iterations": KERNEL_t_iterations,
+                           "KERNEL_diffusion_Kernel": KERNEL_diffusion_function})
         super().__init__(ged_calculator=ged_calculator, attributes=attributes,KERNEL_name="Diffusion-GED", **kwargs)
         if DEBUG:
             print(f"Initialized Diffusion Kernel with KERNEL_llambda={self.KERNEL_llambda}, KERNEL_diffusion_function={self.KERNEL_diffusion_function}")

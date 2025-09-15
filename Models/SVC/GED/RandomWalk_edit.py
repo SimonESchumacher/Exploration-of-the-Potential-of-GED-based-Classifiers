@@ -15,8 +15,8 @@ class Random_walk_edit_SVC(Base_GED_SVC):
     Support Vector Machine with Graph Edit Distance Kernel
     """
 
-    def initKernel(self, ged_calculator=None, **kernel_kwargs):
-        self.kernel = random_walk_edit_Kernel(ged_calculator=ged_calculator, **kernel_kwargs)
+    def initKernel(self, ged_calculator, **kernel_kwargs):
+        self.kernel = random_walk_edit_Kernel(ged_calculator, **kernel_kwargs)
 
     @classmethod
     def get_param_grid(cls):
@@ -31,8 +31,8 @@ class random_walk_edit_Kernel(Base_Kernel):
     Random Walk Edit Kernel
     """
 
-    def __init__(self, ged_calculator=None, KERNEL_decay_lambda=0.1, KERNEL_max_walk_length=-1, attributes: dict = dict(), **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, ged_calculator, KERNEL_decay_lambda,KERNEL_max_walk_length, attributes: dict = dict(), **kwargs):
+        super().__init__(ged_calculator,KERNEL_name="Random-Walk-Edit",attributes=attributes,**kwargs)
         self.ged_calculator = ged_calculator
         self.decay_lambda = KERNEL_decay_lambda
         self.max_walk_length = KERNEL_max_walk_length
@@ -72,9 +72,10 @@ class random_walk_edit_Kernel(Base_Kernel):
     
     @classmethod
     def get_param_grid(cls):
-        param_grid = {
+        param_grid = Base_Kernel.get_param_grid()
+        param_grid.update({
             "KERNEL_decay_lambda": [0.01, 0.1],
             "KERNEL_max_walk_length": [5, -1]  # -1 indicates infinite length
-        }
+        })
         return param_grid
         

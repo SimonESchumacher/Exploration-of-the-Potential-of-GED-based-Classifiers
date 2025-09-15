@@ -16,7 +16,7 @@ class Trivial_GED_SVC(Base_GED_SVC):
     """
     Support Vector Machine with Graph Edit Distance Kernel
     """   
-    def initKernel(self,ged_calculator=None, **kernel_kwargs):
+    def initKernel(self,ged_calculator, **kernel_kwargs):
         self.kernel = Trivial_GED_Kernel(ged_calculator=ged_calculator, **kernel_kwargs)
    
         
@@ -34,7 +34,7 @@ class Trivial_GED_SVC(Base_GED_SVC):
 
 class Trivial_GED_Kernel(Base_Kernel):
 
-    def __init__(self,ged_calculator=None,KERNEL_comparison_method="Mean-Distance",KERNEL_similarity_function="k1",attributes:dict=dict(),**kwargs):
+    def __init__(self,ged_calculator,KERNEL_comparison_method,KERNEL_similarity_function,attributes:dict=dict(),**kwargs):
 
         self.similarity_function = KERNEL_similarity_function
         if self.similarity_function == "k1":
