@@ -193,30 +193,30 @@ class Base_Calculator():
     def get_runtime(self):
         return self.runtime if hasattr(self, 'runtime') else None
     
-    def get_lower_bound(self, graph1_index, graph2_index):
+    def get_lower_bound(self, graph1_index:int, graph2_index:int):
         return self.lowerbound_matrix[graph1_index][graph2_index]
-    def get_upper_bound(self, graph1_index, graph2_index):
+    def get_upper_bound(self, graph1_index:int, graph2_index:int):
         return self.upperbound_matrix[graph1_index][graph2_index]
-    def get_node_map(self, graph1_index, graph2_index):
+    def get_node_map(self, graph1_index:int, graph2_index:int):
         if not self.isactive:
             raise ValueError("Calculator is not active. Call activate() first.")
         if not self.need_node_map:
             raise ValueError("Node map was not requested during initialization (need_node_map=False).")
         return self.node_map_matrix[graph1_index][graph2_index]
-    def get_all_map(self, graph1_index, graph2_index):
+    def get_all_map(self, graph1_index:int, graph2_index:int):
         return None  # Dummy implementation, as gedlibpy is not available in this context
-    def get_forward_map(self, graph1_index, graph2_index):
+    def get_forward_map(self, graph1_index:int, graph2_index:int):
         return None  # Dummy implementation, as gedlibpy is not available in this context
-    def get_backward_map(self, graph1_index, graph2_index):
+    def get_backward_map(self, graph1_index:int, graph2_index:int):
         return None  # Dummy implementation, as gedlibpy is not available in this context
-    def get_assignment_matrix(self, graph1_index, graph2_index):
+    def get_assignment_matrix(self, graph1_index:int, graph2_index:int):
         return None  # Dummy implementation, as gedlibpy is not available in this context
-    def get_node_image(self, graph1_index, graph2_index,node_index):
+    def get_node_image(self, graph1_index:int, graph2_index:int, node_index:int):
         return None
     # special funtions handmade
-    def get_mean_distance(self, graph1_index, graph2_index):
+    def get_mean_distance(self, graph1_index:int, graph2_index:int):
         return (self.get_lower_bound(graph1_index, graph2_index) + self.get_upper_bound(graph1_index, graph2_index)) / 2
-    def get_distance(self, graph1_index, graph2_index, method="Mean"):
+    def get_distance(self, graph1_index:int, graph2_index:int, method="Mean"):
         if method == "Mean":
             return self.get_mean_distance(graph1_index, graph2_index)
         elif method == "LowerBound":

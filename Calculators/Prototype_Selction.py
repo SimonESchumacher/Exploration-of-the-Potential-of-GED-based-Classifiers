@@ -82,6 +82,7 @@ def get_indexor_NX(G):
     if isinstance(G, list) and len(G) > 0 and isinstance(G[0], nx.Graph):
         # get the indexes of the Graphs
         return [int(g.name) for g in G], True
+        # return [i for i in range(len(G))], True
     elif isinstance(G, list) and len(G) > 0 and isinstance(G[0], int):
         return G, False
     else:
@@ -98,8 +99,8 @@ def select_RPS(G, size=3, **kwargs):
     class-independent or classwise (rps-c).
     """
     graphindexes, asNX = get_indexor_NX(G)
-    if size <= 1:
-        raise ValueError("Size must be greater than 1")
+    if size < 1:
+        raise ValueError("Size must be greater than 0")
     if size > len(graphindexes):
         raise ValueError(f"Size {size} is greater than the number of graphs {len(graphindexes)}")
     prototypes = np.random.choice(graphindexes, size=size, replace=False)
@@ -113,8 +114,8 @@ def select_CPS(G, ged_calculator:Base_Calculator, ged_distance="Mean-Distance", 
     iteratively constructed as follows, starting with the median graph of T.
     """
     graphindexes, asNX = get_indexor_NX(G)
-    if size <= 1:
-        raise ValueError("Size must be greater than 1")
+    if size < 1:
+        raise ValueError("Size must be greater than 0")
     if size > len(graphindexes):
         raise ValueError(f"Size {size} is greater than the number of graphs {len(graphindexes)}")
     distance_matrix = ged_calculator.get_complete_matrix(method=ged_distance,x_graphindexes=graphindexes)
@@ -122,18 +123,20 @@ def select_CPS(G, ged_calculator:Base_Calculator, ged_distance="Mean-Distance", 
     distance_sums = np.sum(distance_matrix, axis=1)
     median_index = np.argmin(distance_sums)
     prototypes = [graphindexes[median_index]]
+    prototype_indexes = [median_index]
     distance_sums[median_index] = np.inf
     size -= 1
     while size > 0:
         # get the distance to the already selected prototypes
         for i in range(len(distance_sums)):
-            distance_sums[i] -= distance_matrix[i, graphindexes[median_index]]
+            distance_sums[i] -= distance_matrix[i, median_index]
         # get the next median graph
         median_index = np.argmin(distance_sums)
         prototypes.append(graphindexes[median_index])
+        prototype_indexes.append(median_index)
         distance_sums[median_index] = np.inf
         size -= 1
-    return return_prototype_set(G, prototypes, asNX=asNX)
+    return return_prototype_set(G, prototype_indexes, asNX=asNX)
 
 def select_BPS(G, ged_calculator:Base_Calculator, ged_distance="Mean-Distance", size=3):
     """
@@ -142,8 +145,8 @@ def select_BPS(G, ged_calculator:Base_Calculator, ged_distance="Mean-Distance", 
     constructed as follows, starting with the marginal graph of T.
     """
     graphindexes, asNX = get_indexor_NX(G)
-    if size <= 1:
-        raise ValueError("Size must be greater than 1")
+    if size < 1:
+        raise ValueError("Size must be greater than 0")
     if size > len(graphindexes):
         raise ValueError(f"Size {size} is greater than the number of graphs {len(graphindexes)}")
     distance_matrix = ged_calculator.get_complete_matrix(method=ged_distance,x_graphindexes=graphindexes)
@@ -176,8 +179,8 @@ def select_Targetsphere(G, ged_calculator:Base_Calculator, ged_distance="Mean-Di
     graph gc are located nearest to the interval borders in terms of edit distance are
     selected as prototypes:"""
     graphindexes, asNX = get_indexor_NX(G)
-    if size <= 1:
-        raise ValueError("Size must be greater than 1")
+    if size < 1:
+        raise ValueError("Size must be greater than 0")
     if size > len(graphindexes):
         raise ValueError(f"Size {size} is greater than the number of graphs {len(graphindexes)}")
     distance_matrix = ged_calculator.get_complete_matrix(method=ged_distance,x_graphindexes=graphindexes)
@@ -208,8 +211,8 @@ def select_SpanningTree(G, ged_calculator:Base_Calculator, ged_distance="Mean-Di
     from the already selected prototype graphs.
     """
     graphindexes, asNX = get_indexor_NX(G)
-    if size <= 1:
-        raise ValueError("Size must be greater than 1")
+    if size < 1:
+        raise ValueError("Size must be greater than 0")
     if size > len(graphindexes):
         raise ValueError(f"Size {size} is greater than the number of graphs {len(graphindexes)}")
     distance_matrix = ged_calculator.get_complete_matrix(method=ged_distance,x_graphindexes=graphindexes)
@@ -248,12 +251,19 @@ def select_k_Centers(G, ged_calculator:Base_Calculator, ged_distance="Mean-Dista
     """
     T = G
     distance_matrix = ged_calculator.get_complete_matrix(method=ged_distance,x_graphindexes=T)
+    T_ind = list(range(len(T)))
     # 1. 
     # Select an initial set of m prototypes: P0 = {p1,...,pm}. One can choose the
     # initial prototypes randomly or by a more sophisticated procedure, for example,
     # the spanning prototype selector mentioned above.
     P = initial_prototype_selector(T, ged_calculator=ged_calculator, size=size)
-
+    P_ind = []
+    for p in P:
+        for i in range(len(T)):
+            if p==T[i]:
+                P_ind.append(i)
+                break
+           
     # 2.
     # Construct m sets Si where each set consists of one prototype: S1 ={p1},...,Sm = {pm}.
     # For each graph g ∈ T\P find its nearest neighbor pi ∈ P
@@ -264,12 +274,14 @@ def select_k_Centers(G, ged_calculator:Base_Calculator, ged_distance="Mean-Dista
     MAX_Iterations = 20
     while another_iteration:
         S_list = [[p] for p in P]
-        for g in T:
-            if g not in P:
+        S_ind_list = [[p_ind] for p_ind in P_ind]
+        for g_ind in T_ind:
+            if g_ind not in P_ind:
                 # find the nearest prototype
-                distances_to_prototypes = [distance_matrix[g, p] for p in P]
+                distances_to_prototypes = [distance_matrix[g_ind, p_ind] for p_ind in P_ind]
                 nearest_prototype_index = np.argmin(distances_to_prototypes)
-                S_list[nearest_prototype_index].append(g)
+                S_list[nearest_prototype_index].append(T[g_ind])
+                S_ind_list[nearest_prototype_index].append(g_ind)
 
         # 3.
         # For each set Si find its center ci, that is, the graph for which the maximum
@@ -279,7 +291,7 @@ def select_k_Centers(G, ged_calculator:Base_Calculator, ged_distance="Mean-Dista
          # 4.
         #  For each center ci, ifci= pi, replace pi by ci in Si. If any replacement is done,
         #  return to step 2, otherwise stop.
-        for Si in S_list:
+        for Si in S_ind_list:
             # find center of the set Si
             max_distances = np.zeros(len(Si))
             for index, gs in enumerate(Si):
@@ -287,9 +299,10 @@ def select_k_Centers(G, ged_calculator:Base_Calculator, ged_distance="Mean-Dista
             center_index = np.argmin(max_distances)
             center = Si[center_index]
             # check if the center is already in P
-            if center != P[S_list.index(Si)]:
+            if center != P_ind[S_ind_list.index(Si)]:
                 # replace the prototype with the center
-                P[S_list.index(Si)] = center
+                P_ind[S_ind_list.index(Si)] = center
+                P[S_ind_list.index(Si)] = T[center]
                 another_iteration = True
         num_iterations += 1
         if num_iterations > MAX_Iterations:
@@ -345,7 +358,8 @@ def Composite_Selection(G, ged_calculator: Base_Calculator, y=None, composite_se
         unique_classes = np.unique(y)
         num_classes = len(unique_classes)
         if size < num_classes:
-            raise ValueError(f"Size {size} must be at least the number of classes {num_classes}")
+            # raise ValueError(f"Size {size} must be at least the number of classes {num_classes}")
+            size = num_classes
         # we divide the size by the number of classes to get the number of prototypes per class
         size_per_class = size // num_classes
         prototypes = []
@@ -374,30 +388,30 @@ def single_class_prototype_selection(G, ged_calculator: Base_Calculator, y=None,
             raise ValueError(f"Not enough graphs in class {most_popular_class} to select {size} prototypes")
     
         return select_Prototype(G_cls, ged_calculator=ged_calculator, selection_method=selection_method, size=size)
-def Select_Prototypes(G, ged_calculator: Base_Calculator, y=None, classwise=False, single_class=False, selection_method="CPS", size=3, comparison_method="Mean-Distance"):
+def Select_Prototypes(G, ged_calculator: Base_Calculator, y=None, selection_split="all", selection_method="CPS", size=3, comparison_method="Mean-Distance"):
     """
     Selects prototypes from the given graphs G using the specified selection method.
     """
-    if classwise and single_class:
-        raise ValueError("classwise and single_class cannot be both True")
     if ged_calculator is None:
         raise ValueError("ged_calculator must be provided")
     if size < 1:
         raise ValueError("size must be at least 1")
     if selection_method not in ["CPS", "RPS", "BPS", "TPS", "SPS", "k-CPS"]:
         raise ValueError(f"Unknown selection method: {selection_method}")
-    if single_class:
+    if selection_split == "single_class":
         return single_class_prototype_selection(G, ged_calculator=ged_calculator, y=y, selection_method=selection_method, size=size)
-    elif classwise:
+    elif selection_split == "classwise":
         return Composite_Selection(G, ged_calculator=ged_calculator, y=y, composite_set=selection_method, size=size)
     else:
         return unstratified_Composite_Selection(G, ged_calculator=ged_calculator, composite_set=selection_method, size=size)
 
-def buffered_prototype_selection(G, ged_calculator: Base_Calculator, y, classwise, single_class, selection_method, size, comparison_method, dataset_name):
-    full_prototype_bzw_string = f"{ged_calculator.get_name()}_{selection_method}_{size}_{classwise}_{single_class}_{comparison_method}_{dataset_name}"
+def buffered_prototype_selection(G, ged_calculator: Base_Calculator, y, selection_split, selection_method, size, comparison_method, dataset_name):
+    full_prototype_bzw_string = f"{ged_calculator.get_name()}_{selection_method}_{size}_{selection_split}_{comparison_method}_{dataset_name}"
     # load buffer dictionary with joblib
     buffer_path = "prototype_selection_buffer"
     joint_path = os.path.join("Calculators",buffer_path, "selections.joblib")
+    if DEBUG:
+        print(f"Prototype selection string: {full_prototype_bzw_string}")
     try:
         buffer_dict :dict = joblib.load(joint_path)
     except FileNotFoundError:
@@ -409,34 +423,31 @@ def buffered_prototype_selection(G, ged_calculator: Base_Calculator, y, classwis
             print(f"Prototypes: {prototypes}")
         return prototypes
     else:
-        prototypes = Select_Prototypes(G, ged_calculator=ged_calculator, y=y, classwise=classwise, single_class=single_class, selection_method=selection_method, size=size, comparison_method=comparison_method)
+        prototypes = Select_Prototypes(G, ged_calculator=ged_calculator, y=y, selection_split=selection_split, selection_method=selection_method, size=size, comparison_method=comparison_method)
         if DEBUG:
             print(f"No buffer found for {full_prototype_bzw_string}. Selected prototypes: {prototypes}")
         buffer_dict[full_prototype_bzw_string] = prototypes
         # save buffer dictionary with joblib
-        os.makedirs(os.path.join("Calculators",buffer_path), exist_ok=True)
-        joblib.dump(buffer_dict, joint_path)
+        if not selection_method == "RPS":
+            joblib.dump(buffer_dict, joint_path)
         return prototypes
 
 class Prototype_Selector:
-    def __init__(self, ged_calculator: Base_Calculator = None, size=3, selection_method="CPS", classwise=False, single_class=False):
+    def __init__(self, ged_calculator: Base_Calculator = None, size=3, selection_method="CPS", selection_split="all"):
         self.ged_calculator = ged_calculator
         self.size = size
         self.selection_method = selection_method
-        self.classwise = classwise
-        self.single_class = single_class
-        self.attributes = {"size": size, "selection_method": selection_method, "classwise": classwise, "single_class": single_class}
-        if self.classwise and self.single_class:
-            raise ValueError("classwise and single_class cannot be both True")
+        self.selection_split = selection_split
+        self.attributes = {"size": size, "selection_method": selection_method, "selection_split": selection_split}
         if self.ged_calculator is None:
             raise ValueError("ged_calculator must be provided")
         if self.size < 1:
             raise ValueError("size must be at least 1")
         if self.selection_method not in ["CPS", "RPS", "BPS", "TPS", "SPS", "k-CPS"]:
             raise ValueError(f"Unknown selection method: {self.selection_method}")
-        if single_class:
+        if self.selection_split == "single_class":
             self.method=lambda G, y=None: single_class_prototype_selection(G, ged_calculator=self.ged_calculator, y=y, selection_method=self.selection_method, size=self.size)
-        elif classwise:
+        elif self.selection_split == "classwise":
             self.method=lambda G, y=None: Composite_Selection(G, ged_calculator=self.ged_calculator, y=y, composite_set=selection_method, size=self.size)
         else:
             self.method=lambda G, y=None: unstratified_Composite_Selection(G, ged_calculator=self.ged_calculator, y=y, composite_set=selection_method, size=self.size)
@@ -445,13 +456,13 @@ class Prototype_Selector:
     def get_attributes(self):
         return self.attributes
     
-buffer_path = "prototype_selection_buffer"
-joint_path = os.path.join("Calculators",buffer_path, "selections.joblib")
-try:
-    buffer_dict :dict = joblib.load(joint_path)
-except FileNotFoundError:
-    buffer_dict = {}
+# buffer_path = "prototype_selection_buffer"
+# joint_path = os.path.join("Calculators",buffer_path, "selections.joblib")
+# try:
+#     buffer_dict :dict = joblib.load(joint_path)
+# except FileNotFoundError:
+#     buffer_dict = {}
 
-print("Buffered prototype selections:")
-for key in list(buffer_dict.keys()):
-    print(f"Key: {key}, Prototypes: {buffer_dict[key]}")
+# print("Buffered prototype selections:")
+# for key in list(buffer_dict.keys()):
+#     print(f"Key: {key}, Prototypes: {buffer_dict[key]}")

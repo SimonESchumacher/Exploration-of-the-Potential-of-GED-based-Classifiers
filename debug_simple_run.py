@@ -22,7 +22,7 @@ from Models_single.SVC.GED.GED_Diffu_SVC import DIFFUSION_GED_SVC
 # from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from Models_single.SVC.Base_GED_SVC import Base_GED_SVC
 from Models_single.SVC.GED.Zero_GED_SVC import ZERO_GED_SVC
-from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
+from Models_single.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
 from Models.KNN.GEDLIB_KNN import GED_KNN
 from Models_single.SVC.GED.RandomWalk_edit import Random_walk_edit_SVC
 # import os
@@ -38,9 +38,9 @@ if __name__ == "__main__":
     DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",load_now=False)
     DATASET.load()
     ged_calculator = DATASET.get_calculator()
-    classifier = ZERO_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", classwise=False,single_class=True,prototype_size=8, aggregation_method="sum",dataset_name=DATASET.name,selection_method="RPS")
+    # classifier = ZERO_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=7, aggregation_method="sum",dataset_name=DATASET.name,selection_method="k-CPS")
 
-    # classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',KERNEL_prototype_size=8, KERNEL_selection_method="k-CPS", KERNEL_classwise=False, KERNEL_single_class=False,dataset_name=DATASET.name)
+    classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=8, selection_method="k-CPS", selection_split="all",dataset_name=DATASET.name)
 
     # classifier = Random_walk_edit_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
     # classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',KERNEL_prototype_size=5, KERNEL_selection_method="RPS", KERNEL_classwise=False, KERNEL_single_class=False)

@@ -20,16 +20,14 @@ class ZERO_GED_SVC(Base_GED_SVC):
     def __init__(self,
                     aggregation_method,
                     prototype_size,
-                    classwise,
-                    single_class,
+                    selection_split,
                     selection_method,
                     dataset_name,
                     attributes:dict=dict(),
                     **kwargs):
         self.aggregation_method = aggregation_method
         self.prototype_size = prototype_size
-        self.classwise = classwise
-        self.single_class = single_class
+        self.selection_split = selection_split 
         self.selection_method = selection_method
 
         self.dataset_name = dataset_name
@@ -37,8 +35,7 @@ class ZERO_GED_SVC(Base_GED_SVC):
         attributes.update({
             "aggregation_method": self.aggregation_method,
             "prototype_size": self.prototype_size,
-            "classwise": self.classwise,
-            "single_class": self.single_class,
+            "selection_split": self.selection_split,
             "selection_method": self.selection_method,
             "dataset_name": self.dataset_name
         })
@@ -59,12 +56,22 @@ class ZERO_GED_SVC(Base_GED_SVC):
     def fit_transform(self, X, y=None):
         """ Fit the kernel to the data and return the kernel matrix.
         """
+        X=[int(X[i].name) for i in range(len(X))]
+        if DEBUG:
+            print(f"Fitting GED_SVC with {len(X)} graphs")
         self.X_fit_graphs_ = X
-        self.prototypes = buffered_prototype_selection(X, y=y, ged_calculator=self.ged_calculator, size=self.prototype_size, classwise=self.classwise,
-                                                        single_class=self.single_class, selection_method=self.selection_method,
+        self.prototypes = buffered_prototype_selection(X, y=y, ged_calculator=self.ged_calculator, size=self.prototype_size, selection_split=self.selection_split,
+                                                        selection_method=self.selection_method,
                                                           comparison_method=self.ged_bound, dataset_name=self.dataset_name)
-        return self.transform(X)
+        return self.build_matrix(X)
     def transform(self, X):
+        """ Transform the data using the fitted kernel.
+        """
+        X=[int(X[i].name) for i in range(len(X))]
+        if DEBUG:
+            print(f"Transforming with GED_SVC with {len(X)} graphs")
+        return self.build_matrix(X)
+    def build_matrix(self, X):
         """ Transform the data using the fitted kernel.
         """
         if self.prototypes is None:
@@ -86,8 +93,7 @@ class ZERO_GED_SVC(Base_GED_SVC):
         params.update({
             "aggregation_method": self.aggregation_method,
             "prototype_size": self.prototype_size,
-            "classwise": self.classwise,
-            "single_class": self.single_class,
+            "selection_split": self.selection_split,
             "selection_method": self.selection_method,
         })
        
@@ -101,8 +107,7 @@ class ZERO_GED_SVC(Base_GED_SVC):
             {
                 "prototype_size": [1, 3, 5, 10],
                 "aggregation_method": ["sum", "prod"],
-                "classwise": [False, True],
-                "single_class": [False, True],
+                "selection_split": ["all", "classwise", "single_class"],
                 "selection_method": ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"]
             }
         )
