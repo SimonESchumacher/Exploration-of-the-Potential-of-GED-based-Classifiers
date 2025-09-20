@@ -7,7 +7,7 @@ import tqdm
 sys.path.append(os.getcwd())
 from grakel.kernels import Kernel
 from Calculators.Base_Calculator import Base_Calculator
-from Models.SupportVectorMachine_Classifier import SupportVectorMachine
+from Models_single.SupportVectorMachine_Classifier import SupportVectorMachine
 from Custom_Kernels.GEDLIB_kernel import GEDKernel
 from Models_single.SVC.Base_GED_SVC import Base_GED_SVC
 from Calculators.Prototype_Selction import select_Prototype, Prototype_Selector,Select_Prototypes, buffered_prototype_selection
@@ -19,7 +19,6 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
                 selection_split,
                 selection_method,
                 dataset_name:str,
-
                 attributes: dict = dict(),
                  **kwargs):
         self.prototype_size = prototype_size

@@ -19,19 +19,19 @@ DEBUG = False  # Set to False to disable debug prints
 class GED_KNN(KNN):
 
     def __init__(self,
-                 ged_calculator:Base_Calculator=None, comparison_method="Mean-Similarity",
+                 ged_calculator:Base_Calculator=None, ged_bound="Mean-Similarity",
                  attributes : dict=dict(),similarity=False ,**kwargs):
         """
         Initialize the GED K-NN Classifier with the given parameters.
         """
 
         self.ged_calculator = ged_calculator
-        self.comparison_method = comparison_method
+        self.ged_bound = ged_bound
         self.node_del_cost = 1.0
         self.similarity = similarity
         attributes.update({
             "ged_calculator": ged_calculator.get_name() if ged_calculator else "None",
-            "comparison_method": comparison_method
+            "comparison_method": ged_bound
         })
         super().__init__(
             metric="precomputed",
@@ -49,7 +49,7 @@ class GED_KNN(KNN):
         save the traiing Graphs and transform Data into matrix.
         """
         self.X_fit =X
-        distance_matrix=self.ged_calculator.get_complete_matrix(method=self.comparison_method,x_graphindexes=self.X_fit)
+        distance_matrix=self.ged_calculator.get_complete_matrix(method=self.ged_bound,x_graphindexes=self.X_fit)
         self.max_distance = distance_matrix.max() 
         similarity_matrix = self.max_distance - distance_matrix
         if DEBUG:
@@ -72,7 +72,7 @@ class GED_KNN(KNN):
             print(f"Transforming {len(X)} graphs into distance matrix.")
             print(self.X_fit)
             print(X)
-        distance_matrix = self.ged_calculator.get_complete_matrix(method=self.comparison_method, x_graphindexes=X, y_graphindexes=self.X_fit)
+        distance_matrix = self.ged_calculator.get_complete_matrix(method=self.ged_bound, x_graphindexes=X, y_graphindexes=self.X_fit)
         similarity_matrix = self.max_distance - distance_matrix 
         if DEBUG:
             print("Transformed Data:")
@@ -86,7 +86,7 @@ class GED_KNN(KNN):
         params = super().get_params(deep=deep)
         params.update({
             "ged_calculator": self.ged_calculator,
-            "comparison_method": self.comparison_method
+            "comparison_method": self.ged_bound
         })
         return params
     def set_params(self, **params):

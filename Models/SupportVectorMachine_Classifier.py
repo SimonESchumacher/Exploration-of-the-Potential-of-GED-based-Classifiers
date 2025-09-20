@@ -20,7 +20,7 @@ class SupportVectorMachine(GraphClassifier):
         
         self.kernel_type = kernel_type
         if kernelfunction is None and kernel_type == "precomputed":
-            self.kernel_type ='linear'
+            self.kernel_type ='precomputed'
         #     self.kernel = "None"
         self.kernel_fuct = kernelfunction
         self.kernel_name = kernel_name
@@ -149,11 +149,11 @@ class SupportVectorMachine(GraphClassifier):
     def get_param_grid(cls):
         param_grid = GraphClassifier.get_param_grid()
         param_grid.update({
-            'C': [0.1, 0.5,0.25, 0.75],
+            'C': [0.1, 0.5,0.25],
             # 'kernel_type': ['poly', 'linear'],
             "kernel_type": ['precomputed'],
             # 'kernel_type': ['linear', 'poly', 'rbf', 'sigmoid', 'precomputed'],
-            'class_weight': [None, 'balanced'],
+            # 'class_weight': [None, 'balanced'],
         })
         return param_grid
         

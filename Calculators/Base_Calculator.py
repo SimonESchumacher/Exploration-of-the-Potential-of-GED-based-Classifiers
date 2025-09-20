@@ -9,7 +9,7 @@ import networkx as nx
 import tqdm
 import sys
 import joblib
-DEBUG = False
+DEBUG = True
 
 class Base_Calculator():
     # add class variable, as copy of itself for backup

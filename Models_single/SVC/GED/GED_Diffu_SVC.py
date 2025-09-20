@@ -81,7 +81,7 @@ class DIFFUSION_GED_SVC(Base_GED_SVC):
         param_grid = Base_GED_SVC.get_param_grid()
         param_grid.update({
             "llambda": [0.1, 0.5, 1.0],
-            "diffusion_function": ["exp_diff_kernel", "von_Neumann_diff_kernel"],
+            # "diffusion_function": ["exp_diff_kernel", "von_Neumann_diff_kernel"],
             "t_iterations": [5, 10, 20]
         })
         # extra grid, to narrow the search space

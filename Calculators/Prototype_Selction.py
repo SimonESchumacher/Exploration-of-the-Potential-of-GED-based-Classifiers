@@ -5,8 +5,13 @@ from Calculators.Base_Calculator import Base_Calculator
 import os
 import joblib
 import sys
+from multiprocessing import Manager, Process
+manager = Manager()
+file_lock = manager.Lock()
 sys.path.append(os.getcwd())
-DEBUG = True  # Set to True for debug prints
+from io_Manager import IO_Manager
+
+DEBUG = False  # Set to True for debug prints
 def medianGraph(G, ged_calculator:Base_Calculator) -> nx.Graph:
     return_index =False
     if isinstance(G, list[nx.Graph]):
@@ -178,11 +183,15 @@ def select_Targetsphere(G, ged_calculator:Base_Calculator, ged_distance="Mean-Di
     (w = dmax)/(m-1).The m−2 graphs for which the corresponding distances to the center
     graph gc are located nearest to the interval borders in terms of edit distance are
     selected as prototypes:"""
-    graphindexes, asNX = get_indexor_NX(G)
+   
     if size < 1:
         raise ValueError("Size must be greater than 0")
-    if size > len(graphindexes):
-        raise ValueError(f"Size {size} is greater than the number of graphs {len(graphindexes)}")
+    if size > len(G):
+        raise ValueError(f"Size {size} is greater than the number of graphs {len(G)}")
+    if size == 1:
+        # just return the center graph
+        return select_CPS(G, ged_calculator=ged_calculator, ged_distance=ged_distance, size=1)
+    graphindexes, asNX = get_indexor_NX(G)
     distance_matrix = ged_calculator.get_complete_matrix(method=ged_distance,x_graphindexes=graphindexes)
     # we get the center graph
     distances = np.max(distance_matrix, axis=1)
@@ -210,11 +219,15 @@ def select_SpanningTree(G, ged_calculator:Base_Calculator, ged_distance="Mean-Di
     prototype selected by the spanning prototype selector is the graph furthest away
     from the already selected prototype graphs.
     """
-    graphindexes, asNX = get_indexor_NX(G)
+    
+    if size == 1:
+        # just return the center graph
+        return select_CPS(G, ged_calculator=ged_calculator, ged_distance=ged_distance, size=1)
     if size < 1:
         raise ValueError("Size must be greater than 0")
-    if size > len(graphindexes):
-        raise ValueError(f"Size {size} is greater than the number of graphs {len(graphindexes)}")
+    if size > len(G):
+        raise ValueError(f"Size {size} is greater than the number of graphs {len(G)}")
+    graphindexes, asNX = get_indexor_NX(G)
     distance_matrix = ged_calculator.get_complete_matrix(method=ged_distance,x_graphindexes=graphindexes)
     # we get the center graph
     distances = np.max(distance_matrix, axis=1)
@@ -359,7 +372,8 @@ def Composite_Selection(G, ged_calculator: Base_Calculator, y=None, composite_se
         num_classes = len(unique_classes)
         if size < num_classes:
             # raise ValueError(f"Size {size} must be at least the number of classes {num_classes}")
-            size = num_classes
+            # onyl do it for so manny classes as size
+            return unstratified_Composite_Selection(G, ged_calculator=ged_calculator, composite_set=composite_set, size=size)
         # we divide the size by the number of classes to get the number of prototypes per class
         size_per_class = size // num_classes
         prototypes = []
@@ -412,10 +426,10 @@ def buffered_prototype_selection(G, ged_calculator: Base_Calculator, y, selectio
     joint_path = os.path.join("Calculators",buffer_path, "selections.joblib")
     if DEBUG:
         print(f"Prototype selection string: {full_prototype_bzw_string}")
-    try:
-        buffer_dict :dict = joblib.load(joint_path)
-    except FileNotFoundError:
-        buffer_dict = {}
+    if selection_method == "RPS":
+        # RPS is random, so we do not buffer it
+        return Select_Prototypes(G, ged_calculator=ged_calculator, y=y, selection_split=selection_split, selection_method=selection_method, size=size, comparison_method=comparison_method)
+    buffer_dict :dict = IO_Manager.get_prototype_selector()
     if selection_method != "RPS" and full_prototype_bzw_string in buffer_dict.keys():
         prototypes = buffer_dict[full_prototype_bzw_string]
         if DEBUG:
@@ -426,10 +440,8 @@ def buffered_prototype_selection(G, ged_calculator: Base_Calculator, y, selectio
         prototypes = Select_Prototypes(G, ged_calculator=ged_calculator, y=y, selection_split=selection_split, selection_method=selection_method, size=size, comparison_method=comparison_method)
         if DEBUG:
             print(f"No buffer found for {full_prototype_bzw_string}. Selected prototypes: {prototypes}")
-        buffer_dict[full_prototype_bzw_string] = prototypes
         # save buffer dictionary with joblib
-        if not selection_method == "RPS":
-            joblib.dump(buffer_dict, joint_path)
+        IO_Manager.add_prototype_selector(full_prototype_bzw_string, prototypes)
         return prototypes
 
 class Prototype_Selector:

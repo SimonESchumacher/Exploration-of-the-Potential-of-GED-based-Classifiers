@@ -126,9 +126,9 @@ class experiment:
     # not done
     def __str__(self):
         return f"Experiment(name={self.experiment_name}, dataset={self.dataset_name}, model={self.model_name})"
-    def split_data(self):
+    def split_data(self,random_state=RANDOM_STATE):
         
-        X_train, X_test, y_train, y_test = self.dataset.train_test_split(test_size=TEST_SIZE, random_state=RANDOM_STATE)
+        X_train, X_test, y_train, y_test = self.dataset.train_test_split(test_size=TEST_SIZE, random_state=random_state)
         # if DEBUG:
         #     print(f"Successfully split Data:{self.dataset_name} into training (len:{len(X_train)}) and testing (len:{len(X_test)})sets.")
         #     print("Dataset Attributes:")
@@ -456,12 +456,7 @@ class experiment:
 
         # Save results
         return classification_report_str
-
-
-    def run_silent_k_fold(self, k=5,test_DF=None):
-        
-        
-        is_first_fold = True
+    def run_silent_multi_k_fold(self, k=5,repeat=3,test_DF=None,random_seed=RANDOM_STATE):
         durations_fit = []
         durattions_test = []
         accuracies = []
@@ -469,7 +464,68 @@ class experiment:
         roc_aucs = []
         precisions = []
         recalls = []
-        for X_train, X_test, y_train_fold, y_test_fold in self.dataset.split_k_fold(k=k, random_state=RANDOM_STATE):
+        random_gen = random.Random(random_seed)
+        for i in range(repeat):
+            for X_train, X_test, y_train_fold, y_test_fold in self.dataset.split_k_fold(k=k, random_state=random_gen.randint(0, 1000)):
+                fit_start_time = datetime.now()
+                self.inner_model_fit(X_train, y_train_fold)
+                durations_fit.append((datetime.now() - fit_start_time).total_seconds())
+                test_start_time = datetime.now()
+                y_pred = self.inner_model_predict(X_test)
+                durattions_test.append((datetime.now() - test_start_time).total_seconds())
+
+                accuracies.append(accuracy_score(y_test_fold, y_pred))
+                f1_scores.append(f1_score(y_test_fold, y_pred, average=REPORT_SETTING))
+                try:
+                    roc_aucs.append(roc_auc_score(y_test_fold, y_pred, multi_class='ovr'))
+                except np.AxisError:
+                    roc_aucs.append(0.0)
+                precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0))
+                recalls.append(recall_score(y_test_fold, y_pred, average=REPORT_SETTING))
+        erroraccnolagement = ERRORINTERVAL_SETTING
+        if erroraccnolagement == "std":
+            test_DF["multi_k_fold_accuracy"] = np.mean(accuracies) 
+            test_DF["multi_k_fold_acc_std"] = np.std(accuracies)
+            test_DF["multi_k_fold_f1_score"] = np.mean(f1_scores)
+            test_DF["multi_k_fold_f1_std"] = np.std(f1_scores)
+            test_DF["multi_k_fold_roc_auc"] = np.mean(roc_aucs)
+            test_DF["multi_k_fold_roc_auc_std"] = np.std(roc_aucs)
+            test_DF["multi_k_fold_precision"] = np.mean(precisions)
+            test_DF["multi_k_fold_recall"] = np.mean(recalls)
+        elif erroraccnolagement == "confidence interval":
+            # Calculate confidence intervals for each metric
+            n = len(accuracies)
+            confidence = 0.95
+            z_score = stats.norm.ppf((1 + confidence) / 2)
+            test_DF["multi_k_fold_accuracy"] = np.mean(accuracies)
+            test_DF["multi_k_fold_acc_CI"] = z_score * np.std(accuracies) / np.sqrt(n)
+            test_DF["multi_k_fold_f1_score"] = np.mean(f1_scores)
+            test_DF["multi_k_fold_f1_CI"] = z_score * np.std(f1_scores) / np.sqrt(n)
+            test_DF["multi_k_fold_roc_auc"] = np.mean(roc_aucs)
+            test_DF["multi_k_fold_roc_auc_CI"] = z_score * np.std(roc_aucs) / np.sqrt(n)
+            test_DF["multi_k_fold_precision"] = np.mean(precisions)
+            test_DF["multi_k_fold_recall"] = np.mean(recalls)
+        elif erroraccnolagement == "none":
+            test_DF["multi_k_fold_accuracy"] = np.mean(accuracies)
+            test_DF["multi_k_fold_f1_score"] = np.mean(f1_scores)
+            test_DF["multi_k_fold_roc_auc"] = np.mean(roc_aucs)
+            test_DF["multi_k_fold_precision"] = np.mean(precisions)
+            test_DF["multi_k_fold_recall"] = np.mean(recalls)
+        else:
+            raise ValueError(f"Unknown error acknowledgment method: {erroraccnolagement}. Use 'std', 'confidence interval', or 'none'.")
+
+
+    def run_silent_k_fold(self, k=5,test_DF=None,random_state=RANDOM_STATE):
+
+
+        durations_fit = []
+        durattions_test = []
+        accuracies = []
+        f1_scores = []
+        roc_aucs = []
+        precisions = []
+        recalls = []
+        for X_train, X_test, y_train_fold, y_test_fold in self.dataset.split_k_fold(k=k, random_state=random_state):
             fit_start_time = datetime.now()
             self.inner_model_fit(X_train, y_train_fold)
             durations_fit.append((datetime.now() - fit_start_time).total_seconds())
@@ -519,7 +575,11 @@ class experiment:
 
       
 
-    def run_extensive_test(self,test_DF,should_print=False,scoring='accuracy',cv=5, verbose=0, n_jobs=-1):
+    def run_extensive_test(self,test_DF,should_print=False,scoring='accuracy',cv=5, verbose=0, n_jobs=-1,random_seed=RANDOM_STATE):
+        # get a random number generator with the seed
+        random_gen = random.Random(random_seed)
+
+
         if should_print:
            print("\n--------------------------------------------------------------------")
            print(f"Running extensive test for model:\n {self.model_name}")
@@ -538,7 +598,7 @@ class experiment:
             print(f"Estimated test duration: {estimated_test_duration}")
         if should_print:
             print(f"Parameter grid: {param_grid}")
-        X_train, X_test, y_train, y_test = self.split_data()
+        X_train, X_test, y_train, y_test = self.split_data(random_state=random_gen.randint(0, 1000))
         # hyperparameter tuning with cross validation
         best_model, best_params, best_score, tuning_duration = self.silent_hyperparameter_tuning(X_train, y_train, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, param_grid=param_grid)
         test_DF["tuning_duration"] = str(tuning_duration)
@@ -557,7 +617,7 @@ class experiment:
             print("Classification Report:")
             print(classification_report)
         # perform k_fold Crossvalidation with the best model
-        self.run_silent_k_fold(k=cv,test_DF=test_DF)
+        self.run_silent_k_fold(k=cv,test_DF=test_DF,random_seed=random_gen.randint(0, 1000))
         if should_print:
             print("Extensive test completed.")
             print(f"Time {pd.Timestamp.now()}")

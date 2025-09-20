@@ -21,7 +21,7 @@ DEBUG = False # Set to False to disable debug prints
 # Class of the SVC_WeisfeilerLehman is an extension of the SVC class
 class WeisfeilerLehman_SVC(SupportVectorMachine):
 
-    def __init__(self, n_iter=5, C=1.0,normalize_kernel=True, random_state=None,kernel_type="precomputed",attributes=None):
+    def __init__(self, n_iter=5, C=1.0,normalize_kernel=True, random_state=None,kernel_type="precomputed",attributes=None,**kwargs):
         self.n_iter = n_iter
         self.normalize_kernel = normalize_kernel
         self.kernel = WeisfeilerLehman(n_iter=self.n_iter, normalize=self.normalize_kernel)

@@ -12,19 +12,19 @@ from Models.SVC.Baseline_SVC import VertexHistogram_SVC,EdgeHistogram_SVC, Combi
 from Models.Blind_Classifier import Blind_Classifier 
 # from Custom_Kernels.GED_kernel import GEDKernelq
 from Models.KNN_Classifer import KNN
-from Models_single.SVC.GED.Trivial_GED_SVC import Trivial_GED_SVC
+from Models.SVC.GED.Trivial_GED_SVC import Trivial_GED_SVC
 from Custom_Kernels.GEDLIB_kernel import GEDKernel
 from Calculators.Dummy_Calculator import Dummy_Calculator,Dummy_Calculator2D
 from Calculators.NetworkX_GED_Calculator import NetworkXGEDCalculator
 from Calculators.Base_Calculator import Base_Calculator
 from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
-from Models_single.SVC.GED.GED_Diffu_SVC import DIFFUSION_GED_SVC
+from Models.SVC.GED.GED_Diffu_SVC import DIFFUSION_GED_SVC
 # from Models.SVC.Base_GED_SVC import Base_GED_SVC
-from Models_single.SVC.Base_GED_SVC import Base_GED_SVC
-from Models_single.SVC.GED.Zero_GED_SVC import ZERO_GED_SVC
-from Models_single.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
+from Models.SVC.Base_GED_SVC import Base_GED_SVC
+from Models.SVC.GED.Zero_GED_SVC import ZERO_GED_SVC
+from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
 from Models.KNN.GEDLIB_KNN import GED_KNN
-from Models_single.SVC.GED.RandomWalk_edit import Random_walk_edit_SVC
+from Models.SVC.GED.RandomWalk_edit import Random_walk_edit_SVC
 # import os
 print("Current Working Directory:", os.getcwd())
 # from Models.GED_KNN import GED_KNN
@@ -32,23 +32,23 @@ import pandas as pd
 
 # classifier = GED_SVC(gamma=1.0, method='BIPARTITE', normalize_ged=True, similarity=True, C=1.0)
 if __name__ == "__main__":
-    # ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
+    ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT",need_node_map=True)
     # ged_calculator = None
-    ged_calculator = "GEDLIB_Calculator"
+    # ged_calculator = "GEDLIB_Calculator"
     DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",load_now=False)
     DATASET.load()
     ged_calculator = DATASET.get_calculator()
     # classifier = ZERO_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=7, aggregation_method="sum",dataset_name=DATASET.name,selection_method="k-CPS")
 
-    classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=8, selection_method="k-CPS", selection_split="all",dataset_name=DATASET.name)
+    # classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=1, selection_method="TPS", selection_split="all",dataset_name=DATASET.name)
 
-    # classifier = Random_walk_edit_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
+    classifier = Random_walk_edit_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
     # classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',KERNEL_prototype_size=5, KERNEL_selection_method="RPS", KERNEL_classwise=False, KERNEL_single_class=False)
     # classifier = Trivial_GED_SVC(kernel_type='precomputed',ged_calculator=ged_calculator, comparison_method="Mean-Distance", KERNEL_similarity_function="k1")
 
     # classifier = Base_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced')
     # classifier = Trivial_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1')
-    # classifier = DIFFUSION_GED_SVC(C=1.0, llambda=1.0, ged_calculator=ged_calculator, ged_bound="Mean-Distance", diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5)
+    # classifier = DIFFUSION_GED_SVC(C=1.0, llambda=1.0, ged_calculator=ged_calculator, ged_bound="Mean-Distance", diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=7)
     # classifier = GED_KNN(ged_calculator=ged_calculator, comparison_method="Mean-Distance", n_neighbors=5, weights='uniform', algorithm='auto', similarity=False)    
     # Kernel = Trivial_GED_Kernel(ged_calculator=ged_calculator, comparison_method="Mean-Distance", similarity_function="k1")
     # Kernel = GEDKernel(ged_calculator=ged_calculator, comparison_method="Mean-Similarity")
@@ -93,4 +93,4 @@ if __name__ == "__main__":
     print()
     print("Starting hyperparameter tuning...")
 
-    results ,best_model, best_params = exp_instance.run_hyperparameter_tuning(tuning_method='grid', scoring='accuracy', cv=5, verbose=1, n_jobs=1)
+    results ,best_model, best_params = exp_instance.run_hyperparameter_tuning(tuning_method='grid', scoring='accuracy', cv=5, verbose=1, n_jobs=8)

@@ -19,19 +19,19 @@ DEBUG = False  # Set to False to disable debug prints
 class GED_KNN(KNN):
 
     def __init__(self,
-                 ged_calculator:Base_Calculator=None, comparison_method="Mean-Similarity",
+                 ged_calculator:Base_Calculator=None, ged_bound="Mean-Similarity",
                  attributes : dict=dict(),similarity=False ,**kwargs):
         """
         Initialize the GED K-NN Classifier with the given parameters.
         """
 
         self.ged_calculator = ged_calculator
-        self.comparison_method = comparison_method
+        self.comparison_method = ged_bound
         self.node_del_cost = 1.0
         self.similarity = similarity
         attributes.update({
             "ged_calculator": ged_calculator.get_name() if ged_calculator else "None",
-            "comparison_method": comparison_method
+            "comparison_method": ged_bound
         })
         super().__init__(
             metric="precomputed",
