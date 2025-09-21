@@ -1,6 +1,7 @@
 # bult the restricted Product Graph
 import numpy as np
 import networkx as nx
+from scipy.linalg import inv
 
 def build_restricted_product_graph(g1: nx.Graph, g2: nx.Graph, node_matches : list[(int,int)]):
     restricted_graph = nx.Graph()
@@ -67,21 +68,18 @@ def limited_length_approx_random_walk_similarity(product_graph: nx.Graph,llamda 
         walk_distribution = np.dot(walk_distribution, transition_matrix)
     return total_similarity
 
-def infinte_length_random_walk_similarity(product_graph: nx.Graph, llamda=0.1):
-    nodelist = product_graph.nodes()
-    adj_matrix = nx.to_numpy_array(product_graph, nodelist=nodelist)
-    # eigenvalues = np.linalg.eigvals(adj_matrix)
-    # max_eigenvalue = np.max(np.abs(eigenvalues))
-    identity_matrix = np.eye(adj_matrix.shape[0])
-    try:
-        # The core of the kernel computation is in this single matrix inversion.
-        # This operation efficiently sums all possible walks of all lengths.
-        kernel_matrix = np.linalg.inv(identity_matrix - llamda * adj_matrix)
 
-        # D. Sum all elements of the resulting matrix to get the final kernel value.
+def infinte_length_random_walk_similarity(product_graph: nx.Graph, llamda=0.1):
+    nodelist = list(product_graph.nodes())
+    adj_matrix = nx.to_numpy_array(product_graph, nodelist=nodelist)
+    identity_matrix = np.eye(adj_matrix.shape[0])
+
+    # Use scipy for faster matrix inversion and sum
+    try:
+        kernel_matrix = inv(identity_matrix - llamda * adj_matrix)
         kernel_value = np.sum(kernel_matrix)
         return kernel_value
-        
     except np.linalg.LinAlgError as e:
         print(f"Warning: Matrix is not invertible. {e}")
         return 18446744073709551614
+

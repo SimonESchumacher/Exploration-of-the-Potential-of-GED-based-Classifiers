@@ -63,14 +63,48 @@ class ZERO_GED_SVC(Base_GED_SVC):
         self.prototypes = buffered_prototype_selection(X, y=y, ged_calculator=self.ged_calculator, size=self.prototype_size, selection_split=self.selection_split,
                                                         selection_method=self.selection_method,
                                                           comparison_method=self.ged_bound, dataset_name=self.dataset_name)
-        return self.build_matrix(X)
+        n = len(X)
+        K = np.zeros((n, n))
+        if DEBUG:
+            iters = tqdm.tqdm(range(n), desc="Computing kernel matrix")
+        else:
+            iters = range(n)
+        self.feature_vectors_X_fit = np.zeros((n, self.prototype_size))
+        for i in iters:
+            for k, g0 in enumerate(self.prototypes):
+                self.feature_vectors_X_fit[i, k] = self.ged_calculator.compare(X[i], g0, method=self.ged_bound)**2
+        for i in iters:
+            for j in range(i, n):
+                d_g1_g2 =self.ged_calculator.compare(X[i], self.X_fit_graphs_[j], method=self.ged_bound)**2
+                d_proto = self.feature_vectors_X_fit[i, :] + self.feature_vectors_X_fit[j, :] - d_g1_g2
+                if self.aggregation_method == "sum":
+                    K[i, j] = np.sum(d_proto)/2
+                elif self.aggregation_method == "prod":
+                    K[i, j] = np.prod(d_proto)/2
+                K[j, i] = K[i, j]  # because the kernel matrix is symmetric
+
+        return K
     def transform(self, X):
         """ Transform the data using the fitted kernel.
         """
         X=[int(X[i].name) for i in range(len(X))]
         if DEBUG:
             print(f"Transforming with GED_SVC with {len(X)} graphs")
-        return self.build_matrix(X)
+        n = len(X)
+        m = len(self.X_fit_graphs_)
+        K = np.zeros((n, m))
+        feature_vectors_X = np.zeros(self.prototype_size)
+        for i in range(n):
+            for k, g0 in enumerate(self.prototypes):
+                feature_vectors_X[k] = self.ged_calculator.compare(X[i], g0, method=self.ged_bound)**2
+            for j in range(m):
+                d_g1_g2 =self.ged_calculator.compare(X[i], self.X_fit_graphs_[j], method=self.ged_bound)**2
+                d_proto = feature_vectors_X[:] + self.feature_vectors_X_fit[j, :] - d_g1_g2
+                if self.aggregation_method == "sum":
+                    K[i, j] = np.sum(d_proto)/2
+                elif self.aggregation_method == "prod":
+                    K[i, j] = np.prod(d_proto)/2              
+        return K
     def build_matrix(self, X):
         """ Transform the data using the fitted kernel.
         """
@@ -86,6 +120,34 @@ class ZERO_GED_SVC(Base_GED_SVC):
         for i in iters:
             for j in range(m):
                 K[i, j] = self.compare(X[i], self.X_fit_graphs_[j])
+        return K
+    def build_matrix_fast(self, X):
+        """ Transform the data using the fitted kernel.
+        """
+        if self.prototypes is None:
+            raise RuntimeError("Kernel has not been fitted yet.")
+        n = len(X)
+        m = len(self.X_fit_graphs_)
+        K = np.zeros((n, m))
+        if DEBUG:
+            iters = tqdm.tqdm(range(n), desc="Computing kernel matrix")
+        else:
+            iters = range(n)
+        feature_vectors_X = np.zeros((n, self.prototype_size))
+        for i in iters:
+            for k, g0 in enumerate(self.prototypes):
+                feature_vectors_X[i, k] = self.ged_calculator.compare(X[i], g0, method=self.ged_bound)**2
+        for i in iters:
+            for j in range( m):
+                d_g1_g2 =self.ged_calculator.compare(X[i], self.X_fit_graphs_[j], method=self.ged_bound)**2
+                d_proto = feature_vectors_X[i, :] + self.feature_vectors_X_fit[j, :] - d_g1_g2
+                if self.aggregation_method == "sum":
+                    K[i, j] = np.sum(d_proto)/2
+                elif self.aggregation_method == "prod":
+                    K[i, j] = np.prod(d_proto)/2
+                # K[j, i] = K[i, j]  # because the kernel matrix is symmetric
+                
+
         return K
     def get_params(self, deep=True):
         params = super().get_params(deep=deep)

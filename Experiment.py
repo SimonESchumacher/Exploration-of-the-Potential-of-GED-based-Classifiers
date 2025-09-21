@@ -617,7 +617,7 @@ class experiment:
             print("Classification Report:")
             print(classification_report)
         # perform k_fold Crossvalidation with the best model
-        self.run_silent_k_fold(k=cv,test_DF=test_DF,random_seed=random_gen.randint(0, 1000))
+        self.run_silent_multi_k_fold(k=cv,repeat=3,test_DF=test_DF,random_seed=random_gen.randint(0, 1000))
         if should_print:
             print("Extensive test completed.")
             print(f"Time {pd.Timestamp.now()}")

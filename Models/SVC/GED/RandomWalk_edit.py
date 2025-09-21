@@ -3,6 +3,7 @@ import pandas as pd
 import time
 from Calculators.Product_GRaphs import build_restricted_product_graph, limited_length_approx_random_walk_similarity, infinte_length_random_walk_similarity
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
+from io_Manager import IO_Manager
 DEBUG = False  # Set to True for debug prints
 
 
@@ -30,7 +31,17 @@ class Random_walk_edit_SVC(Base_GED_SVC):
             "max_walk_length": max_walk_length
         })
         super().__init__(attributes=attributes, name=self.name, **kwargs)
-
+    def _calculate_kernel_matrix(self,X_graphs ,Y_graphs=None):
+        # buffered, to see if calculation maybe has already been done
+        if Y_graphs is None:
+            rw_kernel_matrix_key = f"{self.decay_lambda}_{self.max_walk_length}_train"
+        else:
+            rw_kernel_matrix_key = f"{self.decay_lambda}_{self.max_walk_length}_test"
+        kernel_matrix =IO_Manager.get_rw_kernel_matrix(rw_kernel_matrix_key)
+        if kernel_matrix is None:
+            kernel_matrix = super()._calculate_kernel_matrix(X_graphs, Y_graphs)
+            IO_Manager.save_rw_kernel_matrix(rw_kernel_matrix_key, kernel_matrix)
+        return kernel_matrix
     def compare(self, g1, g2):
         node_map = self.ged_calculator.get_node_map(g1, g2)
         if DEBUG:

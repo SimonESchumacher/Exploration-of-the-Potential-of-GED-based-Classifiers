@@ -5,6 +5,7 @@ sys.path.append(os.getcwd())
 
 class IO_Manager:
     prototypes_dict :dict =None
+    rw_kernels_dict :dict =None
     @staticmethod
     def get_calculator():
         pass
@@ -31,4 +32,17 @@ class IO_Manager:
                 joblib.dump(IO_Manager.prototypes_dict, "prototypes.joblib")
             except Exception as e:
                 print(f"Error saving prototypes: {e}")
+    @staticmethod
+    def save_rw_kernel_matrix(key, matrix):
+        if IO_Manager.rw_kernels_dict is None:
+            IO_Manager.rw_kernels_dict = {}
+        IO_Manager.rw_kernels_dict[key] = matrix
+    @staticmethod
+    def get_rw_kernel_matrix(key):
+        if IO_Manager.rw_kernels_dict is None:
+            return None
+        else:
+            return IO_Manager.rw_kernels_dict.get(key, None)
+        
+
                 

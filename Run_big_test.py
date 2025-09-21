@@ -29,23 +29,23 @@ N_JOBS =8
 
 def nonGEd_classifiers():
     return [
-        Random_Classifier(),
-        Blind_Classifier(),
-        WeisfeilerLehman_SVC(n_iter=5,C=1.0, normalize_kernel=True), 
-        VertexHistogram_SVC(),
-        EdgeHistogram_SVC(kernel_type='precomputed'),
-        CombinedHistogram_SVC(kernel_type='precomputed'),
-        NX_Histogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=DATASET.get_edge_labels, get_node_labels=DATASET.get_node_labels,Histogram_Type="combined")
+        # Random_Classifier(),
+        # Blind_Classifier(),
+        # WeisfeilerLehman_SVC(n_iter=5,C=1.0, normalize_kernel=True), 
+        # VertexHistogram_SVC(),
+        # EdgeHistogram_SVC(kernel_type='precomputed'),
+        # CombinedHistogram_SVC(kernel_type='precomputed'),
+        # NX_Histogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=DATASET.get_edge_labels, get_node_labels=DATASET.get_node_labels,Histogram_Type="combined")
         ]
 
 
 def ged_classifiers(ged_calculator: Base_Calculator):
     return [
-        GED_KNN(ged_calculator=ged_calculator, ged_bound="Mean-Distance", n_neighbors=7, weights='uniform', algorithm='auto'),
-        Base_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced'),
-        Trivial_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1'),
-        DIFFUSION_GED_SVC(C=1.0, llambda=1.0, ged_calculator=ged_calculator, ged_bound="Mean-Distance", diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
-        Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=8, selection_method="k-CPS", selection_split="all",dataset_name=DATASET.name),
+        # mGED_KNN(ged_calculator=ged_calculator, ged_bound="Mean-Distance", n_neighbors=7, weights='uniform', algorithm='auto'),
+        # Base_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced'),
+        # Trivial_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1'),
+        # DIFFUSION_GED_SVC(C=1.0, llambda=1.0, ged_calculator=ged_calculator, ged_bound="Mean-Distance", diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
+        # Siple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=8, selection_method="k-CPS", selection_split="all",dataset_name=DATASET.name),
         ZERO_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=7, aggregation_method="sum",dataset_name=DATASET.name,selection_method="k-CPS"),
         Random_walk_edit_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
         ]
@@ -116,10 +116,12 @@ def estimate_experiment_duration(classifier_list: list[GraphClassifier], DATASET
 
 if __name__ == "__main__":
     testDF = pd.DataFrame()
-    dataset_name = "AIDS"
+    dataset_name = "ENZYMES"
     experiment_name = f"{dataset_name}_run"
-    only_estimate_duration = True
-    preloaded=False
+    only_estimate_duration = False
+    only_load_calculators = False
+    preloaded = True
+    save_result = False
     start_time = pd.Timestamp.now()
     print(f"Experiment started at {start_time}")
     # ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
@@ -139,7 +141,7 @@ if __name__ == "__main__":
         est_total_duration = pd.Timedelta(0)
         total_duration_nonGED = estimate_experiment_duration(classifiers_without_calculator, DATASET, ged_calculator)
         print(f"Estimated total duration for non-GED classifiers: {total_duration_nonGED}")
-    else:
+    elif not only_load_calculators:
         print(f"Running non-GED classifiers on {DATASET.name} dataset.")
         
         testDF = run_classifiers(classifiers_without_calculator, DATASET, ged_calculator, testDF)
@@ -150,7 +152,7 @@ if __name__ == "__main__":
         total_duration_GED = estimate_experiment_duration(classifiers_with_calculator, DATASET, ged_calculator)
         est_total_duration += total_duration_GED + total_duration_nonGED
         print(f"Estimated total duration for GED classifiers: {total_duration_GED}")
-    else:
+    elif not only_load_calculators:
         print(f"Running GED-based classifiers on {DATASET.name} dataset.")
         testDF = run_classifiers(classifiers_with_calculator, DATASET, ged_calculator, testDF)
     # reference calculator for sanity check
@@ -167,7 +169,7 @@ if __name__ == "__main__":
         est_total_duration += total_duration_reference
         print(f"Estimated total duration for reference GED classifiers: {total_duration_reference}")
         print(f"Estimated total duration for all classifiers: {est_total_duration}")
-    else:
+    elif not only_load_calculators:
         print(f"Running GED-based classifiers with reference calculator on {DATASET.name} dataset.")
         testDF = run_classifiers(classifiers_with_reference_calculator, DATASET, reference_calculator, testDF)
         # save the results to a csv file
