@@ -26,26 +26,26 @@ from Models.KNN.GEDLIB_KNN import GED_KNN
 import pandas as pd
 from io_Manager import IO_Manager
 N_JOBS =8
-
+SPLIT=0.1 # 10% test size alternatively 0.2 for 20%
 def nonGEd_classifiers():
     return [
-        # Random_Classifier(),
-        # Blind_Classifier(),
-        # WeisfeilerLehman_SVC(n_iter=5,C=1.0, normalize_kernel=True), 
-        # VertexHistogram_SVC(),
-        # EdgeHistogram_SVC(kernel_type='precomputed'),
-        # CombinedHistogram_SVC(kernel_type='precomputed'),
+        Random_Classifier(),
+        Blind_Classifier(),
+        WeisfeilerLehman_SVC(n_iter=5,C=1.0, normalize_kernel=True), 
+        VertexHistogram_SVC(),
+        EdgeHistogram_SVC(kernel_type='precomputed'),
+        CombinedHistogram_SVC(kernel_type='precomputed'),
         # NX_Histogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=DATASET.get_edge_labels, get_node_labels=DATASET.get_node_labels,Histogram_Type="combined")
         ]
 
 
 def ged_classifiers(ged_calculator: Base_Calculator):
     return [
-        # mGED_KNN(ged_calculator=ged_calculator, ged_bound="Mean-Distance", n_neighbors=7, weights='uniform', algorithm='auto'),
-        # Base_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced'),
-        # Trivial_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1'),
-        # DIFFUSION_GED_SVC(C=1.0, llambda=1.0, ged_calculator=ged_calculator, ged_bound="Mean-Distance", diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
-        # Siple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=8, selection_method="k-CPS", selection_split="all",dataset_name=DATASET.name),
+        GED_KNN(ged_calculator=ged_calculator, ged_bound="Mean-Distance", n_neighbors=7, weights='uniform', algorithm='auto'),
+        Base_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced'),
+        Trivial_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1'),
+        DIFFUSION_GED_SVC(C=1.0, llambda=1.0, ged_calculator=ged_calculator, ged_bound="Mean-Distance", diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
+        Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=8, selection_method="k-CPS", selection_split="all",dataset_name=DATASET.name),
         ZERO_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=7, aggregation_method="sum",dataset_name=DATASET.name,selection_method="k-CPS"),
         Random_walk_edit_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
         ]
@@ -77,13 +77,13 @@ def save_progress(testDF: pd.DataFrame, experiment_name: str, dataset_name: str)
         IO_Manager.save_prototype_selector()
         print(f"Progress saved at {current_time}")
         last_save_time = current_time
-def run_classifiers(classifier_list: list[GraphClassifier], DATASET: Dataset, ged_calculator: Base_Calculator, testDF: pd.DataFrame):
+def run_classifiers(classifier_list: list[GraphClassifier], DATASET: Dataset, ged_calculator: Base_Calculator, testDF: pd.DataFrame,experiment_name: str="unknown"):
     for classifier in classifier_list:
         
         expi=experiment(f"{classifier.__class__.__name__}",DATASET,dataset_name=DATASET.name,
                         model=classifier,model_name=classifier.get_name,ged_calculator=ged_calculator)
         try:
-            instance_dict =expi.run_extensive_test(should_print=True, cv=5,test_DF= dict(), n_jobs=N_JOBS)
+            instance_dict =expi.run_extensive_test(should_print=True, cv=int(1/SPLIT),test_DF= dict(), n_jobs=N_JOBS)
         except Exception as e:
             #  print the full traceback
             traceback.print_exc()
@@ -96,7 +96,7 @@ def run_classifiers(classifier_list: list[GraphClassifier], DATASET: Dataset, ge
         # add the values form instance_dict as the last row of testDF
         instance_df = pd.DataFrame([instance_dict])
         testDF = pd.concat([testDF, instance_df], ignore_index=True)
-        save_progress(testDF, "Run_big_test", DATASET.name)
+        save_progress(testDF, experiment_name+"_inter", DATASET.name)
         del classifier
         del expi
     return testDF
@@ -105,7 +105,7 @@ def estimate_experiment_duration(classifier_list: list[GraphClassifier], DATASET
     for classifier in classifier_list:
         expi=experiment(f"{classifier.__class__.__name__}",DATASET,dataset_name=DATASET.name,
                         model=classifier,model_name=classifier.get_name,ged_calculator=None)
-        estimated_time = expi.get_estimated_tuning_time(cv=5)
+        estimated_time = expi.get_estimated_tuning_time(cv=int(1/SPLIT))
         print(f"Estimated time for {classifier.get_name}: {estimated_time}")
         total_duration += estimated_time
         del classifier
@@ -116,12 +116,12 @@ def estimate_experiment_duration(classifier_list: list[GraphClassifier], DATASET
 
 if __name__ == "__main__":
     testDF = pd.DataFrame()
-    dataset_name = "ENZYMES"
-    experiment_name = f"{dataset_name}_run"
+    dataset_name = "BZR"
+    experiment_name = f"{dataset_name}_10_test"
     only_estimate_duration = False
     only_load_calculators = False
     preloaded = True
-    save_result = False
+    save_result = True
     start_time = pd.Timestamp.now()
     print(f"Experiment started at {start_time}")
     # ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
@@ -133,7 +133,6 @@ if __name__ == "__main__":
         ged_calculator = "GEDLIB_Calculator"
     else:
         ged_calculator = GEDLIB_Calculator(GED_calc_method="BRANCH", GED_edit_cost="CONSTANT",need_node_map=True)
-
     DATASET, ged_calculator = get_Dataset(dataset_name, ged_calculator)
     classifiers_without_calculator: list[GraphClassifier] = nonGEd_classifiers()
     print(f"Finished loading at {pd.Timestamp.now()}")
@@ -144,7 +143,7 @@ if __name__ == "__main__":
     elif not only_load_calculators:
         print(f"Running non-GED classifiers on {DATASET.name} dataset.")
         
-        testDF = run_classifiers(classifiers_without_calculator, DATASET, ged_calculator, testDF)
+        testDF = run_classifiers(classifiers_without_calculator, DATASET, ged_calculator, testDF, experiment_name)
 
     # first round with the real GED calculator
     classifiers_with_calculator: list[GraphClassifier] = ged_classifiers(ged_calculator)
@@ -171,7 +170,7 @@ if __name__ == "__main__":
         print(f"Estimated total duration for all classifiers: {est_total_duration}")
     elif not only_load_calculators:
         print(f"Running GED-based classifiers with reference calculator on {DATASET.name} dataset.")
-        testDF = run_classifiers(classifiers_with_reference_calculator, DATASET, reference_calculator, testDF)
+        testDF = run_classifiers(classifiers_with_reference_calculator, DATASET, reference_calculator, testDF, experiment_name)
         # save the results to a csv file
         results_dir = os.path.join("configs", "results")
         results_path = os.path.join(results_dir, f"{experiment_name}_{DATASET.name}_results.xlsx")

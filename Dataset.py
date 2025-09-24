@@ -29,11 +29,8 @@ USE_NODE_ATTRIBUTES = get_conifg_param('Dataset', 'use_node_attributes', type='b
 USE_EDGE_ATTRIBUTES = get_conifg_param('Dataset', 'use_edge_attributes', type='bool') # Whether to use edge attributes
 from tqdm import tqdm  # Import tqdm for progress bar
 
-def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", use_edge_labels="label", use_node_attributes:str=None, use_edge_attributes:str=None):
-    """
-    General function to load datasets into NetworkX.
-    Handles cases where node labels or edge labels may be missing.
-    """
+
+def load_dataset_files(data_dir, dataset_name,use_node_labels="label", use_edge_labels="label", use_node_attributes:str=None, use_edge_attributes:str=None):
     if DEBUG:
         print(f"Loading {dataset_name} into NetworkX from {data_dir}...")
     adj_file = os.path.join(data_dir, f"{dataset_name}_A.txt")
@@ -107,6 +104,13 @@ def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", u
             edge_attributes = {i: attr for i, attr in enumerate(edge_attributes_raw)}
             if DEBUG:
                 print(f"Loaded edge attributes for {len(edge_attributes)} edges.")
+    return edges, node_to_graph_map, y, node_labels, node_attributes, edge_labels, edge_attributes
+
+def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", use_edge_labels="label", use_node_attributes:str=None, use_edge_attributes:str=None):
+
+    edges, node_to_graph_map, y, node_labels, node_attributes, edge_labels, edge_attributes = (
+        load_dataset_files(data_dir, dataset_name, use_node_labels, use_edge_labels, use_node_attributes, use_edge_attributes)
+    )
 
     num_graphs = np.max(node_to_graph_map) + 1
     nx_graphs = []
@@ -115,34 +119,18 @@ def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", u
     else:
         iterable = range(num_graphs)
     for i in iterable:
-        G = nx.Graph(name=f"{i}")
-        nodes_in_graph_i = np.where(node_to_graph_map == i)[0]
-
-        if len(nodes_in_graph_i) == 0:  # Handle empty graphs
-            nx_graphs.append(G)
-            continue
-        # Add nodes with optional labels and attributes
-        if USE_NODE_LABELS or USE_NODE_ATTRIBUTES and (use_node_attributes is not None or use_node_labels is not None):
-            for node_idx_global in nodes_in_graph_i:
-                node_data = {}
-                if node_labels:
-                    node_data["label"] = str(node_labels.get(node_idx_global, None))
-                if node_attributes:
-                    node_data[use_node_attributes] = str(node_attributes.get(node_idx_global, None))
-                G.add_node(node_idx_global, **node_data)
-
-        # Add edges within the current graph with optional labels and attributes
-        if USE_EDGE_LABELS or USE_EDGE_ATTRIBUTES and (use_edge_attributes is not None or use_edge_labels is not None):
-            for u, v in edges:
-                if u in nodes_in_graph_i and v in nodes_in_graph_i:
-                    edge_data = {}
-                    if edge_labels:
-                        edge_data["label"] = str(edge_labels.get((u, v), None))
-                    if edge_attributes:
-                        edge_data[use_edge_attributes] = str(edge_attributes.get((u, v), None))
-                    G.add_edge(u, v, **edge_data)
-
-        nx_graphs.append(G)
+        g = _build_single_graph(
+            i,
+            np.where(node_to_graph_map == i)[0],
+            edges,
+            node_labels,
+            node_attributes,
+            edge_labels,
+            edge_attributes,
+            use_node_attributes,
+            use_edge_attributes
+        )        
+        nx_graphs.append(g)
     if DEBUG:
         print(f"Converted {num_graphs} graphs to NetworkX format.")
     return nx_graphs, y
@@ -193,83 +181,10 @@ def _build_single_graph(
     return G
 
 def load_dataset_into_networkx_multi(data_dir, dataset_name, use_node_labels="label", use_edge_labels="label", use_node_attributes:str=None, use_edge_attributes:str=None):
-    """
-    General function to load datasets into NetworkX.
-    Handles cases where node labels or edge labels may be missing.
-    """
-    print(f"Loading {dataset_name} into NetworkX from {data_dir}...")
-    adj_file = os.path.join(data_dir, f"{dataset_name}_A.txt")
-    graph_indicator_file = os.path.join(data_dir, f"{dataset_name}_graph_indicator.txt")
-    graph_labels_file = os.path.join(data_dir, f"{dataset_name}_graph_labels.txt")
-
-    # Load edges 
-    with open(adj_file, 'r') as f:
-        edges_raw = [list(map(int, line.strip().split(','))) for line in f]
-    edges = [(u - 1, v - 1) for u, v in edges_raw]  # Convert to 0-indexed
-    if DEBUG:
-        print(f"Loaded {len(edges)} edges.")
-    # Load node-to-graph mapping
-    with open(graph_indicator_file, 'r') as f:
-        node_to_graph_map = np.array([int(line.strip()) for line in f]) - 1
-    if DEBUG:
-        print(f"Loaded {len(node_to_graph_map)} node-to-graph mappings.")
-    # Load graph labels
-    with open(graph_labels_file, 'r') as f:
-        graph_labels_raw = [int(line.strip()) for line in f]
-    y = np.array([label for label in graph_labels_raw])
-    if DEBUG:
-        print(f"Loaded {len(y)} graph labels.")
-
-    # Try to load node labels if available
-    node_labels = None
-    if USE_NODE_LABELS and use_node_labels is not None:
-        # if use_node_labels is a boolean of value True, we assume labels are in the format "label"
-        if use_node_labels is True:
-            use_node_labels = "label"
-        node_labels_file = os.path.join(data_dir, f"{dataset_name}_node_labels.txt")
-        if os.path.exists(node_labels_file):
-            with open(node_labels_file, 'r') as f:
-                node_labels_raw = [int(line.strip()) for line in f]
-            node_labels = {i: label for i, label in enumerate(node_labels_raw)}
-            if DEBUG:
-                print(f"Loaded node labels for {len(node_labels)} nodes.")
-
-    # Try to load edge labels if available
-    edge_labels = None
-    if USE_EDGE_LABELS and use_edge_labels is not None:
-        if use_edge_labels is True:
-            use_edge_labels = "label"
-        edge_labels_file = os.path.join(data_dir, f"{dataset_name}_edge_labels.txt")
-        if os.path.exists(edge_labels_file):
-            with open(edge_labels_file, 'r') as f:
-                edge_labels_raw = [int(line.strip()) for line in f]
-            # edge labels should be mapped to their node pair
-            edge_labels = {(u, v): label for (u, v), label in zip(edges, edge_labels_raw)}
-            if DEBUG: 
-                print(f"Loaded edge labels for {len(edge_labels)} edges.")
     
-    # Try to load node attributes if availabl
-    node_attributes = None
-    if USE_NODE_ATTRIBUTES and use_node_attributes is not None:
-        node_attributes_file = os.path.join(data_dir, f"{dataset_name}_node_attributes.txt")
-        if os.path.exists(node_attributes_file):
-            with open(node_attributes_file, 'r') as f:
-                node_attributes_raw = [list(map(float, line.strip().split(','))) for line in f]
-            node_attributes = {i: attr for i, attr in enumerate(node_attributes_raw)}
-            if DEBUG:
-                print(f"Loaded node attributes for {len(node_attributes)} nodes.")
-
-    # Try to load edge attributes if available
-    edge_attributes = None
-    if USE_EDGE_ATTRIBUTES and use_edge_attributes is not None:
-        edge_attributes_file = os.path.join(data_dir, f"{dataset_name}_edge_attributes.txt")
-        if os.path.exists(edge_attributes_file):
-            with open(edge_attributes_file, 'r') as f:
-                edge_attributes_raw = [list(map(float, line.strip().split(','))) for line in f]
-            edge_attributes = {i: attr for i, attr in enumerate(edge_attributes_raw)}
-            if DEBUG:
-                print(f"Loaded edge attributes for {len(edge_attributes)} edges.")
-    # --- Start of parallelization ---
+    edges, node_to_graph_map, y, node_labels, node_attributes, edge_labels, edge_attributes = (
+        load_dataset_files(data_dir, dataset_name, use_node_labels, use_edge_labels, use_node_attributes, use_edge_attributes)
+    )
     num_graphs = np.max(node_to_graph_map) + 1
     
     # Create a list of arguments for each worker process
@@ -435,13 +350,15 @@ class Dataset:
         self.domain = domain
         self.Node_label_name = use_node_labels
         self.Edge_label_name = use_edge_labels
+        self.Node_attribute_name = use_node_attributes
+        self.Edge_attribute_name = use_edge_attributes
         if load_now:
             self.load()
    
 
         
     def load(self,save_calculator=True):
-        self.data = load_dataset(self.source, self.name, use_node_labels=self.Node_label_name, use_node_attributes=self.Node_label_name, use_edge_labels=self.Edge_label_name, use_edge_attributes=self.Edge_label_name)
+        self.data = load_dataset(self.source, self.name, use_node_labels=self.Node_label_name, use_node_attributes=self.Node_attribute_name, use_edge_labels=self.Edge_label_name, use_edge_attributes=self.Edge_attribute_name)
         self.nx_graphs= self.data[0]
         self.target = self.data[1]
         try:

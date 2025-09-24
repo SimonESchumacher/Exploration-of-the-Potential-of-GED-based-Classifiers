@@ -32,17 +32,17 @@ import pandas as pd
 
 # classifier = GED_SVC(gamma=1.0, method='BIPARTITE', normalize_ged=True, similarity=True, C=1.0)
 if __name__ == "__main__":
-    # ged_calculator = Dummy_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT",need_node_map=True)
+    ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT",need_node_map=True)
     # ged_calculator = None
-    ged_calculator = "GEDLIB_Calculator"
-    DATASET= Dataset(name="ENZYMES", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",load_now=False)
+    # ged_calculator = "GEDLIB_Calculator"
+    DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",use_node_attributes=None,load_now=False)
     DATASET.load()
     ged_calculator = DATASET.get_calculator()
-    classifier = ZERO_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=7, aggregation_method="sum",dataset_name=DATASET.name,selection_method="k-CPS")
+    # classifier = ZERO_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=7, aggregation_method="sum",dataset_name=DATASET.name,selection_method="k-CPS")
 
     # classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=1, selection_method="TPS", selection_split="all",dataset_name=DATASET.name)
 
-    # classifier = Random_walk_edit_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
+    classifier = Random_walk_edit_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
     # classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',KERNEL_prototype_size=5, KERNEL_selection_method="RPS", KERNEL_classwise=False, KERNEL_single_class=False)
     # classifier = Trivial_GED_SVC(kernel_type='precomputed',ged_calculator=ged_calculator, comparison_method="Mean-Distance", KERNEL_similarity_function="k1")
 
@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
     # define experiment 
     exp_instance = experiment(f"Fucntionality_test_{DATASET.name}_with_{classifier.get_name}",
-                            dataset=DATASET,
+                                dataset=DATASET,
                                 dataset_name=DATASET.name,
                                 model=classifier,
                                 model_name=classifier.get_name,

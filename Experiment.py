@@ -186,8 +186,8 @@ class experiment:
             roc_auc = roc_auc_score(y_test, y_pred, multi_class='ovr')
         except np.AxisError:
             roc_auc = 0.0
-        precision = precision_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0)
-        recall = recall_score(y_test, y_pred, average=REPORT_SETTING)
+        precision = precision_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0.0)
+        recall = recall_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0.0)
         # maybe i shoudl split this to a defirent file and make a diffrence between k_fold and simple
         self.results_log["accuracy"] = accuracy
         self.results_log["f1_score"] = f1
@@ -225,8 +225,8 @@ class experiment:
             accuracies.append(accuracy_score(y_test_fold, y_pred))
             f1_scores.append(f1_score(y_test_fold, y_pred, average=REPORT_SETTING))
             roc_aucs.append(roc_auc_score(y_test_fold, y_pred, multi_class='ovr'))
-            precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0))
-            recalls.append(recall_score(y_test_fold, y_pred, average=REPORT_SETTING))
+            precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
+            recalls.append(recall_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
             if DEBUG:
                 print(f"Accuracy for fold: {accuracies[-1]:.4f}, F1 Score: {f1_scores[-1]:.4f}, ")
             if is_first_fold:
@@ -320,8 +320,8 @@ class experiment:
         y_pred = best_model.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
         f1 = f1_score(y_test, y_pred, average=REPORT_SETTING)
-        precision = precision_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0)
-        recall = recall_score(y_test, y_pred, average=REPORT_SETTING)
+        precision = precision_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0.0)
+        recall = recall_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0.0)
         try:
             roc_auc = roc_auc_score(y_test, y_pred, multi_class='ovr')
         except np.AxisError:
@@ -480,8 +480,8 @@ class experiment:
                     roc_aucs.append(roc_auc_score(y_test_fold, y_pred, multi_class='ovr'))
                 except np.AxisError:
                     roc_aucs.append(0.0)
-                precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0))
-                recalls.append(recall_score(y_test_fold, y_pred, average=REPORT_SETTING))
+                precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
+                recalls.append(recall_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
         erroraccnolagement = ERRORINTERVAL_SETTING
         if erroraccnolagement == "std":
             test_DF["multi_k_fold_accuracy"] = np.mean(accuracies) 
@@ -539,8 +539,8 @@ class experiment:
                 roc_aucs.append(roc_auc_score(y_test_fold, y_pred, multi_class='ovr'))
             except np.AxisError:
                 roc_aucs.append(0.0)
-            precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0))
-            recalls.append(recall_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0))
+            precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
+            recalls.append(recall_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
         erroraccnolagement = ERRORINTERVAL_SETTING
         if erroraccnolagement == "std":
             test_DF["k_fold_accuracy"] = np.mean(accuracies) 
@@ -600,13 +600,15 @@ class experiment:
             print(f"Parameter grid: {param_grid}")
         X_train, X_test, y_train, y_test = self.split_data(random_state=random_gen.randint(0, 1000))
         # hyperparameter tuning with cross validation
+        if should_print:
+            print(f"{self.model_name} start tuning at {pd.Timestamp.now()}")
         best_model, best_params, best_score, tuning_duration = self.silent_hyperparameter_tuning(X_train, y_train, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, param_grid=param_grid)
         test_DF["tuning_duration"] = str(tuning_duration)
         test_DF["tuning_best_params"] = str(best_params)
         test_DF["tuning_best_score"] = best_score
         if should_print:
             print(f"Hyperparameter tuning completed in {tuning_duration}.\n  Best score: {best_score:.4f}")
-            print(f"Best parameters: {best_params}")
+            # print(f"Best parameters: {best_params}")
         # single train test with the best model
         # goal here is to compare results with the hyperparameter tuning results
         # but also to compare train and test metrics for overfitting
