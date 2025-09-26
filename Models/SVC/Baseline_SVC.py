@@ -147,8 +147,8 @@ class NX_Histogram_SVC(SupportVectorMachine):
     def get_param_grid(cls):
         param_grid = SupportVectorMachine.get_param_grid()
         param_grid.update({
-            'kernel_type': ['poly', 'rbf'],
-            'Histogram_Type': ['combined', 'node+1', 'edge+1'],
+            'kernel_type': ['rbf'],
+            'Histogram_Type': [ 'node+1', 'edge+1'],
 
         })
         return param_grid

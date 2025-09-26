@@ -153,10 +153,8 @@ class experiment:
         This method is called by the test_model method.
         """
         if hasattr(self.model, 'predict'):
-            
-            y_pred = self.model.predict(G_test)
-           
-            return y_pred
+            y_pred,y_score = self.model.predict_both(G_test)
+            return y_pred, y_score
         else:
             raise ValueError("Model does not have a predict method.")
 
@@ -178,12 +176,12 @@ class experiment:
 
     def test_model(self, G_test, y_test):
         test_start_time = datetime.now()
-        y_pred=self.inner_model_predict(G_test)          
+        y_pred,y_score = self.inner_model_predict(G_test)
         self.results_log["testing_duration"] = datetime.now() - test_start_time
         accuracy = accuracy_score(y_test, y_pred)
-        f1 = f1_score(y_test, y_pred, average=REPORT_SETTING)
+        f1 = f1_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0.0)
         try:
-            roc_auc = roc_auc_score(y_test, y_pred, multi_class='ovr')
+            roc_auc = roc_auc_score(y_test, y_score=y_score, multi_class='ovr')
         except np.AxisError:
             roc_auc = 0.0
         precision = precision_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0.0)
@@ -219,12 +217,12 @@ class experiment:
             self.inner_model_fit(X_train, y_train_fold)
             durations_fit.append((datetime.now() - fit_start_time).total_seconds())
             test_start_time = datetime.now()
-            y_pred = self.inner_model_predict(X_test)
+            y_pred,y_score = self.inner_model_predict(X_test)
             durattions_test.append((datetime.now() - test_start_time).total_seconds())
 
             accuracies.append(accuracy_score(y_test_fold, y_pred))
-            f1_scores.append(f1_score(y_test_fold, y_pred, average=REPORT_SETTING))
-            roc_aucs.append(roc_auc_score(y_test_fold, y_pred, multi_class='ovr'))
+            f1_scores.append(f1_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
+            roc_aucs.append(roc_auc_score(y_test_fold, y_score, multi_class='ovr'))
             precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
             recalls.append(recall_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
             if DEBUG:
@@ -317,9 +315,10 @@ class experiment:
             self.diagnostic_log["saving_timestamp"] = datetime.now()
             self.results_log["saving_timestamp"] = self.diagnostic_log["saving_timestamp"]
         # try the model on the test set
+        # y_score =
         y_pred = best_model.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
-        f1 = f1_score(y_test, y_pred, average=REPORT_SETTING)
+        f1 = f1_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0.0)
         precision = precision_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0.0)
         recall = recall_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0.0)
         try:
@@ -400,7 +399,7 @@ class experiment:
         training_duration = pd.Timestamp.now() - start_time
         return training_duration
     
-    def silent_hyperparameter_tuning(self,X_train,y_train,scoring='accuracy',cv=5, verbose=0, n_jobs=1,param_grid=None):
+    def silent_hyperparameter_tuning(self,X_train,y_train,scoring='f1-macro',cv=5, verbose=0, n_jobs=1,param_grid=None,get_all_results=False):
         hyperparameter_tuning_start_time = datetime.now()
         hyperparameter_tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, error_score='raise')
 
@@ -409,30 +408,36 @@ class experiment:
         best_params = hyperparameter_tuner.best_params_
         best_score = hyperparameter_tuner.best_score_
         tuning_duration = datetime.now() - hyperparameter_tuning_start_time
+        if get_all_results:
+            results = pd.DataFrame(hyperparameter_tuner.cv_results_)
+            results_dir = os.path.join("configs", "results", "Hyperparameter_tuning_results")
+            results_path = os.path.join(results_dir, f"{self.model_name}_hyperparameter_tuning_all_results.xlsx")
+            os.makedirs(results_dir, exist_ok=True)
+            results.to_excel(results_path, index=False)
         return best_model, best_params, best_score, tuning_duration
 
     def overfitting_simple_run(self,X_train, X_test, y_train, y_test,test_DF):
         fit_start_time = datetime.now()
         self.inner_model_fit(X_train, y_train)
-        y_test_pred = self.inner_model_predict(X_test)
+        y_test_pred, y_test_score = self.inner_model_predict(X_test)
         duration = datetime.now() - fit_start_time
         test_DF["Best_model_duration"] = str(duration)
         
         accuracy_test = accuracy_score(y_test, y_test_pred)
-        f1_test = f1_score(y_test, y_test_pred, average=REPORT_SETTING)
+        f1_test = f1_score(y_test, y_test_pred, average=REPORT_SETTING, zero_division=0.0)
         try:
-            roc_auc_test = roc_auc_score(y_test, y_test_pred, multi_class='ovr')
+            roc_auc_test = roc_auc_score(y_test, y_test_score, multi_class='ovr')
         except np.AxisError:
             roc_auc_test = 0.0
         classification_report_str = classification_report(y_test, y_test_pred)
 
 
         # now test on train set
-        y_train_pred = self.inner_model_predict(X_train)
+        y_train_pred, y_train_score = self.inner_model_predict(X_train)
         accuracy_train = accuracy_score(y_train, y_train_pred)
-        f1_train = f1_score(y_train, y_train_pred, average=REPORT_SETTING)
+        f1_train = f1_score(y_train, y_train_pred, average=REPORT_SETTING, zero_division=0.0)
         try:
-            roc_auc_train = roc_auc_score(y_train, y_train_pred, multi_class='ovr')
+            roc_auc_train = roc_auc_score(y_train, y_train_score, multi_class='ovr')
         except np.AxisError:
             roc_auc_train = 0.0
 
@@ -471,13 +476,13 @@ class experiment:
                 self.inner_model_fit(X_train, y_train_fold)
                 durations_fit.append((datetime.now() - fit_start_time).total_seconds())
                 test_start_time = datetime.now()
-                y_pred = self.inner_model_predict(X_test)
+                y_pred, y_score = self.inner_model_predict(X_test)
                 durattions_test.append((datetime.now() - test_start_time).total_seconds())
 
                 accuracies.append(accuracy_score(y_test_fold, y_pred))
-                f1_scores.append(f1_score(y_test_fold, y_pred, average=REPORT_SETTING))
+                f1_scores.append(f1_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
                 try:
-                    roc_aucs.append(roc_auc_score(y_test_fold, y_pred, multi_class='ovr'))
+                    roc_aucs.append(roc_auc_score(y_test_fold, y_score, multi_class='ovr'))
                 except np.AxisError:
                     roc_aucs.append(0.0)
                 precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
@@ -530,13 +535,13 @@ class experiment:
             self.inner_model_fit(X_train, y_train_fold)
             durations_fit.append((datetime.now() - fit_start_time).total_seconds())
             test_start_time = datetime.now()
-            y_pred = self.inner_model_predict(X_test)
+            y_pred, y_score = self.inner_model_predict(X_test)
             durattions_test.append((datetime.now() - test_start_time).total_seconds())
 
             accuracies.append(accuracy_score(y_test_fold, y_pred))
-            f1_scores.append(f1_score(y_test_fold, y_pred, average=REPORT_SETTING))
+            f1_scores.append(f1_score(y_test_fold, y_pred, average=REPORT_SETTING,zero_division=0.0))
             try:
-                roc_aucs.append(roc_auc_score(y_test_fold, y_pred, multi_class='ovr'))
+                roc_aucs.append(roc_auc_score(y_test_fold, y_score, multi_class='ovr'))
             except np.AxisError:
                 roc_aucs.append(0.0)
             precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
@@ -575,7 +580,7 @@ class experiment:
 
       
 
-    def run_extensive_test(self,test_DF,should_print=False,scoring='accuracy',cv=5, verbose=0, n_jobs=-1,random_seed=RANDOM_STATE):
+    def run_extensive_test(self,test_DF,should_print=False,scoring='accuracy',cv=5, verbose=0, n_jobs=-1,random_seed=RANDOM_STATE,get_all_tuning_results=False):
         # get a random number generator with the seed
         random_gen = random.Random(random_seed)
 
@@ -602,7 +607,7 @@ class experiment:
         # hyperparameter tuning with cross validation
         if should_print:
             print(f"{self.model_name} start tuning at {pd.Timestamp.now()}")
-        best_model, best_params, best_score, tuning_duration = self.silent_hyperparameter_tuning(X_train, y_train, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, param_grid=param_grid)
+        best_model, best_params, best_score, tuning_duration = self.silent_hyperparameter_tuning(X_train, y_train, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, param_grid=param_grid,get_all_results=get_all_tuning_results)
         test_DF["tuning_duration"] = str(tuning_duration)
         test_DF["tuning_best_params"] = str(best_params)
         test_DF["tuning_best_score"] = best_score
@@ -635,5 +640,6 @@ class experiment:
             total_combinations *= len(param_grid[key])
         total_combinations += cv +1
         estimated_test_duration = duration1train * total_combinations
+        print(f" {self.model_name}: {duration1train} x {total_combinations} combinations = Estimated tuning duration: {estimated_test_duration}")
         return estimated_test_duration
     

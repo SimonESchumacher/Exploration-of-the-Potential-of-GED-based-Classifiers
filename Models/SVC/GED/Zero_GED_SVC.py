@@ -3,6 +3,7 @@
 import sys
 import os
 import numpy as np
+import pandas as pd
 import tqdm
 
 from Calculators.Prototype_Selction import Prototype_Selector
@@ -40,7 +41,6 @@ class ZERO_GED_SVC(Base_GED_SVC):
             "dataset_name": self.dataset_name
         })
         super().__init__(attributes=attributes, name=self.kernel_name, **kwargs)
-    
     def compare(self, g1, g2):
         distance=0
         d_g1_g2 =self.ged_calculator.compare(g1, g2, method=self.ged_bound)**2
@@ -60,6 +60,8 @@ class ZERO_GED_SVC(Base_GED_SVC):
         if DEBUG:
             print(f"Fitting GED_SVC with {len(X)} graphs")
         self.X_fit_graphs_ = X
+        # print("Selecting prototypes...")
+        # print(f"Selection method:{ self.selection_method}, Selection split: {self.selection_split}, Prototype size: {self.prototype_size}")
         self.prototypes = buffered_prototype_selection(X, y=y, ged_calculator=self.ged_calculator, size=self.prototype_size, selection_split=self.selection_split,
                                                         selection_method=self.selection_method,
                                                           comparison_method=self.ged_bound, dataset_name=self.dataset_name)
@@ -69,20 +71,26 @@ class ZERO_GED_SVC(Base_GED_SVC):
             iters = tqdm.tqdm(range(n), desc="Computing kernel matrix")
         else:
             iters = range(n)
-        self.feature_vectors_X_fit = np.zeros((n, self.prototype_size))
+        self.feature_vectors_X_fit = np.zeros((n, len(self.prototypes)))
+        start_time = pd.Timestamp.now()
+        self.D_g1_g2 = np.square(self.ged_calculator.upperbound_matrix)
         for i in iters:
             for k, g0 in enumerate(self.prototypes):
-                self.feature_vectors_X_fit[i, k] = self.ged_calculator.compare(X[i], g0, method=self.ged_bound)**2
+                self.feature_vectors_X_fit[i, k] = self.D_g1_g2[i, g0]
+        # Efficiently square every entry in the upperbound_matrix
+        d_proto = np.zeros((n,n,len(self.prototypes)))
         for i in iters:
             for j in range(i, n):
-                d_g1_g2 =self.ged_calculator.compare(X[i], self.X_fit_graphs_[j], method=self.ged_bound)**2
-                d_proto = self.feature_vectors_X_fit[i, :] + self.feature_vectors_X_fit[j, :] - d_g1_g2
-                if self.aggregation_method == "sum":
-                    K[i, j] = np.sum(d_proto)/2
-                elif self.aggregation_method == "prod":
-                    K[i, j] = np.prod(d_proto)/2
-                K[j, i] = K[i, j]  # because the kernel matrix is symmetric
-
+                d_proto[i, j, :] = self.feature_vectors_X_fit[i, :] + self.feature_vectors_X_fit[j, :] - self.D_g1_g2[i, j]
+                d_proto[j, i, :] = d_proto[i, j, :]
+        if self.aggregation_method == "sum":
+            K = np.sum(d_proto,axis=2)/2
+        elif self.aggregation_method == "prod":
+            K = np.prod(d_proto,axis=2)/2
+         # because the kernel matrix is symmetric
+        end_time = pd.Timestamp.now()
+        duration = end_time - start_time
+        # print(f"Kernel matrix computed in {duration}")
         return K
     def transform(self, X):
         """ Transform the data using the fitted kernel.
@@ -93,17 +101,17 @@ class ZERO_GED_SVC(Base_GED_SVC):
         n = len(X)
         m = len(self.X_fit_graphs_)
         K = np.zeros((n, m))
-        feature_vectors_X = np.zeros(self.prototype_size)
+        d_proto = np.zeros((n,m,len(self.prototypes)))
+        feature_vectors_X = np.zeros(len(self.prototypes))
         for i in range(n):
             for k, g0 in enumerate(self.prototypes):
-                feature_vectors_X[k] = self.ged_calculator.compare(X[i], g0, method=self.ged_bound)**2
+                feature_vectors_X[k] = self.D_g1_g2[X[i], g0]
             for j in range(m):
-                d_g1_g2 =self.ged_calculator.compare(X[i], self.X_fit_graphs_[j], method=self.ged_bound)**2
-                d_proto = feature_vectors_X[:] + self.feature_vectors_X_fit[j, :] - d_g1_g2
-                if self.aggregation_method == "sum":
-                    K[i, j] = np.sum(d_proto)/2
-                elif self.aggregation_method == "prod":
-                    K[i, j] = np.prod(d_proto)/2              
+                d_proto[i, j, :] = feature_vectors_X[:] + self.feature_vectors_X_fit[j, :] - self.D_g1_g2[X[i], self.X_fit_graphs_[j]]
+        if self.aggregation_method == "sum":
+            K = np.sum(d_proto, axis=2)/2
+        elif self.aggregation_method == "prod":
+            K = np.prod(d_proto, axis=2)/2
         return K
     def build_matrix(self, X):
         """ Transform the data using the fitted kernel.
@@ -168,10 +176,11 @@ class ZERO_GED_SVC(Base_GED_SVC):
         # this is a problem, because the kernel has its own parameters
         param_grid.update(
             {
-                "prototype_size": [1, 3, 5],
-                "aggregation_method": ["sum", "prod"],
+                "prototype_size": [1, 2, 3],
+                "aggregation_method": ["sum"],
                 "selection_split": ["all", "classwise", "single_class"],
-                "selection_method": ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"]
+                "selection_method": ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"],
+                "C": [0.1]
             }
         )
         return param_grid

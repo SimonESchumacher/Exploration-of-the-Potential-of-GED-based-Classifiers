@@ -25,8 +25,8 @@ from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from Models.KNN.GEDLIB_KNN import GED_KNN
 import pandas as pd
 from io_Manager import IO_Manager
-N_JOBS =8
-SPLIT=0.1 # 10% test size alternatively 0.2 for 20%
+N_JOBS =1
+SPLIT=0.2 # 10% test size alternatively 0.2 for 20%
 def nonGEd_classifiers():
     return [
         Random_Classifier(),
@@ -35,7 +35,7 @@ def nonGEd_classifiers():
         VertexHistogram_SVC(),
         EdgeHistogram_SVC(kernel_type='precomputed'),
         CombinedHistogram_SVC(kernel_type='precomputed'),
-        # NX_Histogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=DATASET.get_edge_labels, get_node_labels=DATASET.get_node_labels,Histogram_Type="combined")
+        NX_Histogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=DATASET.get_edge_labels, get_node_labels=DATASET.get_node_labels,Histogram_Type="combined")
         ]
 
 
@@ -87,9 +87,9 @@ def run_classifiers(classifier_list: list[GraphClassifier], DATASET: Dataset, ge
         except Exception as e:
             #  print the full traceback
             traceback.print_exc()
-            print(f"Error running {classifier.get_name()} on {DATASET.name}: {e}")
+            print(f"Error running {classifier.get_name} on {DATASET.name}: {e}")
             instance_dict = {
-                "Model": classifier.get_name(),
+                "Model": classifier.get_name,
                 "Dataset": DATASET.name,
                 "Error": str(e)
             }
@@ -106,7 +106,6 @@ def estimate_experiment_duration(classifier_list: list[GraphClassifier], DATASET
         expi=experiment(f"{classifier.__class__.__name__}",DATASET,dataset_name=DATASET.name,
                         model=classifier,model_name=classifier.get_name,ged_calculator=None)
         estimated_time = expi.get_estimated_tuning_time(cv=int(1/SPLIT))
-        print(f"Estimated time for {classifier.get_name}: {estimated_time}")
         total_duration += estimated_time
         del classifier
         del expi
@@ -116,13 +115,14 @@ def estimate_experiment_duration(classifier_list: list[GraphClassifier], DATASET
 
 if __name__ == "__main__":
     testDF = pd.DataFrame()
-    dataset_name = "BZR"
-    experiment_name = f"{dataset_name}_10_test"
+    dataset_name = "MUTAG"
+    start_time = pd.Timestamp.now()
+
+    experiment_name = f"{dataset_name}_{1/SPLIT}_{start_time.strftime('%Y%m%d_%H%M%S')}"
     only_estimate_duration = False
     only_load_calculators = False
     preloaded = True
     save_result = True
-    start_time = pd.Timestamp.now()
     print(f"Experiment started at {start_time}")
     # ged_calculator = GEDLIB_Calculator(GED_calc_method="BIPARTITE", GED_edit_cost="CONSTANT")
     # ged_calculator = Base_Calculator()
@@ -153,7 +153,7 @@ if __name__ == "__main__":
         print(f"Estimated total duration for GED classifiers: {total_duration_GED}")
     elif not only_load_calculators:
         print(f"Running GED-based classifiers on {DATASET.name} dataset.")
-        testDF = run_classifiers(classifiers_with_calculator, DATASET, ged_calculator, testDF)
+        testDF = run_classifiers(classifiers_with_calculator, DATASET, ged_calculator, testDF, experiment_name)
     # reference calculator for sanity check
     if preloaded:
         reference_calculator = "Dummy_Calculator"

@@ -1,8 +1,8 @@
 # Kernels
 from sklearn.svm import SVC
 from sklearn.utils.validation import check_X_y, check_array
-
-# liabry to save Model:
+import numpy as np
+# library to save Model:
 import joblib
 import sys
 import os
@@ -27,7 +27,7 @@ class SupportVectorMachine(GraphClassifier):
         self.C = C
         self.class_weight = class_weight
         self.random_state = random_state
-        classifier = SVC(kernel=self.kernel_type, C=self.C, random_state=self.random_state,class_weight=class_weight)
+        classifier = SVC(kernel=self.kernel_type, C=self.C, random_state=self.random_state,class_weight=class_weight, probability=True)
         default_attributes = {
             "Kernel_type": self.kernel_type,
             "Kernel": self.kernel_name,
@@ -115,7 +115,8 @@ class SupportVectorMachine(GraphClassifier):
             raise e
         X = self.transform(X)
         try:
-            y_pred = self.classifier.predict(X)
+            y_pred = self.classifier.predict_proba(X)
+            y_pred = self.classes_[np.argmax(y_pred, axis=1)]
         except Exception as e:
             print(f"Error during prediction: {e}")
             traceback.print_exc()
@@ -133,12 +134,18 @@ class SupportVectorMachine(GraphClassifier):
             raise e
         X = self.transform(X)
         try:
-            y_proba = self.classifier.predict_proba(X)
+            y_conf = self.classifier.predict_proba(X)
         except Exception as e:
             print(f"Error during probability prediction: {e}")
             traceback.print_exc()
             raise e
-        return y_proba
+        return y_conf
+    def predict_both(self, X):
+        probabilities = self.predict_proba(X)
+        if self.classes_.shape[0] == 2:
+            return self.classes_[np.argmax(probabilities, axis=1)], probabilities[:,0]
+        else:
+            return self.classes_[np.argmax(probabilities, axis=1)], probabilities
     def __str__(self):
         return (f"SVC_{self.kernel_name}(kernel_type={self.kernel_type}, C={self.C}, "
                 f"random_state={self.random_state})")

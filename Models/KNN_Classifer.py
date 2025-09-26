@@ -3,7 +3,7 @@
 import traceback
 import joblib
 from sklearn.neighbors import KNeighborsClassifier
-
+import numpy as np
 
 # imports from custom modules
 import sys
@@ -131,6 +131,12 @@ class KNN(GraphClassifier):
             traceback.print_exc()
             raise e
         return y_proba
+    def predict_both(self, X):
+        probabilities = self.predict_proba(X)
+        if self.classes_.shape[0] == 2:
+            return self.classes_[np.argmax(probabilities, axis=1)], probabilities[:,0]
+        else:
+            return self.classes_[np.argmax(probabilities, axis=1)], probabilities
     def save(self, filename):
         """
         Saves the fitted KNN classifier model to a file.

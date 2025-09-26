@@ -102,16 +102,24 @@ class Random_Classifier(GraphClassifier):
     
     def predict_proba(self, X):
         # Check if the model is fitted
-        self.check_is_fitted()
+        
         # Ensure X is a valid array
-        X = check_array(X)
-        if X.shape[1] != len(self.X_fit_): # n_features_in_ des SVM ist die Anzahl der Trainingssamples
-            raise ValueError(f"Shape of X for prediction ({X.shape}) does not match "
-                            f"the number of training samples used during fit ({len(self.X_fit_)}). "
-                            "Ensure the input to predict() is a list of graphs compatible with the fitted kernel.")
+        try:
+            self.check_is_fitted()
+        except ValueError as e:
+            print(f"Model is not fitted: {e}")
+            traceback.print_exc()
+            raise e
 
         # Use the classifier to predict
-        return self.classifier.predict_proba(X)   
+        return self.classifier.predict_proba(X)
+    def predict_both(self, X):
+        probabilities = self.predict_proba(X)
+        if self.classes_.shape[0] == 2:
+            return self.classes_[np.argmax(probabilities, axis=1)], probabilities[:,0]
+        else:
+            return self.classes_[np.argmax(probabilities, axis=1)], probabilities 
+         
     def __str__(self):  
         return f"RandomGuesser(strategy={self.strategy}, random_state={self.random_state}, constant={self.constant})"
     

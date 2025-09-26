@@ -344,6 +344,7 @@ def extract_simple_graph_features(data):
 class Dataset:
 
     def __init__(self, name,source, domain=None,ged_calculator=None, use_node_labels="label", use_node_attributes="label", use_edge_labels=None, use_edge_attributes=None,load_now=True,save_calculator=True):
+        
         self.name = name
         self.ged_calculator = ged_calculator
         self.source = source

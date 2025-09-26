@@ -34,6 +34,7 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
             "selection_method": self.selection_method,
             "dataset_name": self.dataset_name
         })
+        # print("initialitized")
         super().__init__(attributes=attributes, name=self.name, **kwargs)
     def build_feature_vector(self, g):
         feature_vector = np.empty((self.prototype_size,), dtype=float)
@@ -78,8 +79,9 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
             'kernel_type': ['poly', 'rbf', 'linear'],
             "prototype_size": [1, 5, 8],
             "selection_split": ["all", "classwise", "single_class"],
-            "selection_method": ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"]
+            "selection_method": ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"],
             # "selection_method": ["k-CPS","RPS"]
+            # "C": [0.1]
         })
         return param_grid
 

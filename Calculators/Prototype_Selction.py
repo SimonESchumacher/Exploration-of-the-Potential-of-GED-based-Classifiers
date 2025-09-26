@@ -5,6 +5,7 @@ from Calculators.Base_Calculator import Base_Calculator
 import os
 import joblib
 import sys
+from pandas import Timestamp
 from multiprocessing import Manager, Process
 manager = Manager()
 file_lock = manager.Lock()
@@ -424,22 +425,32 @@ def buffered_prototype_selection(G, ged_calculator: Base_Calculator, y, selectio
     # load buffer dictionary with joblib
     buffer_path = "prototype_selection_buffer"
     joint_path = os.path.join("Calculators",buffer_path, "selections.joblib")
-    if DEBUG:
-        print(f"Prototype selection string: {full_prototype_bzw_string}")
+    # if DEBUG:
+        # print(f"Prototype selection string: {full_prototype_bzw_string}")
+    buffer_load_Start = Timestamp.now()
     if selection_method == "RPS":
-        # RPS is random, so we do not buffer it
-        return Select_Prototypes(G, ged_calculator=ged_calculator, y=y, selection_split=selection_split, selection_method=selection_method, size=size, comparison_method=comparison_method)
+        # RPS is random, so we do not buffer it  
+        prototypes = Select_Prototypes(G, ged_calculator=ged_calculator, y=y, selection_split=selection_split, selection_method=selection_method, size=size, comparison_method=comparison_method)          
+        # print(f"Selected prototypes: {prototypes}, took {Timestamp.now() - buffer_load_Start} ")
+        return prototypes
+
+    
     buffer_dict :dict = IO_Manager.get_prototype_selector()
     if selection_method != "RPS" and full_prototype_bzw_string in buffer_dict.keys():
         prototypes = buffer_dict[full_prototype_bzw_string]
         if DEBUG:
             print(f"Loaded prototypes from buffer for {full_prototype_bzw_string}")
             print(f"Prototypes: {prototypes}")
+            print(f"Buffer load time: {Timestamp.now() - buffer_load_Start}")
         return prototypes
     else:
-        prototypes = Select_Prototypes(G, ged_calculator=ged_calculator, y=y, selection_split=selection_split, selection_method=selection_method, size=size, comparison_method=comparison_method)
+        timestamp_tmp = Timestamp.now()
         if DEBUG:
-            print(f"No buffer found for {full_prototype_bzw_string}. Selected prototypes: {prototypes}")
+            print(f"search for prototypes, took {timestamp_tmp - buffer_load_Start} to load buffer")
+        prototypes = Select_Prototypes(G, ged_calculator=ged_calculator, y=y, selection_split=selection_split, selection_method=selection_method, size=size, comparison_method=comparison_method)
+
+        if DEBUG:
+            print(f"No buffer found for {full_prototype_bzw_string}. Selected prototypes: {prototypes}, took {Timestamp.now() - buffer_load_Start} ")
         # save buffer dictionary with joblib
         IO_Manager.add_prototype_selector(full_prototype_bzw_string, prototypes)
         return prototypes

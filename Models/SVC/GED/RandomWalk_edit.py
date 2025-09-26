@@ -37,10 +37,7 @@ class Random_walk_edit_SVC(Base_GED_SVC):
             rw_kernel_matrix_key = f"{self.decay_lambda}_{self.max_walk_length}_train"
         else:
             rw_kernel_matrix_key = f"{self.decay_lambda}_{self.max_walk_length}_test"
-        kernel_matrix =IO_Manager.get_rw_kernel_matrix(rw_kernel_matrix_key)
-        if kernel_matrix is None:
-            kernel_matrix = super()._calculate_kernel_matrix(X_graphs, Y_graphs)
-            IO_Manager.save_rw_kernel_matrix(rw_kernel_matrix_key, kernel_matrix)
+        kernel_matrix = super()._calculate_kernel_matrix(X_graphs, Y_graphs)
         return kernel_matrix
     def compare(self, g1, g2):
         node_map = self.ged_calculator.get_node_map(g1, g2)

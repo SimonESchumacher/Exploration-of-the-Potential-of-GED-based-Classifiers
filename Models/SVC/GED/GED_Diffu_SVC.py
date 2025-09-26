@@ -41,15 +41,16 @@ class DIFFUSION_GED_SVC(Base_GED_SVC):
             self.MaxD = np.max(D)
         B = self.MaxD - D
         if self.diffusion_function == "exp_diff_kernel":
-            K=np.zeros(B.shape)
+            # Efficient computation using numpy broadcasting and vectorized operations
+            K = np.zeros(B.shape)
+            B_exp = np.ones(B.shape)
             llambda_exp = 1.0
-            B_exp = 1
             k_factorial = 1
-            for i in range(0,self.t_iterations):
-                K += llambda_exp * B_exp * (1/k_factorial)
-                B_exp = B_exp * B
-                llambda_exp = llambda_exp * self.llambda
-                k_factorial = k_factorial * (i + 1)
+            for i in range(self.t_iterations):
+                K += (llambda_exp / k_factorial) * B_exp
+                B_exp *= B
+                llambda_exp *= self.llambda
+                k_factorial *= (i + 1)
 
         elif self.diffusion_function == "von_Neumann_diff_kernel":
             B_exp = 1

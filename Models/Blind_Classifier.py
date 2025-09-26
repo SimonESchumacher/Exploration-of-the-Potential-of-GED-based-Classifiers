@@ -3,6 +3,7 @@
 # import dummy classifier
 # import perceptron classifier
 from sklearn.linear_model import Perceptron
+import numpy as np
 # liabry to save Model:
 import sys
 import os
@@ -82,14 +83,32 @@ class Blind_Classifier(GraphClassifier):
         
         # Use the classifier to predict
         try:
-            y_pred = self.classifier.predict_proba(X)
+            y_score = self.classifier.decision_function(X)
+            # run a softmax on y_score to get probabilities
+            if self.classes_.shape[0] == 2:
+                # binary classification
+                # apply sigmoid function
+                y_conf = 1 / (1 + np.exp(-y_score))
+                y_conf = np.vstack([1 - y_conf, y_conf]).T
+            else:
+                # multi-class classification
+                # apply softmax function
+                exp_scores = np.exp(y_score - np.max(y_score, axis=1, keepdims=True))
+                y_conf = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
         except Exception as e:
             # print traceback
             print("Error during prediction:")  
             traceback.print_exc()
             raise ValueError(f"Error during prediction: {e}")
         
-        return y_pred
+        return y_conf
+    def predict_both(self, X):
+        probabilities = self.predict_proba(X)
+        if self.classes_.shape[0] == 2:
+            return self.classes_[np.argmax(probabilities, axis=1)], probabilities[:,0]
+        else:
+            return self.classes_[np.argmax(probabilities, axis=1)], probabilities
+        
     def __str__(self):
         return f"Blind_Classifier with random_state={self.classifier.random_state}"
     def to_string(self):
