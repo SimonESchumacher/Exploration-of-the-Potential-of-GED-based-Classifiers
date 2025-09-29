@@ -12,15 +12,14 @@ import sys
 import os
 import traceback
 sys.path.append(os.getcwd())
-
+from scipy.stats import randint
 from Models.Graph_Classifier import GraphClassifier
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
-from Graph_Tools import convert_nx_to_grakel_graph
 DEBUG = False # Set to False to disable debug prints
 # import GraphClassifier as gc
 # Class of the SVC_WeisfeilerLehman is an extension of the SVC class
 class WeisfeilerLehman_SVC(SupportVectorMachine):
-
+    model_specific_iterations = 300  # Base number of iterations for this model
     def __init__(self, n_iter=5, C=1.0,normalize_kernel=True, random_state=None,kernel_type="precomputed",attributes=None,**kwargs):
         self.n_iter = n_iter
         self.normalize_kernel = normalize_kernel
@@ -68,6 +67,7 @@ class WeisfeilerLehman_SVC(SupportVectorMachine):
                 super().set_params(**{parameter: value})
         if need_new_kernel:
             self.kernel = WeisfeilerLehman(n_iter=self.n_iter, normalize=self.normalize_kernel)
+            self.kernel_fuct = self.kernel
         return self
     def predict(self, X):
         try:
@@ -130,6 +130,14 @@ class WeisfeilerLehman_SVC(SupportVectorMachine):
             #, 'normalize_kernel': [True, False] # Not really needed
         })
         return param_grid
+    @classmethod
+    def get_random_param_space(cls):
+        param_space = SupportVectorMachine.get_random_param_space()
+        param_space.update({
+            'n_iter': randint(1, 7)
+            #, 'normalize_kernel': [True, False] # Not really needed
+        })
+        return param_space
        
     
 

@@ -16,6 +16,7 @@ from Models.SupportVectorMachine_Classifier import SupportVectorMachine
 DEBUG = False # Set to False to disable debug prints
 
 class VertexHistogram_SVC(SupportVectorMachine):
+    model_specific_iterations = 30
     def __init__(self, attributes=None, **kwargs):
         kernel = VertexHistogram()
         super().__init__( kernelfunction=kernel, kernel_name="VertexHistogram", attributes=attributes, **kwargs)
@@ -24,6 +25,7 @@ class VertexHistogram_SVC(SupportVectorMachine):
     
 
 class EdgeHistogram_SVC(SupportVectorMachine):
+    model_specific_iterations = 30
     def __init__(self,attributes=None,**kwargs):
         kernel = EdgeHistogram()
         super().__init__( kernelfunction=kernel, kernel_name="EdgeHistogram", attributes=attributes, **kwargs)
@@ -32,6 +34,8 @@ class EdgeHistogram_SVC(SupportVectorMachine):
     
     
 class CombinedHistogram_SVC(SupportVectorMachine):
+    model_specific_iterations = 50
+
     def __init__(self, attributes=None,weights=[1,1], **kwargs):
         self.weights = weights
         kernel = Combined_Kernel(kernels=[VertexHistogram(), EdgeHistogram()],weights=self.weights)
@@ -46,10 +50,19 @@ class CombinedHistogram_SVC(SupportVectorMachine):
             'weights': [[1, 1], [1, 0.5], [0.5, 1]],  # Different weight combinations for the histograms
         })
         return param_grid
+    @classmethod
+    def get_random_param_space(cls):
+        param_space = SupportVectorMachine.get_random_param_space()
+        param_space.update({
+            'weights': [[1, 1], [1, 0.5], [0.5, 1]],  # Different weight combinations for the histograms
+        })
+        return param_space
     
 
 # Kernels 
 class Combined_Kernel(Kernel):
+    model_specific_iterations = 50
+
     """Combined Kernel that Combines Kernels that and concatenates their feature Vectors.
     """
     def __init__(self, kernels: list[Kernel]=VertexHistogram(),weights: list[float]=[1.0]):
@@ -83,7 +96,7 @@ class Combined_Kernel(Kernel):
         return combined_transformation
     
 class NX_Histogram_SVC(SupportVectorMachine):
-
+    model_specific_iterations = 10
     def __init__(self,Histogram_Type="node+1", attributes:dict=dict(),get_node_labels:callable=None,get_edge_labels:callable=None, **kwargs):
         self.Histogram_Type = Histogram_Type
         self.get_node_labels = get_node_labels
@@ -152,4 +165,12 @@ class NX_Histogram_SVC(SupportVectorMachine):
 
         })
         return param_grid
+    @classmethod
+    def get_random_param_space(cls):
+        param_space = SupportVectorMachine.get_random_param_space()
+        param_space.update({
+            'kernel_type': ['rbf', 'linear', 'poly'],
+            'Histogram_Type': ["combined","node","edge","node+1", "edge+1"],
+        })
+        return param_space
 

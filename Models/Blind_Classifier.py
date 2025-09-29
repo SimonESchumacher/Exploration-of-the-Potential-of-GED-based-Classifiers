@@ -14,6 +14,7 @@ DEBUG = False  # Set to True for debug prints
 from Models.Graph_Classifier import GraphClassifier
 
 class Blind_Classifier(GraphClassifier):
+    model_specific_iterations = 20
     def __init__(self,random_state=42,attributes=dict(),**kwargs):
         self.random_state = random_state
         classifier = Perceptron(random_state=random_state)
@@ -76,7 +77,7 @@ class Blind_Classifier(GraphClassifier):
             print(f"Model is not fitted: {e}")
             traceback.print_exc()
             raise e
-        print("successfully checked if model is fitted")
+        # print("successfully checked if model is fitted")
         # Ensure X is a valid array
         X = [[rnd.random(),rnd.random() ]for _ in X]
 
@@ -116,3 +117,6 @@ class Blind_Classifier(GraphClassifier):
     @classmethod
     def get_param_grid(cls):
         return super().get_param_grid()
+    @classmethod
+    def get_hyperparameter_search_space(cls):
+        return super().get_hyperparameter_search_space()

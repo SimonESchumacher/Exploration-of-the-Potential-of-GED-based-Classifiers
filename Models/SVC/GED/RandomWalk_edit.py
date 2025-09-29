@@ -5,9 +5,11 @@ from Calculators.Product_GRaphs import build_restricted_product_graph, limited_l
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from io_Manager import IO_Manager
 DEBUG = False  # Set to True for debug prints
-
+from scipy.stats import randint, uniform, loguniform
+from typing import Dict, Any, List 
 
 class Random_walk_edit_SVC(Base_GED_SVC):
+    model_specific_iterations = 100
     """
     Support Vector Machine with Graph Edit Distance Kernel
     """
@@ -76,6 +78,14 @@ class Random_walk_edit_SVC(Base_GED_SVC):
             "max_walk_length": [5, -1]  # -1 indicates infinite length
         })
         return param_grid
+    @classmethod
+    def get_random_param_space(cls):
+        param_space = Base_GED_SVC.get_random_param_space()
+        param_space.update({
+            "decay_lambda": loguniform(a=0.005, b=1),
+            "max_walk_length": [2,3,4, 5, 10, -1,-1,-1,-1]  # -1 indicates infinite length
+        })
+        return param_space
     
 
         

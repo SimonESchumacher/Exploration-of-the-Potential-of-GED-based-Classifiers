@@ -9,14 +9,17 @@ import os
 import traceback
 import abc
 sys.path.append(os.getcwd())
-from Graph_Tools import convert_nx_to_grakel_graph
+from Graph_Tools import  get_grakel_graphs_from_nx, convert_nx_to_grakel_graph
 from Models.Graph_Classifier import GraphClassifier
+from scipy.stats import randint, uniform, loguniform
+from typing import Dict, Any, List
 DEBUG = False # Set to False to disable debug prints
 
 class SupportVectorMachine(GraphClassifier):
+    model_specific_iterations = 500
     # Support Vector Machine Classifier for Graphs
     # with different Kernels
-    def __init__(self, kernel_type="precomputed", C=1.0, random_state=None,kernelfunction=None,kernel_name="unspecified",class_weight=None,attributes=None, **kwargs):
+    def __init__(self, kernel_type="precomputed", C=1.0, random_state=None,kernelfunction=None,kernel_name="unspecified",class_weight=None,classes=[0,1],attributes=None, **kwargs):
         
         self.kernel_type = kernel_type
         if kernelfunction is None and kernel_type == "precomputed":
@@ -52,7 +55,7 @@ class SupportVectorMachine(GraphClassifier):
     # TODO: this does not feel like a good move
     def fit_transform(self, X, y=None):
         X = [convert_nx_to_grakel_graph(g) for g in X]
-        return self.kernel_fuct.fit_transform(X)
+        return self.kernel_fuct.fit_transform(X,y)
     # TODO: this does not feel like a good move
     def transform(self, X):
         X = [convert_nx_to_grakel_graph(g) for g in X]
@@ -163,6 +166,16 @@ class SupportVectorMachine(GraphClassifier):
             # 'class_weight': [None, 'balanced'],
         })
         return param_grid
+    @classmethod
+    def get_random_param_space(cls):
+        param_space = GraphClassifier.get_random_param_space()
+        param_space.update({
+            'C': loguniform(a=0.0005, b=10),
+            # 'kernel_type': ['poly', 'linear', 'rbf', 'sigmoid'],
+            'kernel_type': ['precomputed'],
+            'class_weight': [None, 'balanced'],
+        })
+        return param_space
         
 
      

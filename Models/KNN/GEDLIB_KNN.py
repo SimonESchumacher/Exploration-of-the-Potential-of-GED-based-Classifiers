@@ -1,6 +1,7 @@
 # GED K-NN Classifier
 # imports
 import traceback
+from typing import Any, Dict
 from sklearn.neighbors import KNeighborsClassifier
 
 
@@ -10,16 +11,15 @@ import os
 sys.path.append(os.getcwd())
 from Models.Graph_Classifier import GraphClassifier
 from Models.KNN_Classifer import KNN
-from Graph_Tools import convert_nx_to_grakel_graph
 from Calculators import Base_Calculator, Dummy_Calculator
 # from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
 # from Calculators.Dummy_Calculator import Dummy_Calculator
 DEBUG = False  # Set to False to disable debug prints
 
 class GED_KNN(KNN):
-
+    model_specific_iterations = 200  # Base number of iterations for this model
     def __init__(self,
-                 ged_calculator:Base_Calculator=None, ged_bound="Mean-Similarity",
+                 ged_calculator:Base_Calculator=None, ged_bound="Mean-Distance",
                  attributes : dict=dict(),similarity=False ,**kwargs):
         """
         Initialize the GED K-NN Classifier with the given parameters.
@@ -37,6 +37,7 @@ class GED_KNN(KNN):
             metric="precomputed",
             metric_name="GED",
             attributes=attributes,
+            name="GED-KNN",
             **kwargs
         )
         if DEBUG:
@@ -89,30 +90,6 @@ class GED_KNN(KNN):
             "comparison_method": self.ged_bound
         })
         return params
-    def set_params(self, **params):
-        need_new_GED =False
-        calculator_params = {}
-        if DEBUG:
-            print(f"Setting parameters for GED_SVC")
-        for parameter, value in params.items():
-            if parameter.startswith("GED_"):
-                if DEBUG:
-                    print(f"Setting GED parameter {parameter} to {value}")
-                # pass to the calculator
-                calculator_params[parameter] = value
-                need_new_GED = True
-            else:
-                if DEBUG:
-                    print(f"Setting parameter {parameter} to {value}")
-                if hasattr(self, parameter):
-                    setattr(self, parameter, value)
-                else:
-                    print(f"Warning: Parameter {parameter} not found in GED_SVC. Skipping.")
-        if need_new_GED:
-            if DEBUG:
-                print(f"Reinitializing GED calculator with parameters: {calculator_params}")
-            self.ged_calculator.set_params(**calculator_params)
-        return self
     @classmethod
     def get_param_grid(cls):
         """
@@ -122,6 +99,16 @@ class GED_KNN(KNN):
         param_grid.update({
         })
         return param_grid
+    @classmethod
+    def get_random_param_space(cls):
+        """
+        Get the random parameter space for hyperparameter tuning.
+        """
+        param_space = super().get_random_param_space()
+        param_space.update({
+        })
+        return param_space
+    
 
         
 

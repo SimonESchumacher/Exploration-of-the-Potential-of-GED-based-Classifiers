@@ -15,9 +15,12 @@ from Custom_Kernels.GEDLIB_kernel import GEDKernel
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
 from Calculators.Prototype_Selction import Prototype_Selector, Select_Prototypes, buffered_prototype_selection
+from scipy.stats import randint, uniform, loguniform
+from typing import Dict, Any, List 
 DEBUG = False  # Set to True for debug prints
 
 class ZERO_GED_SVC(Base_GED_SVC):
+    model_specific_iterations = 150  # Base number of iterations for this model
     def __init__(self,
                     aggregation_method,
                     prototype_size,
@@ -184,5 +187,17 @@ class ZERO_GED_SVC(Base_GED_SVC):
             }
         )
         return param_grid
+    @classmethod
+    def get_random_param_space(cls):
+        param_space = Base_GED_SVC.get_random_param_space()
+        param_space.update(
+            {
+                "prototype_size": [1, 2, 3],
+                "aggregation_method": ["sum","prod","sum"],
+                "selection_split": ["all", "classwise", "single_class"],
+                "selection_method": ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"],
+            }
+        )
+        return param_space
 
 

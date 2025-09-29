@@ -181,7 +181,7 @@ class experiment:
         accuracy = accuracy_score(y_test, y_pred)
         f1 = f1_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0.0)
         try:
-            roc_auc = roc_auc_score(y_test, y_score=y_score, multi_class='ovr')
+            roc_auc = roc_auc_score(y_test, y_score=y_score, labels=self.model.classes_, multi_class='ovr')
         except np.AxisError:
             roc_auc = 0.0
         precision = precision_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0.0)
@@ -222,7 +222,7 @@ class experiment:
 
             accuracies.append(accuracy_score(y_test_fold, y_pred))
             f1_scores.append(f1_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
-            roc_aucs.append(roc_auc_score(y_test_fold, y_score, multi_class='ovr'))
+            roc_aucs.append(roc_auc_score(y_test_fold, y_score, labels=self.model.classes_, multi_class='ovr'))
             precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
             recalls.append(recall_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
             if DEBUG:
@@ -279,7 +279,12 @@ class experiment:
 
 
         X_train, X_test, y_train, y_test = self.split_data()
-        param_grid = self.model.get_param_grid()
+        if tuning_method == 'grid':
+            param_grid = self.model.get_param_grid()
+        elif tuning_method == 'random':
+            param_grid = self.model.get_random_param_space()
+        else:
+            param_grid = {}
         # currently not in use, porbaly not needed and not a smart idea to use it
         if DATASET_HYPERPARAM:
             param_grid.update(self.dataset.get_param_grid())
@@ -293,7 +298,7 @@ class experiment:
         if tuning_method == 'grid':
             hyperparameter_tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, error_score='raise')
         elif tuning_method == 'random':
-            hyperparameter_tuner = RandomizedSearchCV(estimator=self.model, param_distributions=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, n_iter=10)
+            hyperparameter_tuner = RandomizedSearchCV(estimator=self.model, param_distributions=param_grid, n_iter=self.model.random_search_iterations(), scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs)
         # if DEBUG:
             # print("stating hyperparameter tuning...")  
         hyperparameter_tuner.fit(X_train, y_train)
@@ -322,7 +327,7 @@ class experiment:
         precision = precision_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0.0)
         recall = recall_score(y_test, y_pred, average=REPORT_SETTING, zero_division=0.0)
         try:
-            roc_auc = roc_auc_score(y_test, y_pred, multi_class='ovr')
+            roc_auc = roc_auc_score(y_test, y_pred, labels=self.model.classes_, multi_class='ovr')
         except np.AxisError:
             roc_auc = 0.0
         self.results_log["accuracy"] = accuracy
@@ -398,10 +403,13 @@ class experiment:
         # Save results
         training_duration = pd.Timestamp.now() - start_time
         return training_duration
-    
-    def silent_hyperparameter_tuning(self,X_train,y_train,scoring='f1-macro',cv=5, verbose=0, n_jobs=1,param_grid=None,get_all_results=False):
+
+    def silent_hyperparameter_tuning(self,X_train,y_train,scoring='f1_macro',cv=5, verbose=0, n_jobs=1,param_grid=None,get_all_results=False,search_method="grid"):
         hyperparameter_tuning_start_time = datetime.now()
-        hyperparameter_tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, error_score='raise')
+        if search_method == "grid":
+            hyperparameter_tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, error_score='raise')
+        elif search_method == "random":
+            hyperparameter_tuner = RandomizedSearchCV(estimator=self.model, n_iter=self.model.random_search_iterations(), param_distributions=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, error_score='raise')
 
         hyperparameter_tuner.fit(X_train, y_train)
         best_model = hyperparameter_tuner.best_estimator_
@@ -426,7 +434,7 @@ class experiment:
         accuracy_test = accuracy_score(y_test, y_test_pred)
         f1_test = f1_score(y_test, y_test_pred, average=REPORT_SETTING, zero_division=0.0)
         try:
-            roc_auc_test = roc_auc_score(y_test, y_test_score, multi_class='ovr')
+            roc_auc_test = roc_auc_score(y_test, y_test_score, labels=self.model.classes_, multi_class='ovr')
         except np.AxisError:
             roc_auc_test = 0.0
         classification_report_str = classification_report(y_test, y_test_pred)
@@ -437,7 +445,7 @@ class experiment:
         accuracy_train = accuracy_score(y_train, y_train_pred)
         f1_train = f1_score(y_train, y_train_pred, average=REPORT_SETTING, zero_division=0.0)
         try:
-            roc_auc_train = roc_auc_score(y_train, y_train_score, multi_class='ovr')
+            roc_auc_train = roc_auc_score(y_train, y_train_score, labels=self.model.classes_, multi_class='ovr')
         except np.AxisError:
             roc_auc_train = 0.0
 
@@ -480,13 +488,15 @@ class experiment:
                 durattions_test.append((datetime.now() - test_start_time).total_seconds())
 
                 accuracies.append(accuracy_score(y_test_fold, y_pred))
-                f1_scores.append(f1_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
+                f1_scores.append(f1_score(y_test_fold, y_pred, labels=self.model.classes_, average=REPORT_SETTING, zero_division=0.0))
                 try:
-                    roc_aucs.append(roc_auc_score(y_test_fold, y_score, multi_class='ovr'))
+                    roc_aucs.append(roc_auc_score(y_test_fold, y_score, labels=self.model.classes_, multi_class='ovr'))
                 except np.AxisError:
                     roc_aucs.append(0.0)
-                precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
-                recalls.append(recall_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
+                
+
+                precisions.append(precision_score(y_test_fold, y_pred, labels=self.model.classes_, average=REPORT_SETTING, zero_division=0.0))
+                recalls.append(recall_score(y_test_fold, y_pred, labels=self.model.classes_, average=REPORT_SETTING, zero_division=0.0))
         erroraccnolagement = ERRORINTERVAL_SETTING
         if erroraccnolagement == "std":
             test_DF["multi_k_fold_accuracy"] = np.mean(accuracies) 
@@ -539,13 +549,13 @@ class experiment:
             durattions_test.append((datetime.now() - test_start_time).total_seconds())
 
             accuracies.append(accuracy_score(y_test_fold, y_pred))
-            f1_scores.append(f1_score(y_test_fold, y_pred, average=REPORT_SETTING,zero_division=0.0))
+            f1_scores.append(f1_score(y_test_fold, y_pred, labels=self.model.classes_, average=REPORT_SETTING, zero_division=0.0))
             try:
-                roc_aucs.append(roc_auc_score(y_test_fold, y_score, multi_class='ovr'))
+                roc_aucs.append(roc_auc_score(y_test_fold, y_score, labels=self.model.classes_, multi_class='ovr'))
             except np.AxisError:
                 roc_aucs.append(0.0)
-            precisions.append(precision_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
-            recalls.append(recall_score(y_test_fold, y_pred, average=REPORT_SETTING, zero_division=0.0))
+            precisions.append(precision_score(y_test_fold, y_pred, labels=self.model.classes_, average=REPORT_SETTING, zero_division=0.0))
+            recalls.append(recall_score(y_test_fold, y_pred, labels=self.model.classes_, average=REPORT_SETTING, zero_division=0.0))
         erroraccnolagement = ERRORINTERVAL_SETTING
         if erroraccnolagement == "std":
             test_DF["k_fold_accuracy"] = np.mean(accuracies) 
@@ -580,7 +590,7 @@ class experiment:
 
       
 
-    def run_extensive_test(self,test_DF,should_print=False,scoring='accuracy',cv=5, verbose=0, n_jobs=-1,random_seed=RANDOM_STATE,get_all_tuning_results=False):
+    def run_extensive_test(self,test_DF,should_print=False,scoring='f1_macro',cv=5, verbose=0, n_jobs=-1,random_seed=RANDOM_STATE,get_all_tuning_results=False,search_method="grid"):
         # get a random number generator with the seed
         random_gen = random.Random(random_seed)
 
@@ -592,22 +602,27 @@ class experiment:
         test_DF["model_name"] = self.model_name
         test_DF["Calculator_name"] = self.model.get_calculator().get_Name() if self.model.get_calculator() else "None"
         test_DF["train_test_duration"] = str(duration1train)
-        param_grid = self.model.get_param_grid()
-        # multipy all posibilities for the param grid times 5
-        total_combinations = cv
-        for key in param_grid:
-            total_combinations *= len(param_grid[key])
-        total_combinations += cv +1
+        if search_method == "grid":
+            param_grid = self.model.get_param_grid()
+            total_combinations = cv
+            for key in param_grid:
+                total_combinations *= len(param_grid[key])
+            total_combinations += cv +1           
+        elif search_method == "random":
+            param_grid = self.model.get_random_param_space()
+            total_combinations = self.model.random_search_iterations()*cv+cv+2
         estimated_test_duration = duration1train * total_combinations
         if should_print:
             print(f"Estimated test duration: {estimated_test_duration}")
         if should_print:
             print(f"Parameter grid: {param_grid}")
+        # multipy all posibilities for the param grid times 5
+        
         X_train, X_test, y_train, y_test = self.split_data(random_state=random_gen.randint(0, 1000))
         # hyperparameter tuning with cross validation
         if should_print:
             print(f"{self.model_name} start tuning at {pd.Timestamp.now()}")
-        best_model, best_params, best_score, tuning_duration = self.silent_hyperparameter_tuning(X_train, y_train, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, param_grid=param_grid,get_all_results=get_all_tuning_results)
+        best_model, best_params, best_score, tuning_duration = self.silent_hyperparameter_tuning(X_train, y_train, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, param_grid=param_grid,get_all_results=get_all_tuning_results,search_method=search_method)
         test_DF["tuning_duration"] = str(tuning_duration)
         test_DF["tuning_best_params"] = str(best_params)
         test_DF["tuning_best_score"] = best_score
@@ -631,15 +646,22 @@ class experiment:
             print("--------------------------------------------------------------------\n")
         return test_DF
     
-    def get_estimated_tuning_time(self,cv=5):
+    def get_estimated_tuning_time(self,cv=5,search_method="grid",max_combinations=-1):
         duration1train =self.run_speed_test()
-        param_grid = self.model.get_param_grid()
-        # multipy all posibilities for the param grid times 5
-        total_combinations = cv
-        for key in param_grid:
-            total_combinations *= len(param_grid[key])
-        total_combinations += cv +1
+        if search_method == "grid":
+            param_grid = self.model.get_param_grid()
+            total_combinations = cv
+            for key in param_grid:
+                total_combinations *= len(param_grid[key])
+            total_combinations += cv +2
+            # multipy all posibilities for the param grid times 5       
+        elif search_method == "random":
+            total_combinations = self.model.random_search_iterations()*cv+cv+2
+
         estimated_test_duration = duration1train * total_combinations
         print(f" {self.model_name}: {duration1train} x {total_combinations} combinations = Estimated tuning duration: {estimated_test_duration}")
         return estimated_test_duration
+
+
+
     

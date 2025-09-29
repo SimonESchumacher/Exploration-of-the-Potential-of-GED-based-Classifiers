@@ -4,6 +4,8 @@ import traceback
 import joblib
 from sklearn.neighbors import KNeighborsClassifier
 import numpy as np
+from scipy.stats import randint, uniform
+from typing import Dict, Any, List
 
 # imports from custom modules
 import sys
@@ -38,9 +40,10 @@ class KNN(GraphClassifier):
             attributes["weights"] = self.weights
             attributes["algorithm"] = self.algorithm
             attributes["metric"] = self.metric_name
+        model_name = kwargs.pop("name", f"({n_neighbors})-NN_Classifier_{self.metric_name}")
         super().__init__(
             classifier=classifier,
-            model_name=f"({n_neighbors})-NN_Classifier_{self.metric_name}",
+            model_name=model_name,
             modelattributes=attributes,
             **kwargs
         )
@@ -60,25 +63,16 @@ class KNN(GraphClassifier):
         Set the parameters of this estimator and its underlying classifier.
         Uses the underlying classifier's set_params for all matching parameters.
         """
-        if DEBUG:
-            print(f"KNN: set_params: Received params: {params}")
-
-        # Set parameters for the underlying classifier
-        classifier_params = self.classifier.get_params()
-        classifier_update = {k: v for k, v in params.items() if k in classifier_params}
-        if classifier_update:
-            self.classifier.set_params(**classifier_update)
-            for k, v in classifier_update.items():
-                setattr(self, k, v)
-                if DEBUG:
-                    print(f"KNN: set_params: Set {k} to {v} in classifier and self.")
-
-        # Set remaining parameters using super
-        remaining_params = {k: v for k, v in params.items() if k not in classifier_params}
-        if remaining_params:
-            super().set_params(**remaining_params)
+        for parameter, value in params.items():
             if DEBUG:
-                print(f"KNN: set_params: Set remaining params via super: {remaining_params}")
+                print(f"KNN: set_params: Setting {parameter} to {value}")
+            # Directly set attribute if it exists
+            if hasattr(self, parameter):
+                setattr(self, parameter, value)
+                # If the parameter also exists in the classifier, update it there too
+                if hasattr(self.classifier, parameter):
+                    self.classifier.set_params(**{parameter: value})
+        
 
         return self
     def fit(self, X, y=None):
@@ -128,6 +122,7 @@ class KNN(GraphClassifier):
             y_proba = self.classifier.predict_proba(X)
         except Exception as e:
             print(f"Error during probability prediction: {e}")
+            print(self.attributes)
             traceback.print_exc()
             raise e
         return y_proba
@@ -179,3 +174,15 @@ class KNN(GraphClassifier):
         })
 
         return param_grid
+    @classmethod
+    def get_random_param_space(cls) -> Dict[str, Any]:
+        param_space = super().get_random_param_space()
+        param_space.update({
+            'n_neighbors': randint(1, 10),
+            'weights': ['uniform', 'distance'],
+            'algorithm': ['brute'],
+            'leaf_size': randint(10, 50),
+            'metric': ['precomputed', 'euclidean']
+            # 'metric': ['euclidean','precomputed']  # KNN with precomputed metric
+        })
+        return param_space

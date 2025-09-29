@@ -4,6 +4,9 @@ import sys
 import os
 import numpy as np
 import tqdm
+from scipy.stats import randint, uniform
+from typing import Dict, Any, List
+
 sys.path.append(os.getcwd())
 from grakel.kernels import Kernel
 from Calculators.Base_Calculator import Base_Calculator
@@ -14,6 +17,7 @@ from Calculators.Prototype_Selction import select_Prototype, Prototype_Selector,
 DEBUG = False  # Set to True for debug prints
 
 class Simple_Prototype_GED_SVC(Base_GED_SVC):
+    model_specific_iterations = 250  # Base number of iterations for this model
     def __init__(self,
                 prototype_size,
                 selection_split,
@@ -27,7 +31,10 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
         self.dataset_name = dataset_name
         if self.selection_method not in ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"]:
             raise ValueError(f"Unknown selection method: {self.selection_method}")
-        self.name="Simple-Prototype-GED"
+        if kwargs.get("name") is None:
+            self.name="Simple-Prototype-GED"
+        else:
+            self.name=kwargs.pop("name")
         attributes.update({
             "pototype_size": self.prototype_size,
             "selection_split": self.selection_split,
@@ -84,4 +91,16 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
             # "C": [0.1]
         })
         return param_grid
+    @classmethod
+    def get_random_param_space(cls):
+        param_space = Base_GED_SVC.get_random_param_space()
+        param_space.update({
+            'kernel_type': ['poly', 'rbf', 'linear'],
+            "prototype_size": randint(1, 10),
+            "selection_split": ["all", "classwise", "single_class"],
+            "selection_method": ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"],
+            # "selection_method": ["k-CPS","RPS"]
+            # "C": [0.1, 1.0, 10.0, 100.0]
+        })
+        return param_space
 

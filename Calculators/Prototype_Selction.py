@@ -454,6 +454,7 @@ def buffered_prototype_selection(G, ged_calculator: Base_Calculator, y, selectio
         # save buffer dictionary with joblib
         IO_Manager.add_prototype_selector(full_prototype_bzw_string, prototypes)
         return prototypes
+    
 
 class Prototype_Selector:
     def __init__(self, ged_calculator: Base_Calculator = None, size=3, selection_method="CPS", selection_split="all"):

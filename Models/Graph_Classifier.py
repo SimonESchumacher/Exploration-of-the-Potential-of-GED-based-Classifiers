@@ -153,4 +153,14 @@ class GraphClassifier(BaseEstimator, ClassifierMixin, abc.ABC):
         Nothing to specify on the ground level, so returns an empty dict.
         """
         return dict()
+    @classmethod
+    def get_random_param_space(cls):
+        """
+        Returns a dictionary of hyperparameters for random search.
+        Nothing to specify on the ground level, so returns an empty dict.
+        """
+        return dict()
+    @classmethod
+    def random_search_iterations(cls,suggested_iterations=10_000):
+        return min(suggested_iterations, cls.model_specific_iterations)
 

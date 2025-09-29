@@ -1,4 +1,5 @@
 # Tools
+import grakel
 from grakel.graph import Graph # To convert NetworkX to GraKeL Graph objects
 import networkx as nx
 
@@ -28,3 +29,38 @@ def convert_nx_to_grakel_graph(nx_graph, use_edge_labels=True, use_node_labels=T
         edge_labels_dict = None
     return Graph(initialization_object=edges_list, node_labels=node_labels_dict,edge_labels=edge_labels_dict,graph_format="dictionary")
 
+def graph_from_networkx(nx_graph, node_label_tag="label", edge_label_tag="label"):
+    """
+    Converts a NetworkX graph to a GraKeL graph.
+    Assumes node labels are stored under the 'label' attribute.
+    """
+    return grakel.graph_from_networkx(nx_graph, node_labels_tag=node_label_tag, edge_labels_tag=edge_label_tag)
+
+def get_grakel_graphs_from_nx(graph_list, node_label_tag="label", edge_label_tag="label"):
+    """
+    Converts a list of NetworkX graphs to a list of GraKeL graphs.
+    Assumes node labels are stored under the 'label' attribute.
+    """
+    # detect if the graphs have edge labels
+    test_graph = graph_list[0]
+    edge_labels_set = {test_graph.edges[edge].get(edge_label_tag, None) for edge in test_graph.edges()}
+    if any(label is not None for label in edge_labels_set):
+        edge_label_tag = edge_label_tag
+    else:
+        edge_label_tag = None
+    node_labels_set = {test_graph.nodes[node].get(node_label_tag, None) for node in test_graph.nodes()}
+    if any(label is not None for label in node_labels_set):
+        node_label_tag = node_label_tag
+    else:
+        node_label_tag = None
+    # detect if the graphs have edge labels
+ 
+    #     edge_label_tag = None
+    # # detect if the graphs have node labels
+    # if any('label' in g.nodes[g.nodes()[0]] for g in graph_list if g.number_of_nodes() > 0):
+    #     node_label_tag = node_label_tag
+    # else:
+    #     node_label_tag = None
+
+    return grakel.graph_from_networkx(graph_list, node_labels_tag=node_label_tag, edge_labels_tag=edge_label_tag)
+    

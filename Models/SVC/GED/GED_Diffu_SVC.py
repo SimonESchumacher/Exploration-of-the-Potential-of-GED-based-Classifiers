@@ -8,8 +8,11 @@ from Models.SupportVectorMachine_Classifier import SupportVectorMachine
 from Custom_Kernels.GEDLIB_kernel import GEDKernel
 from Calculators.Base_Calculator import Base_Calculator
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
+from scipy.stats import randint, uniform, loguniform
+from typing import Dict, Any, List 
 DEBUG = False
 class DIFFUSION_GED_SVC(Base_GED_SVC):
+    model_specific_iterations = 200  # Base number of iterations for this model
     def __init__(self,
                 llambda:float,
                 t_iterations:int,
@@ -91,4 +94,13 @@ class DIFFUSION_GED_SVC(Base_GED_SVC):
         #     "C": [0.1, 0.5]
         # })
         return param_grid
+    @classmethod
+    def get_random_param_space(cls):
+        param_space = Base_GED_SVC.get_random_param_space()
+        param_space.update({
+            "llambda": loguniform(0.01, 0.99),
+            "diffusion_function": ["exp_diff_kernel", "von_Neumann_diff_kernel"],
+            "t_iterations": randint(2, 6)
+        })
+        return param_space
 

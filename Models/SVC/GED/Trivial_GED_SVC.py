@@ -13,6 +13,7 @@ from Models.SVC.Base_GED_SVC import Base_GED_SVC
 DEBUG = False  # Set to True for debug prints
 
 class Trivial_GED_SVC(Base_GED_SVC):
+    model_specific_iterations = 250  # Base number of iterations for this model
     """
     Support Vector Machine with Graph Edit Distance Kernel
     """
@@ -61,6 +62,15 @@ class Trivial_GED_SVC(Base_GED_SVC):
         })
 
         return param_grid
+    @classmethod
+    def get_random_param_space(cls):
+        param_grid = Base_GED_SVC.get_random_param_space()
+        # this is a problem, because the kernel has its own parameters
+        param_grid.update({
+            "similarity_function": ['k1', 'k2', 'k3', 'k4', 'frac']
+        })
+        return param_grid
+        # param_grid.update({
     
 # Kernels that this is designed for:
 # GEDKernel, Trivial_GED_Kernel

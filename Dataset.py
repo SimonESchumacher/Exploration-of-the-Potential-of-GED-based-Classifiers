@@ -243,7 +243,8 @@ def calculate_dataset_attributes(data: tuple, source: str, domain: str = None, N
     num_graphs = len(graph_list)
     if num_graphs == 0:
         raise ValueError("The graph list is empty. Cannot extract features.")
-    num_classes = len(set(targets))
+    _classes = set(targets)
+    num_classes = len(_classes)
     if num_classes == 0:
         raise ValueError("No classes found in the target labels. Cannot extract features.")
 
@@ -362,6 +363,8 @@ class Dataset:
         self.data = load_dataset(self.source, self.name, use_node_labels=self.Node_label_name, use_node_attributes=self.Node_attribute_name, use_edge_labels=self.Edge_label_name, use_edge_attributes=self.Edge_attribute_name)
         self.nx_graphs= self.data[0]
         self.target = self.data[1]
+        self.unnique_labels = set(self.target)
+
         try:
             self.characteristics = calculate_dataset_attributes(self.data, self.source, self.domain, self.name, save=True)
         except Exception as e:
@@ -410,6 +413,7 @@ class Dataset:
         self.data = load_dataset(self.source, self.name, use_node_labels=use_node_labels, use_node_attributes=use_node_attributes, use_edge_labels=use_edge_labels, use_edge_attributes=use_edge_attributes)
         self.nx_graphs = self.data[0]
         self.target = self.data[1]
+        self.unnique_labels = set(self.target)
         # TODO: probalpy a reaload of the ged_calculator
         if new_ged_calculator and self.ged_calculator is not None:
             self.ged_calculator.add_graphs(self.nx_graphs.copy(), self.target)
