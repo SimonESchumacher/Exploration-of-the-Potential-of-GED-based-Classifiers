@@ -4,10 +4,15 @@ gedlib/
 gedlibpy/
 __pycache__/
 models/__pycache__/
+Models/__pycache__/
+Custom_Kernels/__pycache__/
 Calculators/__pycache__/
-
+__pycache__
 presaved_data/
 .vscode/settings.json
 venv/
 requirements.txt
 configs/results/
+Miniconda3-latest-Linux-x86_64.sh
+Miniconda3-latest-Linux-x86_64.sh.1
+
