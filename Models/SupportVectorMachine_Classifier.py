@@ -11,6 +11,7 @@ import abc
 sys.path.append(os.getcwd())
 from Graph_Tools import  get_grakel_graphs_from_nx, convert_nx_to_grakel_graph
 from Models.Graph_Classifier import GraphClassifier
+from cuml.svm import SVC as cuSVC
 from scipy.stats import randint, uniform, loguniform
 from typing import Dict, Any, List
 DEBUG = False # Set to False to disable debug prints

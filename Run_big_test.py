@@ -37,15 +37,15 @@ SEARCH_METHOD="random"  # "grid" or "random"
  # 10% test size alternatively 0.2 for 20%
 EXPERIMENT_NAME="BIG_TEST"
 GED_BOUND="UpperBound-Distance"  # "UpperBound-Distance", "Mean-Distance", "LowerBound-Distance"
-GED_CALC_METHOD="ANCHOR_AWARE_GED"  # "BIPARTITE", "ANCHOR_AWARE_GED", "IPFP"
-ONLY_ESTIMATE=True
+GED_CALC_METHOD="IPFP"  # "BIPARTITE", "ANCHOR_AWARE_GED", "IPFP"
+ONLY_ESTIMATE=False
 PRELOAD_CALCULATORS=True
 ONLY_LOAD_CALCULATORS=False
-GED_EDIT_COST="LETTER"  # "CONSTANT"
+GED_EDIT_COST="CONSTANT"  # "CONSTANT"
 TEST_TRAIL=True
 MULTI=False
-DATASET_STR="Letter-high"
-DATASET_EDGE_LABELS=None
+DATASET_STR="PTC_FR"
+DATASET_EDGE_LABELS="label"
 DATASETS = ["MUTAG","MSRC_9","PTC_FR"]
 DATASET_Labels =["label",None,"label"]
 # DATASETS = ["MSRC_9"]
@@ -56,30 +56,32 @@ def nonGEd_classifiers(ged_calculator: Base_Calculator, dataset: Dataset):
         Blind_Classifier(),
         WeisfeilerLehman_SVC(n_iter=5,C=1.0, normalize_kernel=True), 
         VertexHistogram_SVC(),
-        # EdgeHistogram_SVC(),
-        # CombinedHistogram_SVC(kernel_type='precomputed'),
+        EdgeHistogram_SVC(),
+        CombinedHistogram_SVC(kernel_type='precomputed'),
         # NX_Histogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=dataset.get_edge_labels, get_node_labels=dataset.get_node_labels,Histogram_Type="combined")
         ]
 
 
 def ged_classifiers(ged_calculator: Base_Calculator, dataset: Dataset):
+    random_walk_calculator = RandomWalkCalculator(ged_calculator=ged_calculator, llambda_samples=[0.005,0.01,0.03,0.05,0.1,0.2,0.45], dataset=dataset)
     return [
         GED_KNN(ged_calculator=ged_calculator, ged_bound=GED_BOUND, n_neighbors=10, weights='distance', algorithm='auto'),
-        Feature_KNN(vector_feature_list=["VertexHistogram","density","Prototype-Distance"], dataset_name=dataset.name, prototype_size=5, selection_split="all", selection_method="TPS", metric="minkowski", ged_calculator=ged_calculator, ged_bound=GED_BOUND, n_neighbors=5, weights='uniform', algorithm='auto', node_label_tag=dataset.Node_label_name, edge_label_tag=dataset.Edge_label_name),
+        # Feature_KNN(vector_feature_list=["VertexHistogram","density","Prototype-Distance"], dataset_name=dataset.name, prototype_size=5, selection_split="all", selection_method="TPS", metric="minkowski", ged_calculator=ged_calculator, ged_bound=GED_BOUND, n_neighbors=5, weights='uniform', algorithm='auto', node_label_tag=dataset.Node_label_name, edge_label_tag=dataset.Edge_label_name),
         Base_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced'),
         Trivial_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1'),
         DIFFUSION_GED_SVC(C=1.0, llambda=1.0, ged_calculator=ged_calculator, ged_bound=GED_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
         Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=8, selection_method="k-CPS", selection_split="all",dataset_name=dataset.name),
         ZERO_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=1, aggregation_method="sum",dataset_name=dataset.name,selection_method="k-CPS"),
         HybridPrototype_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=5, selection_method="TPS", selection_split="all",dataset_name=dataset.name, vector_feature_list=["VertexHistogram","density"],node_label_tag=dataset.Node_label_name, edge_label_tag=dataset.Edge_label_name),
+        Random_Walk_edit_accelerated(ged_calculator=ged_calculator, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1,random_walk_calculator=random_walk_calculator, C=1.0,kernel_type="precomputed", class_weight='balanced')
         ]
-def get_Random_walk_edit_SVC(ged_calculator: Base_Calculator, dataset: Dataset):
-    random_walk_calculator = RandomWalkCalculator(ged_calculator=ged_calculator, llambda_samples=[0.005,0.01,0.03,0.05,0.1,0.2,0.45], dataset=dataset)
-    return [Random_Walk_edit_accelerated(ged_calculator=ged_calculator, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1,random_walk_calculator=random_walk_calculator, C=1.0,kernel_type="precomputed", class_weight='balanced')]
+# def get_Random_walk_edit_SVC(ged_calculator: Base_Calculator, dataset: Dataset):
+#     random_walk_calculator = RandomWalkCalculator(ged_calculator=ged_calculator, llambda_samples=[0.005,0.01,0.03,0.05,0.1,0.2,0.45], dataset=dataset)
+#     return [Random_Walk_edit_accelerated(ged_calculator=ged_calculator, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1,random_walk_calculator=random_walk_calculator, C=1.0,kernel_type="precomputed", class_weight='balanced')]
 def reference_classifiers(ged_calculator: Base_Calculator, dataset: Dataset):
     return [
         GED_KNN(ged_calculator=ged_calculator, ged_bound=GED_BOUND, n_neighbors=7, weights='uniform', algorithm='auto'),
-        Feature_KNN(vector_feature_list=["VertexHistogram","density","Prototype-Distance"], dataset_name=dataset.name, prototype_size=5, selection_split="all", selection_method="TPS", metric="minkowski", ged_calculator=ged_calculator, ged_bound=GED_BOUND, n_neighbors=5, weights='uniform', algorithm='auto', node_label_tag=dataset.Node_label_name, edge_label_tag=dataset.Edge_label_name),
+        # Feature_KNN(vector_feature_list=["VertexHistogram","density","Prototype-Distance"], dataset_name=dataset.name, prototype_size=5, selection_split="all", selection_method="TPS", metric="minkowski", ged_calculator=ged_calculator, ged_bound=GED_BOUND, n_neighbors=5, weights='uniform', algorithm='auto', node_label_tag=dataset.Node_label_name, edge_label_tag=dataset.Edge_label_name),
         Base_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced'),
         Trivial_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1'),
         DIFFUSION_GED_SVC(C=1.0, llambda=1.0, ged_calculator=ged_calculator, ged_bound=GED_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
@@ -90,9 +92,9 @@ def reference_classifiers(ged_calculator: Base_Calculator, dataset: Dataset):
 
 
 def get_Dataset(dataset_name: str, ged_calculator, edge_labels=None):
-    DATASET= Dataset(name=dataset_name, source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels=None, use_edge_labels=edge_labels,load_now=False,use_node_attributes="attributes", use_edge_attributes=None)
-    # DATASET.load()
-    DATASET.load_with_attributes(new_attributes=["x","y"], encoding_dimension=2, remove_old=True)
+    DATASET= Dataset(name=dataset_name, source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels=edge_labels,load_now=False,use_node_attributes=None, use_edge_attributes=None)
+    DATASET.load()
+    # DATASET.load_with_attributes(new_attributes=["x","y"], encoding_dimension=2, remove_old=True)
     return DATASET, DATASET.get_calculator()
 # run a list of classifiers on a dataset and return the results in a dataframe
 last_save_time = pd.Timestamp.now()
@@ -181,6 +183,8 @@ def run_classifier_group(get_classifiers_funct: callable, dataset_name: str, cal
             ged_calculator = Base_Calculator(GED_calc_method=GED_CALC_METHOD, GED_edit_cost=GED_EDIT_COST, need_node_map=False)
         elif calculator_type == "Dummy_Calculator":
             ged_calculator = Dummy_Calculator(GED_calc_method=GED_CALC_METHOD, GED_edit_cost=GED_EDIT_COST, need_node_map=False)
+        elif calculator_type == None:
+            ged_calculator = None
         else:
             raise ValueError(f"Unknown calculator type: {calculator_type}")
     DATASET, ged_calculator = get_Dataset(dataset_name, ged_calculator, edge_labels=edge_labels)
@@ -212,7 +216,7 @@ def run_big_test(dataset_name: str="MUTAG", preloaded: bool=True, only_estimate_
     # ged_calculator = "GEDLIB_Calculator"
 
     # test the Non GED classifiers first
-    testDF, total_duration_nonGED = run_classifier_group(nonGEd_classifiers, dataset_name=dataset_name, calculator_type="GEDLIB_Calculator", experiment_name=experiment_name, testDF=testDF, edge_labels=edge_labels)
+    testDF, total_duration_nonGED = run_classifier_group(nonGEd_classifiers, dataset_name=dataset_name, calculator_type=None, experiment_name=experiment_name, testDF=testDF, edge_labels=edge_labels)
     # if preloaded:
     #     ged_calculator = "GEDLIB_Calculator"
     # else:
@@ -241,7 +245,7 @@ def run_big_test(dataset_name: str="MUTAG", preloaded: bool=True, only_estimate_
     #     print(f"Running GED-based classifiers on {DATASET.name} dataset.")
     #     testDF = run_classifiers_new(classifiers_with_calculator, DATASET, ged_calculator, testDF, experiment_name, search_method=SEARCH_METHOD)
     # reference calculator for sanity check
-    testDF, total_duration_rw = run_classifier_group(get_Random_walk_edit_SVC, dataset_name=dataset_name, calculator_type="GEDLIB_Calculator", experiment_name=experiment_name, testDF=testDF, edge_labels=edge_labels)
+    # testDF, total_duration_rw = run_classifier_group(get_Random_walk_edit_SVC, dataset_name=dataset_name, calculator_type="GEDLIB_Calculator", experiment_name=experiment_name, testDF=testDF, edge_labels=edge_labels)
 
     testDF, total_duration_reference = run_classifier_group(reference_classifiers, dataset_name=dataset_name, calculator_type="Dummy_Calculator", experiment_name=experiment_name, testDF=testDF, edge_labels=edge_labels)
     # if preloaded:
@@ -252,7 +256,7 @@ def run_big_test(dataset_name: str="MUTAG", preloaded: bool=True, only_estimate_
     # classifiers_with_reference_calculator: list[GraphClassifier] = reference_classifiers(reference_calculator, DATASET)
 
     if only_estimate_duration:
-        est_total_duration = total_duration_nonGED + total_duration_GED + total_duration_reference + total_duration_rw
+        est_total_duration = total_duration_nonGED + total_duration_GED + total_duration_reference
         print(f"Estimated total duration for all classifiers: {est_total_duration}")
         # total_duration_reference = estimate_experiment_duration(classifiers_with_reference_calculator, DATASET, reference_calculator, search_method=SEARCH_METHOD)
         # est_total_duration += total_duration_reference
