@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import time
-from Calculators.Product_GRaphs import build_restricted_product_graph, limited_length_approx_random_walk_similarity, infinte_length_random_walk_similarity
+from Calculators.Product_GRaphs import RandomWalkCalculator, build_restricted_product_graph, limited_length_approx_random_walk_similarity, infinte_length_random_walk_similarity
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from io_Manager import IO_Manager
 DEBUG = False  # Set to True for debug prints
@@ -9,7 +9,7 @@ from scipy.stats import randint, uniform, loguniform
 from typing import Dict, Any, List 
 
 class Random_walk_edit_SVC(Base_GED_SVC):
-    model_specific_iterations = 100
+    model_specific_iterations = 50
     """
     Support Vector Machine with Graph Edit Distance Kernel
     """
@@ -35,10 +35,6 @@ class Random_walk_edit_SVC(Base_GED_SVC):
         super().__init__(attributes=attributes, name=self.name, **kwargs)
     def _calculate_kernel_matrix(self,X_graphs ,Y_graphs=None):
         # buffered, to see if calculation maybe has already been done
-        if Y_graphs is None:
-            rw_kernel_matrix_key = f"{self.decay_lambda}_{self.max_walk_length}_train"
-        else:
-            rw_kernel_matrix_key = f"{self.decay_lambda}_{self.max_walk_length}_test"
         kernel_matrix = super()._calculate_kernel_matrix(X_graphs, Y_graphs)
         return kernel_matrix
     def compare(self, g1, g2):
@@ -82,10 +78,34 @@ class Random_walk_edit_SVC(Base_GED_SVC):
     def get_random_param_space(cls):
         param_space = Base_GED_SVC.get_random_param_space()
         param_space.update({
-            "decay_lambda": loguniform(a=0.005, b=1),
-            "max_walk_length": [2,3,4, 5, 10, -1,-1,-1,-1]  # -1 indicates infinite length
+            "decay_lambda": loguniform(a=0.005, b=0.8),
+            "max_walk_length": [2,3,4, 5, -1,-1,-2,-2]  # -1 indicates infinite length
         })
         return param_space
+class Random_Walk_edit_accelerated(Random_walk_edit_SVC):
+    model_specific_iterations = 100
+    
+    def __init__(self,
+                decay_lambda,
+                max_walk_length,
+                random_walk_calculator: RandomWalkCalculator,
+                attributes:dict=dict(),
+                **kwargs):
+        super().__init__(decay_lambda=decay_lambda, max_walk_length=max_walk_length, attributes=attributes, **kwargs)
+        self.random_walk_calculator = random_walk_calculator
+        if self.max_walk_length == -1:
+            self.random_walk_function = lambda i,j: self.random_walk_calculator.get_approx_inflength_walk(i,j, llambda=decay_lambda)
+        elif self.max_walk_length == -2:
+            self.random_walk_function = lambda i,j: self.random_walk_calculator.get_exact_inflength_walk(i,j, llambda=decay_lambda)
+        else:
+            self.random_walk_function = lambda i,j: self.random_walk_calculator.get_limited_length_walk(i,j, llambda=decay_lambda, max_length=max_walk_length)
+    def compare(self, g1, g2):
+        start_time = time.time()
+        similarity = self.random_walk_function(g1, g2)
+        end_time = time.time()
+        self.sum_random_walk_time += end_time - start_time
+        return similarity
+
     
 
         

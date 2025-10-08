@@ -12,7 +12,7 @@ from scipy.stats import randint, uniform, loguniform
 from typing import Dict, Any, List 
 DEBUG = False
 class DIFFUSION_GED_SVC(Base_GED_SVC):
-    model_specific_iterations = 200  # Base number of iterations for this model
+    model_specific_iterations = 100  # Base number of iterations for this model
     def __init__(self,
                 llambda:float,
                 t_iterations:int,

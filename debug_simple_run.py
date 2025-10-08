@@ -26,7 +26,8 @@ from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
 from Models.SVC.GED.hybrid_prototype_selector import HybridPrototype_GED_SVC
 from Models.KNN.GEDLIB_KNN import GED_KNN
 from Models.KNN.feature_KNN import Feature_KNN
-from Models.SVC.GED.RandomWalk_edit import Random_walk_edit_SVC
+from Models.SVC.GED.RandomWalk_edit import Random_walk_edit_SVC, Random_Walk_edit_accelerated
+from Calculators.Product_GRaphs import RandomWalkCalculator
 # import os
 print("Current Working Directory:", os.getcwd())
 # from Models.GED_KNN import GED_KNN
@@ -37,14 +38,15 @@ if __name__ == "__main__":
     # ged_calculator = GEDLIB_Calculator(GED_calc_method="BRANCH", GED_edit_cost="CONSTANT",need_node_map=True)
     # ged_calculator = None
     ged_calculator = "GEDLIB_Calculator"
-    DATASET= Dataset(name="MSRC_9", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="label",use_node_attributes=None,load_now=False)
+    DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="label",use_node_attributes=None,load_now=False)
     DATASET.load()
     ged_calculator = DATASET.get_calculator()
+    random_walk_calculator = RandomWalkCalculator(ged_calculator=ged_calculator, llambda_samples=[0.005,0.01,0.03,0.05,0.1,0.2,0.45], dataset=DATASET)
     # classifier = ZERO_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=7, aggregation_method="sum",dataset_name=DATASET.name,selection_method="k-CPS")
     # classifier = Feature_KNN(vector_feature_list=["VertexHistogram","density","Prototype-Distance"], dataset_name=DATASET.name, prototype_size=5, selection_split="all", selection_method="TPS", metric="minkowski", ged_calculator=ged_calculator, ged_bound="Mean-Distance", n_neighbors=5, weights='uniform', algorithm='auto', node_label_tag=DATASET.Node_label_name, edge_label_tag=DATASET.Edge_label_name)
     # classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=1, selection_method="TPS", selection_split="all",dataset_name=DATASET.name)
-    # classifier = HybridPrototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=5, selection_method="TPS", selection_split="all",dataset_name=DATASET.name, vector_feature_list=["VertexHistogram","density"])
-    
+    # classifier = HybridPrototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=5, selection_method="TPS", selection_split="all",dataset_name=DATASET.name, vector_feature_list=["VertexHistogram","density"], node_label_tag=DATASET.Node_label_name, edge_label_tag=DATASET.Edge_label_name)
+    classifier = Random_Walk_edit_accelerated(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced', decay_lambda=0.1, max_walk_length=-1, random_walk_calculator=random_walk_calculator)
     # classifier = Random_walk_edit_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
     # classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',KERNEL_prototype_size=5, KERNEL_selection_method="RPS", KERNEL_classwise=False, KERNEL_single_class=False)
     # classifier = Trivial_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1')
@@ -56,7 +58,7 @@ if __name__ == "__main__":
     # Kernel = Trivial_GED_Kernel(ged_calculator=ged_calculator, comparison_method="Mean-Distance", similarity_function="k1")
     # Kernel = GEDKernel(ged_calculator=ged_calculator, comparison_method="Mean-Similarity")
     # classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", class_weight='balanced', C=1.0)
-    classifier = EdgeHistogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=DATASET.get_edge_labels)
+    # classifier = CombinedHistogram_SVC(kernel_type="rbf", C=1.0, class_weight=None,get_edge_labels=DATASET.get_edge_labels)
     # classifier = NX_Histogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced',get_edge_labels=DATASET.get_edge_labels, get_node_labels=DATASET.get_node_labels,Histogram_Type="combined")
     # Kernel = GEDKernel(method="BRANCH", edit_cost="CONSTANT",comparison_method="Mean-Similarity")
     # classifier = GED_SVC(kernel=Kernel, kernel_name="GEDLIB", C=1.0)

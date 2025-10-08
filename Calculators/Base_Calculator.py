@@ -22,7 +22,7 @@ class Base_Calculator():
         """
         # check if there is backup, which has the same parameters as the requested one
         if ((hasattr(Base_Calculator, 'backup') and Base_Calculator.backup is not None)
-            and (Base_Calculator.backup.GED_edit_cost == GED_edit_cost and Base_Calculator.backup.GED_calc_method == GED_calc_method) and (self.__class__ == self.backup.__class__)):
+            and (Base_Calculator.backup.GED_edit_cost == GED_edit_cost and Base_Calculator.backup.GED_calc_method == GED_calc_method) and (self.__class__ == self.backup.__class__) ):
             backup = Base_Calculator.backup
             self.GED_edit_cost = backup.GED_edit_cost
             self.GED_calc_method = backup.GED_calc_method
@@ -173,22 +173,36 @@ class Base_Calculator():
         else:
             # Start the timer
             if DEBUG:
-                iters1 = tqdm.tqdm(self.graphindexes, desc='Computing GED Matrix', total=len(self.graphindexes))               
+                with tqdm.tqdm(total=len(self.graphindexes) * (len(self.graphindexes)+1)/2 +1) as pbar:
+                    for i in range(len(self.graphindexes)):
+                        for j in range(i,len(self.graphindexes)):
+                            if i == j:
+                                self.upperbound_matrix[i][j] = 0
+                                self.lowerbound_matrix[i][j] = 0
+                                if self.need_node_map:
+                                    self.node_map_matrix[i][j] = [(n, n) for n in range(self.dataset[i].number_of_nodes())]
+                                pbar.update(1)
+                                continue
+                            self.run_method(i, j)
+                            pbar.update(1)
+                        gc.collect()  # Collect garbage to free memory
+                    self.isclalculated = True
+                    print("GED matrix computed.")
+                              
             else:
-                iters1 = self.graphindexes
-            for i in iters1:
-                iters2 = range(i,len(self.graphindexes))
-                for j in iters2:
-                    if i == j:
-                        self.upperbound_matrix[i][j] = 0
-                        self.lowerbound_matrix[i][j] = 0
-                        if self.need_node_map:
-                            self.node_map_matrix[i][j] = [(n, n) for n in range(self.dataset[i].number_of_nodes())]
-                        continue
-                    self.run_method(i, j)
-                gc.collect()  # Collect garbage to free memory
-            self.isclalculated = True
-            print("GED matrix computed.")
+                for i in range(i,len(self.graphindexes)):
+                    iters2 = range(i,len(self.graphindexes))
+                    for j in iters2:
+                        if i == j:
+                            self.upperbound_matrix[i][j] = 0
+                            self.lowerbound_matrix[i][j] = 0
+                            if self.need_node_map:
+                                self.node_map_matrix[i][j] = [(n, n) for n in range(self.dataset[i].number_of_nodes())]
+                            continue
+                        self.run_method(i, j)
+                    gc.collect()  # Collect garbage to free memory
+                self.isclalculated = True
+                print("GED matrix computed.")
      
     def get_runtime(self):
         return self.runtime if hasattr(self, 'runtime') else None

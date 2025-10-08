@@ -8,7 +8,7 @@ import networkx as nx
 import numpy as np
 import os
 import pandas as pd
-from sklearn.model_selection import KFold
+from sklearn.model_selection import StratifiedKFold,KFold
 from Calculators.Base_Calculator import Base_Calculator
 from config_loader import get_conifg_param
 
@@ -356,17 +356,15 @@ class Dataset:
         self.Edge_attribute_name = use_edge_attributes
         if load_now:
             self.load()
-   
-
         
-    def load(self,save_calculator=True):
+    def load_data(self,save_calculator=True):
         self.data = load_dataset(self.source, self.name, use_node_labels=self.Node_label_name, use_node_attributes=self.Node_attribute_name, use_edge_labels=self.Edge_label_name, use_edge_attributes=self.Edge_attribute_name)
         self.nx_graphs= self.data[0]
         self.target = self.data[1]
         self.unnique_labels = set(self.target)
 
         try:
-            self.characteristics = calculate_dataset_attributes(self.data, self.source, self.domain, self.name, save=True)
+            self.characteristics = calculate_dataset_attributes(self.data, self.source, self.domain, self.name, save=False)
         except Exception as e:
             print(f"An unexpected error occurred while initializing the dataset: {e}")
             print("happend while loading dataset attributes")
@@ -387,6 +385,7 @@ class Dataset:
         if DEBUG:
             print(f"Now setting up the Calculator")
         
+    def load_ged_calculator(self, save_calculator=True):
         if self.ged_calculator is not None:
             start_time = pd.Timestamp.now()
             # if the type is string, than we load it from the presaved data
@@ -406,7 +405,63 @@ class Dataset:
             if save_calculator and not saving_usless:
                 if DEBUG:
                     print(f"Saving the Calculator for later use")
-                self.ged_calculator.save_calculator(self.name)    
+                self.ged_calculator.save_calculator(self.name)
+    def load(self, save_calculator=True):
+        self.load_data(save_calculator=save_calculator)
+        self.load_ged_calculator(save_calculator=save_calculator)
+    def load_with_attributes(self, save_calculator=True,new_attributes: list[str]=["x","y"], encoding_dimension:int=2, remove_old=True):
+        self.load_data(save_calculator=save_calculator)
+        self.relabel_node_attributes(initial_encoding=self.Node_attribute_name, encoding_dimension=encoding_dimension,new_encodings=new_attributes,remove_old=remove_old)
+        self.load_ged_calculator(save_calculator=save_calculator)
+    def relabel_node_attributes(self,initial_encoding:str="attribute",encoding_dimension:int=2,new_encodings:list[str]=["x","y"],remove_old=True):
+        """
+        Relabels the node attributes of the graphs in the dataset.
+        initial_encoding: str, the name of the initial encoding to be replaced
+        encoding_dimension: int, the dimension of the initial encoding
+        new_encodings: list[str], the names of the new encodings to be added
+        remove_old: bool, whether to remove the old encoding after relabeling
+        """
+        if self.nx_graphs is None:
+            raise ValueError("Dataset not loaded. Please load the dataset before relabeling attributes.")
+        if len(new_encodings) != encoding_dimension:
+            raise ValueError(f"Expected {encoding_dimension} new encodings, but got {len(new_encodings)}.")
+        for g in self.nx_graphs:
+            for node in g.nodes():
+                attribute = g.nodes[node].get(initial_encoding, None)
+                if attribute is None:
+                    raise ValueError(f"Node {node} in graph {g} does not have the attribute '{initial_encoding}'.")
+                if isinstance(attribute, str):
+                    attribute = attribute[1:-1] if attribute.startswith('[') and attribute.endswith(']') else attribute
+                    attribute = attribute.split(',')
+                if len(attribute) != encoding_dimension:
+                    raise ValueError(f"Node {node} in graph {g} has attribute dimension {len(attribute)}, expected {encoding_dimension}.")
+                if remove_old:
+                    del g.nodes[node][initial_encoding]
+                for i, new_enc in enumerate(new_encodings):
+                    if i < encoding_dimension:
+                        g.nodes[node][new_enc] = attribute[i]
+                    else:
+                        g.nodes[node][new_enc] = 0.0  # or some other default value
+
+        #         if initial_encoding in data:
+        #             initial_attr = data[initial_encoding]
+        #             if isinstance(initial_attr, str):
+        #                 initial_attr = list(map(float, initial_attr.split(',')))
+        #             if len(initial_attr) != encoding_dimension:
+        #                 raise ValueError(f"Node {n} has attribute dimension {len(initial_attr)}, expected {encoding_dimension}.")
+        #             for i, new_enc in enumerate(new_encodings):
+        #                 if i < encoding_dimension:
+        #                     data[new_enc] = initial_attr[i]
+        #                 else:
+        #                     data[new_enc] = 0.0  # or some other default value
+        #             if remove_old:
+        #                 del data[initial_encoding]
+        #     if self.ged_calculator is not None:
+        #         self.ged_calculator.update_graph(g)
+        # if self.ged_calculator is not None:
+        #     self.ged_calculator.calculate()
+
+
 
     def change_dataset_params(self,new_ged_calculator=False, use_node_labels=None, use_node_attributes=None, use_edge_labels=None, use_edge_attributes=None):
         # realoads the dataset with the new parameters
@@ -470,17 +525,19 @@ class Dataset:
         X_test = [self.nx_graphs[i] for i in test_index]
         y_train_fold = [self.target[i] for i in train_index]
         y_test_fold = [self.target[i] for i in test_index]
-        return X_train, X_test, y_train_fold, y_test_fold 
-    
-    def split_k_fold(self, k=5, random_state=RANDOM_STATE):
+        return X_train, X_test, y_train_fold, y_test_fold
+
+    def split_k_fold(self, k=5, random_state=RANDOM_STATE, stratify=False, shuffle=SHUFFLE):
         """
         Splits the dataset into k folds for cross-validation.
         Returns a list of tuples (train_index, test_index) for each fold.
         """
-        
-        kf = KFold(n_splits=k, shuffle=True, random_state=random_state)
+        if stratify:
+            kf = StratifiedKFold(n_splits=k, shuffle=shuffle, random_state=random_state)
+        else:
+            kf = KFold(n_splits=k, shuffle=shuffle, random_state=random_state)
         splits = []
-        for train_index, test_index in kf.split(self.nx_graphs):
+        for train_index, test_index in kf.split(self.nx_graphs, self.target):
             splits.append(self.split_fold(train_index, test_index))
         return splits
     def get_param_grid(self):

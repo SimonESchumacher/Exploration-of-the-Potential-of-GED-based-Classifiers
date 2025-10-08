@@ -1,12 +1,12 @@
 import networkx as nx
 import numpy as np
-from Graph_Tools import get_grakel_graphs_from_nx
+from Graph_Tools import get_grakel_graphs_from_nx, graph_from_networkx, convert_nx_to_grakel_graph
 from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
 from grakel.kernels import VertexHistogram, EdgeHistogram, WeisfeilerLehman
 
 
 class HybridPrototype_GED_SVC(Simple_Prototype_GED_SVC):
-    model_specific_iterations = 500  # Base number of iterations for this model
+    model_specific_iterations = 75  # Base number of iterations for this model
     def __init__(self,
                 vector_feature_list: list,
                 dataset_name:str,
@@ -57,7 +57,9 @@ class HybridPrototype_GED_SVC(Simple_Prototype_GED_SVC):
         prototype_features: np.ndarray = super().build_feature_matrix(X)
         if self.need_Grakel_parse:
             # grakelX = [graph_from_networkx(self.ged_calculator.dataset[x]) for x in X]
+            # grakelX = convert_nx_to_grakel_graph([self.ged_calculator.dataset[x] for x in X])
             grakelX = get_grakel_graphs_from_nx([self.ged_calculator.dataset[x] for x in X], node_label_tag=self.node_label_tag, edge_label_tag=self.edge_label_tag)
+            grakelX = list(grakelX)  # Ensure it's a list in case it's a generator
         if hasattr(self, "vertex_kernel"):
             vertex_features = self.vertex_kernel.parse_input(grakelX)
             # decode the sparse matrix to a dense one
@@ -130,7 +132,6 @@ class HybridPrototype_GED_SVC(Simple_Prototype_GED_SVC):
                 ["density"],
                 ["VertexHistogram"],
                 ["EdgeHistogram"],
-                []
                 # Different combinations of features
             ]
         })

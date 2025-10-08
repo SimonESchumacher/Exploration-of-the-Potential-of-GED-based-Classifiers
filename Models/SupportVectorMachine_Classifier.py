@@ -54,11 +54,14 @@ class SupportVectorMachine(GraphClassifier):
             print(f"Model Name: {self.get_name}")
     # TODO: this does not feel like a good move
     def fit_transform(self, X, y=None):
-        X = [convert_nx_to_grakel_graph(g) for g in X]
+        # X2 = [convert_nx_to_grakel_graph(x) for x in X]
+        X = get_grakel_graphs_from_nx([x for x in X], node_label_tag="label", edge_label_tag="label")
+        # convert generator to list
         return self.kernel_fuct.fit_transform(X,y)
     # TODO: this does not feel like a good move
     def transform(self, X):
-        X = [convert_nx_to_grakel_graph(g) for g in X]
+        # X2 = [convert_nx_to_grakel_graph(x) for x in X]
+        X = get_grakel_graphs_from_nx([x for x in X], node_label_tag="label", edge_label_tag="label")
         return self.kernel_fuct.transform(X)
     def get_params(self, deep=True):
         params = super().get_params(deep=deep)
@@ -95,6 +98,7 @@ class SupportVectorMachine(GraphClassifier):
         """
         Fits the SVC model to the graph data.
         """
+        
         if DEBUG:
             print("Fitting SVC model...")
         self.prepare_fit(X, y)

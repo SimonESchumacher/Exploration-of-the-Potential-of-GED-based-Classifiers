@@ -17,6 +17,7 @@ DEBUG = False
 class GEDLIB_Calculator(Base_Calculator):
 
     def activate(self):
+       
         gedlibpy.restart_env()
         if DEBUG:
             iters = tqdm.tqdm(self.dataset, desc='Adding graphs to GEDLIB', total=len(self.dataset))

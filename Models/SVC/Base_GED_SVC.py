@@ -17,7 +17,7 @@ from Custom_Kernels.GEDLIB_kernel import GEDKernel
 DEBUG = False  # Set to True for debug prints
 
 class Base_GED_SVC(SupportVectorMachine):
-    model_specific_iterations = 500
+    model_specific_iterations = 100
     def __init__(self,
             ged_calculator,
             ged_bound,
@@ -126,7 +126,6 @@ class Base_GED_SVC(SupportVectorMachine):
         # this is a problem, because the kernel has its own parameters
         param_grid.update({
             # "ged_bound": ['UpperBound-Distance', 'Mean-Distance', 'LowerBound-Distance']
-            "ged_bound": ['Mean-Distance']
         })
         return param_grid
     @classmethod
@@ -134,7 +133,7 @@ class Base_GED_SVC(SupportVectorMachine):
         param_space = SupportVectorMachine.get_random_param_space()
         param_space.update({
             # "ged_bound": ['UpperBound-Distance', 'Mean-Distance', 'LowerBound-Distance']
-            "ged_bound": ['Mean-Distance']
         })
         return param_space
 
+    

@@ -1,4 +1,5 @@
 # Array Classifier Test
+from Calculators.Product_GRaphs import RandomWalkCalculator
 from Dataset import Dataset
 from Experiment import experiment
 import sys
@@ -8,7 +9,7 @@ import traceback
 from Models.SVC.GED.hybrid_prototype_selector import HybridPrototype_GED_SVC
 # add the current directory to the system path
 sys.path.append(os.getcwd())
-from Models.SVC.GED.RandomWalk_edit import Random_walk_edit_SVC
+from Models.SVC.GED.RandomWalk_edit import Random_Walk_edit_accelerated, Random_walk_edit_SVC
 from Models.SVC.WeisfeilerLehman_SVC import WeisfeilerLehman_SVC
 from Models.Graph_Classifier import GraphClassifier
 from Models.SVC.Baseline_SVC import VertexHistogram_SVC,EdgeHistogram_SVC, CombinedHistogram_SVC, NX_Histogram_SVC
@@ -28,24 +29,31 @@ from Models.KNN.GEDLIB_KNN import GED_KNN
 from Models.KNN.feature_KNN import Feature_KNN
 import pandas as pd
 from io_Manager import IO_Manager
-N_JOBS = -1
-SPLIT=0.1 # 10% test size alternatively 0.2 for 20%
+N_JOBS = 1
+SPLIT=0.2 # 10% test size alternatively 0.2 for 20%
+NUM_TRIALS=3
+TEST_TRIAL=False
 Test_DF=pd.DataFrame()
-DATASET_NAME="MSRC_9"
-EXPERIMENT_NAME="error_finding"
-ONLY_ESTIMATE=False
+DATASET_NAME="PTC_FR"
+GED_BOUND="UpperBound-Distance"  # "UpperBound-Distance", "Mean-Distance", "LowerBound-Distance"
+EXPERIMENT_NAME="PTC_FR_Random_walk"
+ONLY_ESTIMATE=True
 PRELOAD_CALCULATORS=True
+USE_NODE_LABELS="label"
+USE_EDGE_LABELS="label"
 
 
 def get_classifier(ged_calculator):
     # return ZERO_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=7, aggregation_method="sum",dataset_name=DATASET.name,selection_method="k-CPS")
     # return Random_walk_edit_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
+    # random_walk_calculator = RandomWalkCalculator(ged_calculator=ged_calculator, llambda_samples=[0.005,0.01,0.03,0.05,0.1,0.2,0.45,0.89], dataset=DATASET)
+    # return Random_Walk_edit_accelerated(ged_calculator=ged_calculator, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=5, C=1.0,kernel_type="precomputed", class_weight='balanced', random_walk_calculator=random_walk_calculator)
     # return Trivial_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1')
     # return  Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=1, selection_method="TPS", selection_split="all",dataset_name=DATASET.name)
     # return Feature_KNN(vector_feature_list=["VertexHistogram","density","Prototype-Distance"], dataset_name=DATASET.name, prototype_size=5, selection_split="all", selection_method="TPS", metric="minkowski", ged_calculator=ged_calculator, ged_bound="Mean-Distance", n_neighbors=5, weights='uniform', algorithm='auto')
-    # return HybridPrototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=5, selection_method="TPS", selection_split="all",dataset_name=DATASET.name, vector_feature_list=["VertexHistogram","density"])
+    return HybridPrototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=5, selection_method="TPS", selection_split="all",dataset_name=DATASET.name, vector_feature_list=["density"], node_label_tag="label", edge_label_tag="label")
     # return GED_KNN(ged_calculator=ged_calculator, ged_bound="Mean-Distance", n_neighbors=1, weights='uniform', algorithm='auto')
-    return EdgeHistogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced')
+    # return CombinedHistogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced')
 # classifier = Random_walk_edit_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
 # classifier = Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, KERNEL_comparison_method="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',KERNEL_prototype_size=5, KERNEL_selection_method="RPS", KERNEL_classwise=False, KERNEL_single_class=False)
 # classifier = Trivial_GED_SVC(kernel_type='precomputed',ged_calculator=ged_calculator, comparison_method="Mean-Distance", KERNEL_similarity_function="k1")
@@ -76,7 +84,7 @@ def get_classifier(ged_calculator):
 def estimate_experiment_duration(classifier: GraphClassifier, DATASET: Dataset, ged_calculator: Base_Calculator,search_method="grid"):
     expi=experiment(f"{classifier.__class__.__name__}",DATASET,dataset_name=DATASET.name,
                     model=classifier,model_name=classifier.get_name,ged_calculator=None)
-    estimated_time = expi.get_estimated_tuning_time(cv=int(1/SPLIT),search_method=search_method) 
+    estimated_time = expi.estimate_nested_cv_time(cv=int(1/SPLIT),num_trials=NUM_TRIALS,search_method=search_method) 
     return estimated_time
 def run_classifiers(classifier: GraphClassifier, DATASET: Dataset, ged_calculator: Base_Calculator, testDF: pd.DataFrame,experiment_name: str="unknown",search_method="grid"):        
     expi=experiment(f"{classifier.__class__.__name__}",DATASET,dataset_name=DATASET.name,
@@ -96,8 +104,27 @@ def run_classifiers(classifier: GraphClassifier, DATASET: Dataset, ged_calculato
     instance_df = pd.DataFrame([instance_dict])
     testDF = pd.concat([testDF, instance_df], ignore_index=True)
     return testDF
+def run_classifiers_new(classifier: GraphClassifier, DATASET: Dataset, ged_calculator: Base_Calculator,testDF: pd.DataFrame, experiment_name: str="unknown",search_method="grid"):        
+    expi=experiment(f"{classifier.__class__.__name__}",DATASET,dataset_name=DATASET.name,
+                    model=classifier,model_name=classifier.get_name,ged_calculator=ged_calculator)
+    cv= int(1/SPLIT)
+    try:
+        instance_dict =expi.run_manual_nested_cv(outer_cv=cv,inner_cv=cv,num_trials=NUM_TRIALS,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'], verbose=0, n_jobs=-1, search_method=search_method,should_print=True,test_trail=TEST_TRIAL)
+    except Exception as e:
+        #  print the full traceback
+        traceback.print_exc()
+        print(f"Error running {classifier.get_name} on {DATASET.name}: {e}")
+        instance_dict = {
+            "Model": classifier.get_name,
+            "Dataset": DATASET.name,
+            "Error": str(e)
+        }
+    # add the values form instance_dict as the last row of testDF
+    instance_df = pd.DataFrame([instance_dict])
+    testDF = pd.concat([testDF, instance_df], ignore_index=True)
+    return testDF
 def get_Dataset(dataset_name: str, ged_calculator):
-    DATASET= Dataset(name=dataset_name, source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="label",load_now=False)
+    DATASET= Dataset(name=dataset_name, source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels=USE_NODE_LABELS, use_edge_labels=USE_EDGE_LABELS,load_now=False)
     DATASET.load()
     return DATASET, DATASET.get_calculator()
 
@@ -107,7 +134,7 @@ if __name__ == "__main__":
     if PRELOAD_CALCULATORS:
         ged_calculator = "GEDLIB_Calculator"
     else:
-        ged_calculator = GEDLIB_Calculator(GED_calc_method="BRANCH", GED_edit_cost="CONSTANT",need_node_map=True)
+        ged_calculator = GEDLIB_Calculator(GED_calc_method="ANCHOR_AWARE_GED", GED_edit_cost="CONSTANT",need_node_map=True)
     DATASET, ged_calculator = get_Dataset(DATASET_NAME, ged_calculator)
     classifier = get_classifier(ged_calculator)
     if ONLY_ESTIMATE:
@@ -118,7 +145,7 @@ if __name__ == "__main__":
         print(f"Estimated total duration for non-GED classifiers: {total_duration_nonGED}")
     else:
         print(f"Running GED-based classifiers on {DATASET.name} dataset.")
-        testDF = run_classifiers(classifier, DATASET, ged_calculator, Test_DF, EXPERIMENT_NAME,search_method="random")
+        testDF = run_classifiers_new(classifier, DATASET, ged_calculator, Test_DF, EXPERIMENT_NAME,search_method="random")
         results_dir = os.path.join("configs", "results")
         results_path = os.path.join(results_dir, f"{EXPERIMENT_NAME}_{DATASET.name}_results.xlsx")
         testDF.to_excel(results_path, index=False)

@@ -18,7 +18,7 @@ DEBUG = False # Set to False to disable debug prints
 class VertexHistogram_SVC(SupportVectorMachine):
     model_specific_iterations = 30
     def __init__(self, attributes=None, **kwargs):
-        kernel = VertexHistogram()
+        kernel = VertexHistogram(sparse=True)
         super().__init__( kernelfunction=kernel, kernel_name="VertexHistogram", attributes=attributes, **kwargs)
         if DEBUG:
             print(f"Initialized VertexHistogram_SVC in child class")
@@ -27,7 +27,7 @@ class VertexHistogram_SVC(SupportVectorMachine):
 class EdgeHistogram_SVC(SupportVectorMachine):
     model_specific_iterations = 30
     def __init__(self,attributes=None,**kwargs):
-        kernel = EdgeHistogram()
+        kernel = EdgeHistogram(sparse=True)
         super().__init__( kernelfunction=kernel, kernel_name="EdgeHistogram", attributes=attributes, **kwargs)
         if DEBUG:
             print(f"Initialized EdgeHistogram_SVC in child class")
@@ -38,7 +38,7 @@ class CombinedHistogram_SVC(SupportVectorMachine):
 
     def __init__(self, attributes=None,weights=[1,1], **kwargs):
         self.weights = weights
-        kernel = Combined_Kernel(kernels=[VertexHistogram(), EdgeHistogram()],weights=self.weights)
+        kernel = Combined_Kernel(kernels=[EdgeHistogram(sparse=False), VertexHistogram(sparse=False)],weights=self.weights)
         super().__init__( kernelfunction=kernel, kernel_name="CombinedHistogram", attributes=attributes, **kwargs)
         if DEBUG:
             print(f"Initialized CombinedHistogram_SVC  in child class")
@@ -72,13 +72,18 @@ class Combined_Kernel(Kernel):
 
     def fit_transform(self, X, y=None):
         """Fit the combined kernel."""
-        combined_transformation = np.zeros((len(X),len(X)))
-        for kernel in self.kernels:
+        combined_transformation = None
+        X_list = list(X)
+        
+        size = len(X_list)
+        combined_transformation = np.zeros((size,size)) 
+       
+        for kernel in self.kernels:        
             if hasattr(kernel, 'fit_transform'):
-                combined_transformation += kernel.fit_transform(X, y) * self.weights[self.kernels.index(kernel)]
+                combined_transformation += kernel.fit_transform(X_list, y) * self.weights[self.kernels.index(kernel)]
             else:
                 raise ValueError(f"Kernel {kernel} does not have fit_transform method.")
-        self.X_fit_ = X
+        self.X_fit_ = X_list
         # Concatenate the results from all kernels
         if DEBUG:
             print(combined_transformation.shape)
@@ -86,6 +91,7 @@ class Combined_Kernel(Kernel):
 
     def transform(self, X):
         """Transform the input data using both kernels and concatenate the results."""
+        X = list(X)
         combined_transformation = np.zeros((len(X), len(self.X_fit_)))
         for kernel in self.kernels:
             if hasattr(kernel, 'transform'):

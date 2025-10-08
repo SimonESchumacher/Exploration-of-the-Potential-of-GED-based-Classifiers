@@ -20,7 +20,7 @@ from typing import Dict, Any, List
 DEBUG = False  # Set to True for debug prints
 
 class ZERO_GED_SVC(Base_GED_SVC):
-    model_specific_iterations = 150  # Base number of iterations for this model
+    model_specific_iterations = 50  # Base number of iterations for this model
     def __init__(self,
                     aggregation_method,
                     prototype_size,
@@ -65,9 +65,9 @@ class ZERO_GED_SVC(Base_GED_SVC):
         self.X_fit_graphs_ = X
         # print("Selecting prototypes...")
         # print(f"Selection method:{ self.selection_method}, Selection split: {self.selection_split}, Prototype size: {self.prototype_size}")
-        self.prototypes = buffered_prototype_selection(X, y=y, ged_calculator=self.ged_calculator, size=self.prototype_size, selection_split=self.selection_split,
-                                                        selection_method=self.selection_method,
-                                                          comparison_method=self.ged_bound, dataset_name=self.dataset_name)
+        self.prototypes = Select_Prototypes(X,  ged_calculator=self.ged_calculator,y=y,
+                                            size=self.prototype_size, selection_split=self.selection_split,
+                                            selection_method=self.selection_method, comparison_method=self.ged_bound)
         n = len(X)
         K = np.zeros((n, n))
         if DEBUG:
@@ -192,7 +192,7 @@ class ZERO_GED_SVC(Base_GED_SVC):
         param_space = Base_GED_SVC.get_random_param_space()
         param_space.update(
             {
-                "prototype_size": [1, 2, 3],
+                # "prototype_size": [1, 2],
                 "aggregation_method": ["sum","prod","sum"],
                 "selection_split": ["all", "classwise", "single_class"],
                 "selection_method": ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"],

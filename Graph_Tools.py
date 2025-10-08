@@ -43,13 +43,20 @@ def get_grakel_graphs_from_nx(graph_list, node_label_tag="label", edge_label_tag
     """
     # detect if the graphs have edge labels
     test_graph = graph_list[0]
+    test_graph2 = graph_list[1]
+    test_graph3 = graph_list[2]
     edge_labels_set = {test_graph.edges[edge].get(edge_label_tag, None) for edge in test_graph.edges()}
     if any(label is not None for label in edge_labels_set):
         edge_label_tag = edge_label_tag
     else:
-        edge_label_tag = None
+        edge_labels_set2 = {test_graph2.edges[edge].get(edge_label_tag, None) for edge in test_graph2.edges()}
+        edge_labels_set3 = {test_graph3.edges[edge].get(edge_label_tag, None) for edge in test_graph3.edges()}
+        if any(label is not None for label in edge_labels_set2) or any(label is not None for label in edge_labels_set3):
+            edge_label_tag = edge_label_tag
+        else:
+            edge_label_tag = None
     node_labels_set = {test_graph.nodes[node].get(node_label_tag, None) for node in test_graph.nodes()}
-    if any(label is not None for label in node_labels_set):
+    if any(label is not None for label in node_labels_set) or any(label is not None for label in {test_graph2.nodes[node].get(node_label_tag, None) for node in test_graph2.nodes()}) or any(label is not None for label in {test_graph3.nodes[node].get(node_label_tag, None) for node in test_graph3.nodes()}):
         node_label_tag = node_label_tag
     else:
         node_label_tag = None
@@ -62,5 +69,5 @@ def get_grakel_graphs_from_nx(graph_list, node_label_tag="label", edge_label_tag
     # else:
     #     node_label_tag = None
 
-    return grakel.graph_from_networkx(graph_list, node_labels_tag=node_label_tag, edge_labels_tag=edge_label_tag)
+    return grakel.graph_from_networkx(graph_list, node_labels_tag=node_label_tag, edge_labels_tag=edge_label_tag,as_Graph=True, val_node_labels=0, val_edge_labels=0)
     

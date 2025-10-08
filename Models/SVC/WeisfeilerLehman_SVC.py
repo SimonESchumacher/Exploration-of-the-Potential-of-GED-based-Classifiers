@@ -1,3 +1,4 @@
+from grakel import VertexHistogram, EdgeHistogram, ShortestPath
 from grakel.kernels import WeisfeilerLehman
 from sklearn.svm import SVC
 from sklearn.utils.validation import check_X_y, check_array
@@ -19,26 +20,25 @@ DEBUG = False # Set to False to disable debug prints
 # import GraphClassifier as gc
 # Class of the SVC_WeisfeilerLehman is an extension of the SVC class
 class WeisfeilerLehman_SVC(SupportVectorMachine):
-    model_specific_iterations = 300  # Base number of iterations for this model
-    def __init__(self, n_iter=5, C=1.0,normalize_kernel=True, random_state=None,kernel_type="precomputed",attributes=None,**kwargs):
+    model_specific_iterations = 100  # Base number of iterations for this model
+    def __init__(self, n_iter=5, C=1.0,normalize_kernel=True, random_state=None,base_kernel=(VertexHistogram,{ 'sparse': True }),kernel_type="precomputed",attributes:dict=dict(),**kwargs):
         self.n_iter = n_iter
         self.normalize_kernel = normalize_kernel
-        self.kernel = WeisfeilerLehman(n_iter=self.n_iter, normalize=self.normalize_kernel)
-        if attributes is None:
-            attributes = {
-                "Kernel_n_iter": self.n_iter,
-                "normalize_kernel": self.normalize_kernel,
-            }
-        else:
-            attributes["Kernel_n_iter"] = self.n_iter
-            attributes["normalize_kernel"] = self.normalize_kernel
+        self.base_kernel = base_kernel
+        self.kernel = WeisfeilerLehman(n_iter=self.n_iter, normalize=self.normalize_kernel, base_graph_kernel=self.base_kernel)
+        attributes.update({
+            "n_iter": self.n_iter,
+            "normalize_kernel": self.normalize_kernel,
+            "base_kernel": self.base_kernel.__class__.__name__
+        })
         super().__init__(
             kernel_type=kernel_type,
             C=C,
             random_state=random_state,
             kernelfunction=self.kernel,
             kernel_name=f"WeisfeilerLehman_{self.n_iter}",
-            attributes=attributes
+            attributes=attributes,
+            **kwargs
         )
         if DEBUG:
             print(f"Initialized SVC_WeisfeilerLehman with n_iter={self.n_iter}, C={self.C}, in child class")
@@ -66,7 +66,7 @@ class WeisfeilerLehman_SVC(SupportVectorMachine):
             else:
                 super().set_params(**{parameter: value})
         if need_new_kernel:
-            self.kernel = WeisfeilerLehman(n_iter=self.n_iter, normalize=self.normalize_kernel)
+            self.kernel = WeisfeilerLehman(n_iter=self.n_iter, normalize=self.normalize_kernel, base_graph_kernel=self.base_kernel)
             self.kernel_fuct = self.kernel
         return self
     def predict(self, X):
@@ -134,7 +134,7 @@ class WeisfeilerLehman_SVC(SupportVectorMachine):
     def get_random_param_space(cls):
         param_space = SupportVectorMachine.get_random_param_space()
         param_space.update({
-            'n_iter': randint(1, 7)
+            'n_iter': randint(1, 7),
             #, 'normalize_kernel': [True, False] # Not really needed
         })
         return param_space

@@ -15,15 +15,18 @@ from Models.Graph_Classifier import GraphClassifier
 DEBUG = False # Set to False to disable debug prints
 
 class KNN(GraphClassifier):
-    def __init__(self, n_neighbors=1, weights='uniform', algorithm='auto', leaf_size=30,
+    def __init__(self, n_neighbors=1, weights='uniform', leaf_size=30,
                   metric=None,metric_name="unspecified",random_state=None,
                   attributes:dict=dict(), **kwargs): 
         
         self.n_neighbors = n_neighbors
         self.weights = weights
-        self.algorithm = algorithm
         self.leaf_size = leaf_size
         self.metric = metric
+        if metric == "precomputed":
+            self.algorithm = 'brute'  # 'brute' is required for precomputed metrics
+        else:
+            self.algorithm = 'auto'  # Let sklearn choose the best algorithm
         self.metric_name = metric_name
         self.random_state = random_state
         classifier = KNeighborsClassifier(n_neighbors=self.n_neighbors, weights=self.weights, algorithm=self.algorithm,
@@ -32,13 +35,11 @@ class KNN(GraphClassifier):
             attributes = {
                 "n_neighbors": self.n_neighbors,
                 "weights": self.weights,
-                "algorithm": self.algorithm,
                 "metric": self.metric_name,
             }
         else:
             attributes["n_neighbors"] = self.n_neighbors
             attributes["weights"] = self.weights
-            attributes["algorithm"] = self.algorithm
             attributes["metric"] = self.metric_name
         model_name = kwargs.pop("name", f"({n_neighbors})-NN_Classifier_{self.metric_name}")
         super().__init__(
@@ -49,7 +50,7 @@ class KNN(GraphClassifier):
         )
         
         if DEBUG:
-            print(f"Initialized KNNClassifier with n_neighbors={self.n_neighbors}, weights={self.weights}, algorithm={self.algorithm}")
+            print(f"Initialized KNNClassifier with n_neighbors={self.n_neighbors}, weights={self.weights}")
             print(f"Model Name: {self.get_name}")
     
     def fit_transform(self, X, y=None):
@@ -66,6 +67,14 @@ class KNN(GraphClassifier):
         for parameter, value in params.items():
             if DEBUG:
                 print(f"KNN: set_params: Setting {parameter} to {value}")
+            if parameter == 'metric':
+                self.metric = value
+                # If metric changes to 'precomputed', update the algorithm accordingly
+                if self.metric == 'precomputed':
+                    self.algorithm = 'brute'
+                else:
+                    self.algorithm = 'auto'
+                self.classifier.set_params(metric=self.metric, algorithm=self.algorithm)
             # Directly set attribute if it exists
             if hasattr(self, parameter):
                 setattr(self, parameter, value)
@@ -83,7 +92,6 @@ class KNN(GraphClassifier):
             print("Fitting KNNClassifier...")
         self.prepare_fit(X, y)
         X =self.fit_transform(X, y)
-
         self.classifier.fit(X, y)
         self.post_fit(X, y)
         if DEBUG:
@@ -101,7 +109,9 @@ class KNN(GraphClassifier):
             raise e
         X = self.transform(X)
         try:
+            
             y_pred = self.classifier.predict(X)
+            
         except Exception as e:
             print(f"Error during KNN prediction: {e}")
             traceback.print_exc()
@@ -148,18 +158,11 @@ class KNN(GraphClassifier):
             print(f"Loading KNNClassifier model from {filename}")
         return joblib.load(filename)
     def __str__(self):
-        if self.algorithm == 'auto':
-            return f"{self.metric_name} - ({self.n_neighbors})-NN"
-        else:
-            return f"{self.metric_name} - ({self.n_neighbors})-NN ({self.algorithm})"
+        return f"{self.metric_name} - ({self.n_neighbors})-NN"
+        
     def to_string(self):
-        """
-        Returns a string representation of the KNN classifier.
-        """
-        if self.algorithm == 'auto':
-            return f"{self.metric_name} - ({self.n_neighbors})-NN"
-        else:
-            return f"{self.metric_name} - ({self.n_neighbors})-NN ({self.algorithm})"
+        return f"{self.metric_name} - ({self.n_neighbors})-NN"
+        
 
     @classmethod
     def get_param_grid(cls):
@@ -178,9 +181,8 @@ class KNN(GraphClassifier):
     def get_random_param_space(cls) -> Dict[str, Any]:
         param_space = super().get_random_param_space()
         param_space.update({
-            'n_neighbors': randint(1, 10),
+            'n_neighbors': randint(1, 7),
             'weights': ['uniform', 'distance'],
-            'algorithm': ['brute'],
             'leaf_size': randint(10, 50),
             'metric': ['precomputed', 'euclidean']
             # 'metric': ['euclidean','precomputed']  # KNN with precomputed metric

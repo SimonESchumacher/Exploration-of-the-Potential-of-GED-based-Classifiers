@@ -18,7 +18,7 @@ from Calculators.Vector_creator import VectorCreator
 DEBUG = False  # Set to False to disable debug prints
 
 class Feature_KNN(KNN):
-    model_specific_iterations = 250  # Base number of iterations for this model
+    model_specific_iterations = 100  # Base number of iterations for this model
 
     def __init__(self,
                 vector_feature_list:list,
@@ -91,7 +91,7 @@ class Feature_KNN(KNN):
         save the traiing Graphs and transform Data into matrix.
         """
         self.X_fit =X
-
+        #measure the time the create vetor takes
         self.features= self.vector_creator.create_vector(X, is_fitted=False,node_label_tag=self.node_label_tag, edge_label_tag=self.edge_label_tag)
         self.max_distance = self.features.max()
         return self.features

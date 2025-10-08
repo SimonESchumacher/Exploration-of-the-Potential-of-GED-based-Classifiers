@@ -4,7 +4,7 @@ from Calculators.Base_Calculator import Base_Calculator
 from grakel.kernels import VertexHistogram, EdgeHistogram
 import networkx as nx
 import numpy as np
-from Calculators.Prototype_Selction import buffered_prototype_selection
+from Calculators.Prototype_Selction import buffered_prototype_selection, Select_Prototypes
 from Graph_Tools import get_grakel_graphs_from_nx
 class VectorCreator:
     def __init__(self, ged_calculator: Base_Calculator):
@@ -16,7 +16,7 @@ class VectorCreator:
         def prototype_distance_vector_extractor(X, fitted=False):
             X=[int(X[i].name) for i in range(len(X))]
             if not fitted:
-                self.prototypes = buffered_prototype_selection(X, y=None, ged_calculator=self.ged_calculator, size=size, selection_split=selection_split, selection_method=selection_method, comparison_method=ged_bound, dataset_name=dataset_name)
+                self.prototypes = Select_Prototypes(X, y=None, ged_calculator=self.ged_calculator, size=size, selection_split=selection_split, selection_method=selection_method, comparison_method=ged_bound)
             feature_vectors = np.zeros((len(X), len(self.prototypes)), dtype=float)
             for i, g in enumerate(X):
                 for j, g0 in enumerate(self.prototypes):
@@ -29,7 +29,12 @@ class VectorCreator:
         self.need_Grakel_parse = True
         
         def edge_histogram_extractor(X, fitted=False):
+            if fitted:
+                self.edge_kernel._method_calling = 3
+            else:
+                self.edge_kernel._method_calling = 2
             feature_vectors = self.edge_kernel.parse_input(self.grakelX)
+            feature_vectors = feature_vectors.toarray() if hasattr(feature_vectors, "toarray") else feature_vectors
             if not fitted:
                 self.edge_feature_size = feature_vectors.shape[1]
             else:
@@ -39,14 +44,19 @@ class VectorCreator:
                     feature_vectors = np.concatenate([feature_vectors, filling], axis=1)
                 else:
                     feature_vectors = feature_vectors[:, :self.edge_feature_size]
-            return feature_vectors.toarray() if hasattr(feature_vectors, "toarray") else feature_vectors
+            return feature_vectors
         self.vector_extractor_functions.append(edge_histogram_extractor)
     def add_vertex_histogram_extractor(self):
         self.vertex_kernel = VertexHistogram(normalize=True)
         self.need_Grakel_parse = True
         
         def vertex_histogram_extractor(X, fitted=False):
+            if fitted:
+                self.vertex_kernel._method_calling = 3
+            else:
+                self.vertex_kernel._method_calling = 2        
             feature_vectors = self.vertex_kernel.parse_input(self.grakelX)
+            feature_vectors = feature_vectors.toarray() if hasattr(feature_vectors, "toarray") else feature_vectors
             if not fitted:
                 self.vertex_feature_size = feature_vectors.shape[1]
             else:
@@ -57,7 +67,7 @@ class VectorCreator:
                 else:
                     feature_vectors = feature_vectors[:, :self.vertex_feature_size]
                 
-            return feature_vectors.toarray() if hasattr(feature_vectors, "toarray") else feature_vectors
+            return feature_vectors
         self.vector_extractor_functions.append(vertex_histogram_extractor)
 
     def add_density_extractor(self):
@@ -72,6 +82,7 @@ class VectorCreator:
     def create_vector(self, X, is_fitted=False,node_label_tag="label", edge_label_tag="label"):
         if self.need_Grakel_parse:
             self.grakelX = get_grakel_graphs_from_nx(X, node_label_tag=node_label_tag, edge_label_tag=edge_label_tag)
+            self.grakelX = list(self.grakelX)
         self.vector = np.empty((len(X), 0), dtype=float)
         for func in self.vector_extractor_functions:
             self.vector = np.concatenate([self.vector, func(X, is_fitted)], axis=1)

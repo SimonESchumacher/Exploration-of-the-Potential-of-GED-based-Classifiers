@@ -17,7 +17,7 @@ from Calculators.Prototype_Selction import select_Prototype, Prototype_Selector,
 DEBUG = False  # Set to True for debug prints
 
 class Simple_Prototype_GED_SVC(Base_GED_SVC):
-    model_specific_iterations = 250  # Base number of iterations for this model
+    model_specific_iterations = 100  # Base number of iterations for this model
     def __init__(self,
                 prototype_size,
                 selection_split,
@@ -53,10 +53,11 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
         if DEBUG:
             print(f"Fitting GED_SVC with {len(X)} graphs")
         self.X_fit_graphs_ = X # Store the training graphs for transform method
+        self.prototypes = Select_Prototypes(X,  ged_calculator=self.ged_calculator,y=y, size=self.prototype_size, selection_split=self.selection_split, selection_method=self.selection_method, comparison_method=self.ged_bound)
+        feature_matrix = self.build_feature_matrix(X)
+        return feature_matrix
 
-        self.prototypes = buffered_prototype_selection(X, y=y, ged_calculator=self.ged_calculator, size=self.prototype_size, selection_split=self.selection_split, selection_method=self.selection_method, comparison_method=self.ged_bound, dataset_name=self.dataset_name)
-        return self.build_feature_matrix(X)
-    
+
     def transform(self, X):
         X=[int(X[i].name) for i in range(len(X))]
         if DEBUG:
@@ -96,7 +97,7 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
         param_space = Base_GED_SVC.get_random_param_space()
         param_space.update({
             'kernel_type': ['poly', 'rbf', 'linear'],
-            "prototype_size": randint(1, 10),
+            "prototype_size": randint(1, 8),
             "selection_split": ["all", "classwise", "single_class"],
             "selection_method": ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"],
             # "selection_method": ["k-CPS","RPS"]

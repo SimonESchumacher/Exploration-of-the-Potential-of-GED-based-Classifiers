@@ -13,7 +13,7 @@ from Models.SVC.Base_GED_SVC import Base_GED_SVC
 DEBUG = False  # Set to True for debug prints
 
 class Trivial_GED_SVC(Base_GED_SVC):
-    model_specific_iterations = 250  # Base number of iterations for this model
+    model_specific_iterations = 150  # Base number of iterations for this model
     """
     Support Vector Machine with Graph Edit Distance Kernel
     """
