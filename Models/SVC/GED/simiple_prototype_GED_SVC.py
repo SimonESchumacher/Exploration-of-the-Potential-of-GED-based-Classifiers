@@ -97,7 +97,7 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
         param_space = Base_GED_SVC.get_random_param_space()
         param_space.update({
             'kernel_type': ['poly', 'rbf', 'linear'],
-            "prototype_size": randint(1, 8),
+            "prototype_size": randint(1, 6),
             "selection_split": ["all", "classwise", "single_class"],
             "selection_method": ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"],
             # "selection_method": ["k-CPS","RPS"]
