@@ -18,7 +18,7 @@ import random as rnd
 from Graph_Classifier import GraphClassifier
 DEBUG = False  # Set to True for debug prints
 class Random_Classifier(GraphClassifier):
-    model_specific_iterations = 3
+    model_specific_iterations = 10
     def __init__(self, random_state=None,strategy='uniform',constant=None,attributes=None):
         self.random_state = random_state
         self.strategy = strategy

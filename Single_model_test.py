@@ -29,14 +29,14 @@ from Models.KNN.GEDLIB_KNN import GED_KNN
 from Models.KNN.feature_KNN import Feature_KNN
 import pandas as pd
 from io_Manager import IO_Manager
-N_JOBS = 1
+N_JOBS = -1
 SPLIT=0.2 # 10% test size alternatively 0.2 for 20%
-NUM_TRIALS=3
+NUM_TRIALS=2
 TEST_TRIAL=False
 Test_DF=pd.DataFrame()
-DATASET_NAME="MUTAG"
+DATASET_NAME="PTC_FR"
 GED_BOUND="UpperBound-Distance"  # "UpperBound-Distance", "Mean-Distance", "LowerBound-Distance"
-EXPERIMENT_NAME="MUTAG_Random_walk"
+EXPERIMENT_NAME="PTC_FR_Random_walk"
 ONLY_ESTIMATE=False
 PRELOAD_CALCULATORS=True
 USE_NODE_LABELS="label"
@@ -52,7 +52,7 @@ def get_classifier(ged_calculator):
     # return  Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=1, selection_method="TPS", selection_split="all",dataset_name=DATASET.name)
     # return Feature_KNN(vector_feature_list=["VertexHistogram","density","Prototype-Distance"], dataset_name=DATASET.name, prototype_size=5, selection_split="all", selection_method="TPS", metric="minkowski", ged_calculator=ged_calculator, ged_bound="Mean-Distance", n_neighbors=5, weights='uniform', algorithm='auto')
     # return HybridPrototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=5, selection_method="TPS", selection_split="all",dataset_name=DATASET.name, vector_feature_list=["density"], node_label_tag="label", edge_label_tag="label")
-    # return GED_KNN(ged_calculator=ged_calculator, ged_bound="Mean-Distance", n_neighbors=1, weights='uniform', algorithm='auto')
+    # return GED_KNN(ged_calculator=ged_calculator, ged_bound="Mean-Distance", n_neighbors=7, weights='uniform', algorithm='auto')
     # return CombinedHistogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced')
     # classifier = Random_walk_edit_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
     return Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=8, selection_method="k-CPS", selection_split="all",dataset_name=DATASET_NAME)

@@ -17,7 +17,7 @@ from Calculators.Prototype_Selction import select_Prototype, Prototype_Selector,
 DEBUG = False  # Set to True for debug prints
 
 class Simple_Prototype_GED_SVC(Base_GED_SVC):
-    model_specific_iterations = 100  # Base number of iterations for this model
+    model_specific_iterations = 60  # Base number of iterations for this model
     def __init__(self,
                 prototype_size,
                 selection_split,
@@ -44,7 +44,7 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
         # print("initialitized")
         super().__init__(attributes=attributes, name=self.name, **kwargs)
     def build_feature_vector(self, g):
-        feature_vector = np.empty((self.prototype_size,), dtype=float)
+        feature_vector = np.empty((len(self.prototypes),), dtype=float)
         for i, g0 in enumerate(self.prototypes):
             feature_vector[i] = self.ged_calculator.compare(g, g0, method=self.ged_bound)
         return feature_vector
@@ -65,7 +65,7 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
         feature_matrix = self.build_feature_matrix(X)
         return feature_matrix
     def build_feature_matrix(self, X):
-        feature_vectors = np.zeros((len(X), self.prototype_size))
+        feature_vectors = np.zeros((len(X), len(self.prototypes)), dtype=float)
         for i, g in enumerate(X):
             feature_vectors[i, :] = self.build_feature_vector(g)
         return feature_vectors

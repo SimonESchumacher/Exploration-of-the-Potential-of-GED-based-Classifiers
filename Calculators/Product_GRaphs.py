@@ -137,7 +137,7 @@ class RandomWalkCalculator():
             self.is_calculated = False
             self.dataset_str = dataset.__str__()
             self.calculate_prod_graphs()
-            self.calculate_sample_walks()
+            # self.calculate_sample_walks()
             self.is_calculated = True
             if DEBUG:
                 print(f"Initialized RandomWalkCalculator with {len(self.ged_calculator.get_dataset())} graphs and {len(self.llambda_samples)} lambda samples.")

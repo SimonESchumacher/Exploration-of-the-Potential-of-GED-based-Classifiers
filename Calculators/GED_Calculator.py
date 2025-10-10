@@ -72,6 +72,8 @@ def build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("BIPARTITE
         raise ValueError("Dataset and labels must be provided to build GED_Calculator.")
     distance_matrix_dict = {}
     node_map_dict = {}
+    graph_indices = list(range(len(dataset)))
+
     for method, bound in GED_calc_methods:
         gelibpy.restart_env()
         for graph in dataset:
@@ -99,7 +101,7 @@ def build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("BIPARTITE
                 node_map_matrix[j][i] = [(b, a) for (a, b) in node_map]  # Reverse mapping
         distance_matrix_dict[method] = distance_matrix
         node_map_dict[method] = node_map_matrix
-    return GED_Calculator(distance_matrix_dict=distance_matrix_dict, node_map=node_map_dict, dataset=dataset, labels=labels, GED_edit_cost=GED_edit_cost, GED_calc_methods=GED_calc_methods, **kwargs)
+    return GED_Calculator(distance_matrix_dict=distance_matrix_dict, node_map=node_map_dict, dataset=dataset, labels=labels, GED_edit_cost=GED_edit_cost, GED_calc_methods=GED_calc_methods, **kwargs), graph_indices
 
 def load_GED_calculator(dataset_name: str) -> GED_Calculator:
     filename = "GED_Calculator_" + dataset_name + ".joblib"

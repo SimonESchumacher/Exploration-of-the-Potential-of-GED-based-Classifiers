@@ -387,7 +387,6 @@ class Dataset:
         
     def load_ged_calculator(self, save_calculator=True):
         if self.ged_calculator is not None:
-            start_time = pd.Timestamp.now()
             # if the type is string, than we load it from the presaved data
             if isinstance(self.ged_calculator,str):
                 self.ged_calculator =Base_Calculator.load_calculator(self.ged_calculator,self.name)
@@ -400,8 +399,6 @@ class Dataset:
                     print(f"Calculating GED for between graphs")
                 self.graphindexes=self.ged_calculator.activate()
                 self.ged_calculator.calculate()
-            end_time = pd.Timestamp.now()
-            self.ged_calculator.runtime = (end_time - start_time).total_seconds()
             if save_calculator and not saving_usless:
                 if DEBUG:
                     print(f"Saving the Calculator for later use")

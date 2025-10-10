@@ -79,11 +79,11 @@ class Random_walk_edit_SVC(Base_GED_SVC):
         param_space = Base_GED_SVC.get_random_param_space()
         param_space.update({
             "decay_lambda": loguniform(a=0.005, b=0.8),
-            "max_walk_length": [2,3,4, 5, -1,-1,-2,-2]  # -1 indicates infinite length
+            "max_walk_length": [2,3,4, 5,-2]  # -1 indicates infinite length
         })
         return param_space
 class Random_Walk_edit_accelerated(Random_walk_edit_SVC):
-    model_specific_iterations = 100
+    model_specific_iterations = 50
     
     def __init__(self,
                 decay_lambda,

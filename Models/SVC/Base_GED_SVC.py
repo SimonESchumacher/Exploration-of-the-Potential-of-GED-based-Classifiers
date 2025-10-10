@@ -17,7 +17,7 @@ from Custom_Kernels.GEDLIB_kernel import GEDKernel
 DEBUG = False  # Set to True for debug prints
 
 class Base_GED_SVC(SupportVectorMachine):
-    model_specific_iterations = 100
+    model_specific_iterations = 50
     def __init__(self,
             ged_calculator,
             ged_bound,
