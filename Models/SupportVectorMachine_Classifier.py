@@ -1,4 +1,5 @@
 # Kernels
+import pandas as pd
 from sklearn.svm import SVC
 from sklearn.utils.validation import check_X_y, check_array
 import numpy as np
@@ -16,7 +17,7 @@ from typing import Dict, Any, List
 DEBUG = False # Set to False to disable debug prints
 
 class SupportVectorMachine(GraphClassifier):
-    model_specific_iterations = 500
+    model_specific_iterations = 50
     # Support Vector Machine Classifier for Graphs
     # with different Kernels
     def __init__(self, kernel_type="precomputed", C=1.0, random_state=None,kernelfunction=None,kernel_name="unspecified",class_weight=None,classes=[0,1],attributes=None, **kwargs):
@@ -64,7 +65,8 @@ class SupportVectorMachine(GraphClassifier):
         X = get_grakel_graphs_from_nx([x for x in X], node_label_tag="label", edge_label_tag="label")
         return self.kernel_fuct.transform(X)
     def get_params(self, deep=True):
-        params = super().get_params(deep=deep)
+        # params = super().get_params(deep=deep)
+        params = {}
         params.update({
             "C": self.C,
             "kernel_type": self.kernel_type,
@@ -98,12 +100,20 @@ class SupportVectorMachine(GraphClassifier):
         """
         Fits the SVC model to the graph data.
         """
-        
+        # random_number = np.random.randint(0, 10000)
+        # print(f"Start fit {random_number}")
         if DEBUG:
             print("Fitting SVC model...")
         self.prepare_fit(X, y)
         X = self.fit_transform(X, y)
+        start_time = pd.Timestamp.now()
         self.classifier.fit(X, y)
+        duration = (pd.Timestamp.now() - start_time).total_seconds()
+        if duration > 5:
+            print(f"Warning: SVC fitting took {duration} seconds, which is longer than expected.")
+            # print(self.get_params())
+            # print(f"Fitting details: X shape: {X.shape}, y length: {len(y)}")
+        # print(f"Completed fit {random_number}")
         self.post_fit(X, y)
         if DEBUG:
             

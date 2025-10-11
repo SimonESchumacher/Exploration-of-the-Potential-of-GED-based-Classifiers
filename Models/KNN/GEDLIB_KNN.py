@@ -17,7 +17,7 @@ from Calculators import Base_Calculator, Dummy_Calculator
 DEBUG = False  # Set to False to disable debug prints
 
 class GED_KNN(KNN):
-    model_specific_iterations = 10  # Base number of iterations for this model
+    model_specific_iterations = 50  # Base number of iterations for this model
     def __init__(self,
                  ged_calculator:Base_Calculator=None, ged_bound="Mean-Distance",
                  attributes : dict=dict(),similarity=False ,**kwargs):

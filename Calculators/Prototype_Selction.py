@@ -113,7 +113,7 @@ def select_RPS(G, size=3, **kwargs):
     return return_prototype_set(G, prototypes, asNX=asNX)
 
 
-def select_CPS(G, ged_calculator:Base_Calculator, ged_distance="Mean-Distance", size=3):
+def select_CPS(G, ged_calculator:Base_Calculator, ged_distance, size=3):
     """
     The Center prototype selector (cps) selects prototypes situated in, or
     near, the center of the training set T. The set of prototypes P = {p1,...,pm} is
@@ -144,7 +144,7 @@ def select_CPS(G, ged_calculator:Base_Calculator, ged_distance="Mean-Distance", 
         size -= 1
     return return_prototype_set(G, prototype_indexes, asNX=asNX)
 
-def select_BPS(G, ged_calculator:Base_Calculator, ged_distance="Mean-Distance", size=3):
+def select_BPS(G, ged_calculator:Base_Calculator, ged_distance, size=3):
     """
     TheBorder prototype selector (bps) selects prototypes situated at the
     border of the training set T. The set of prototypes P = {p1,...,pm} is iteratively
@@ -173,7 +173,7 @@ def select_BPS(G, ged_calculator:Base_Calculator, ged_distance="Mean-Distance", 
         size -= 1
     return return_prototype_set(G, prototypes, asNX=asNX)
 
-def select_Targetsphere(G, ged_calculator:Base_Calculator, ged_distance="Mean-Distance", size=3):
+def select_Targetsphere(G, ged_calculator:Base_Calculator, ged_distance, size=3):
     """
     The idea of this prototype selector is to distribute the prototypes
     from the center to the border as uniformly as possible. The Targetsphere prototype
@@ -213,7 +213,7 @@ def select_Targetsphere(G, ged_calculator:Base_Calculator, ged_distance="Mean-Di
             prototypes.append(graphindexes[closest_index])
     return return_prototype_set(G, prototypes, asNX=asNX)
 
-def select_SpanningTree(G, ged_calculator:Base_Calculator, ged_distance="Mean-Distance", size=3):
+def select_SpanningTree(G, ged_calculator:Base_Calculator, ged_distance, size=3):
     """
     TheSpanning prototype selector sps considers all distances to the pro
     totypes selected before. The first prototype is the set median graph. Each additional
@@ -258,7 +258,7 @@ def select_SpanningTree(G, ged_calculator:Base_Calculator, ged_distance="Mean-Di
         size -= 1
     return return_prototype_set(G, prototypes, asNX=asNX)
 
-def select_k_Centers(G, ged_calculator:Base_Calculator, ged_distance="Mean-Distance", size=3,initial_prototype_selector=select_RPS):
+def select_k_Centers(G, ged_calculator:Base_Calculator, ged_distance, size=3,initial_prototype_selector=select_RPS):
     """
     The k-Centers prototype selector k-cps tries to choose m graphs
     from T so that they are evenly distributed with respect to the dissimilarity information given by d.
@@ -323,26 +323,26 @@ def select_k_Centers(G, ged_calculator:Base_Calculator, ged_distance="Mean-Dista
             another_iteration = False
     return P
 
-def select_Prototype(G, ged_calculator:Base_Calculator, selection_method="CPS",size=3):
+def select_Prototype(G, ged_calculator:Base_Calculator,ged_distance, selection_method="CPS",size=3):
     """
     Selects a prototype from the given graphs G using the specified selection method.
     """
     if selection_method == "CPS":
-        return select_CPS(G, ged_calculator=ged_calculator, size=size)
+        return select_CPS(G, ged_calculator=ged_calculator, size=size, ged_distance=ged_distance)
     elif selection_method == "RPS":
-        return select_RPS(G, ged_calculator=ged_calculator, size=size)
+        return select_RPS(G, ged_calculator=ged_calculator, size=size, ged_distance=ged_distance)
     elif selection_method == "BPS":
-        return select_BPS(G, ged_calculator=ged_calculator, size=size)
+        return select_BPS(G, ged_calculator=ged_calculator, size=size, ged_distance=ged_distance)
     elif selection_method == "TPS":
-        return select_Targetsphere(G, ged_calculator=ged_calculator, size=size)
+        return select_Targetsphere(G, ged_calculator=ged_calculator, size=size, ged_distance=ged_distance)
     elif selection_method == "SPS":
-        return select_SpanningTree(G, ged_calculator=ged_calculator, size=size)
+        return select_SpanningTree(G, ged_calculator=ged_calculator, size=size, ged_distance=ged_distance)
     elif selection_method == "k-CPS":
-        return select_k_Centers(G, ged_calculator=ged_calculator, size=size)
+        return select_k_Centers(G, ged_calculator=ged_calculator, size=size,ged_distance=ged_distance)
     else:
         raise ValueError(f"Unknown selection method: {selection_method}")
 
-def unstratified_Composite_Selection(G, ged_calculator:Base_Calculator, composite_set:set=set(), size=3):
+def unstratified_Composite_Selection(G, ged_calculator:Base_Calculator,ged_distance, composite_set:set=set(), size=3):
     """
     Selects a composite prototype from the given graphs G using the specified composite set.
     """
@@ -358,15 +358,15 @@ def unstratified_Composite_Selection(G, ged_calculator:Base_Calculator, composit
         if size != sum(composite_set.values()):
             raise ValueError(f"Size {size} does not match the sum of the composite set {sum(composite_set.values())}")
         for method, count in composite_set.items():
-            prototypes.extend(select_Prototype(G, ged_calculator=ged_calculator, selection_method=method, size=count))
+            prototypes.extend(select_Prototype(G, ged_calculator=ged_calculator, selection_method=method, size=count, ged_distance=ged_distance))
         return prototypes
 
-def Composite_Selection(G, ged_calculator: Base_Calculator, y=None, composite_set: set = set(), size=3):
+def Composite_Selection(G, ged_calculator: Base_Calculator,ged_distance, y=None, composite_set: set = set(), size=3):
     """
     Selects a composite prototype from the given graphs G using the specified composite set.
     """
     if y is None:
-        return unstratified_Composite_Selection(G, ged_calculator=ged_calculator, composite_set=composite_set, size=size)
+        return unstratified_Composite_Selection(G, ged_calculator=ged_calculator, composite_set=composite_set, size=size, ged_distance=ged_distance)
     else:
         # stratified selection
         unique_classes = np.unique(y)
@@ -374,7 +374,7 @@ def Composite_Selection(G, ged_calculator: Base_Calculator, y=None, composite_se
         if size < num_classes:
             # raise ValueError(f"Size {size} must be at least the number of classes {num_classes}")
             # onyl do it for so manny classes as size
-            return unstratified_Composite_Selection(G, ged_calculator=ged_calculator, composite_set=composite_set, size=size)
+            return unstratified_Composite_Selection(G, ged_calculator=ged_calculator, composite_set=composite_set, size=size, ged_distance=ged_distance)
         # we divide the size by the number of classes to get the number of prototypes per class
         size_per_class = size // num_classes
         prototypes = []
@@ -383,14 +383,14 @@ def Composite_Selection(G, ged_calculator: Base_Calculator, y=None, composite_se
             G_cls = [G[i] for i in range(len(G)) if y[i] == cls]
             if len(G_cls) < size_per_class:
                 raise ValueError(f"Not enough graphs in class {cls} to select {size_per_class} prototypes")
-            prototypes.extend(unstratified_Composite_Selection(G_cls, ged_calculator=ged_calculator, composite_set=composite_set, size=size_per_class))
+            prototypes.extend(unstratified_Composite_Selection(G_cls, ged_calculator=ged_calculator, composite_set=composite_set, size=size_per_class, ged_distance=ged_distance))
         return prototypes
-def single_class_prototype_selection(G, ged_calculator: Base_Calculator, y=None, selection_method="CPS", size=3):
+def single_class_prototype_selection(G, ged_calculator: Base_Calculator, comparison_method=None, y=None, selection_method="CPS", size=3):
     """
     Selects prototypes form the most popular class in y using the specified selection method.
     """
     if y is None:
-        return select_Prototype(G, ged_calculator=ged_calculator, selection_method=selection_method, size=size)
+        return select_Prototype(G, ged_calculator=ged_calculator, selection_method=selection_method, size=size, comparison_method=comparison_method)
     else:
         # stratified selection
         unique_classes = np.unique(y)
@@ -402,8 +402,8 @@ def single_class_prototype_selection(G, ged_calculator: Base_Calculator, y=None,
         if len(G_cls) < size:
             raise ValueError(f"Not enough graphs in class {most_popular_class} to select {size} prototypes")
     
-        return select_Prototype(G_cls, ged_calculator=ged_calculator, selection_method=selection_method, size=size)
-def Select_Prototypes(G, ged_calculator: Base_Calculator, y=None, selection_split="all", selection_method="CPS", size=3, comparison_method="Mean-Distance"):
+        return select_Prototype(G_cls, ged_calculator,comparison_method, selection_method=selection_method, size=size)
+def Select_Prototypes(G, ged_calculator: Base_Calculator, comparison_method, y=None, selection_split="all", selection_method="CPS", size=3):
     """
     Selects prototypes from the given graphs G using the specified selection method.
     """
@@ -414,11 +414,11 @@ def Select_Prototypes(G, ged_calculator: Base_Calculator, y=None, selection_spli
     if selection_method not in ["CPS", "RPS", "BPS", "TPS", "SPS", "k-CPS"]:
         raise ValueError(f"Unknown selection method: {selection_method}")
     if selection_split == "single_class":
-        return single_class_prototype_selection(G, ged_calculator=ged_calculator, y=y, selection_method=selection_method, size=size)
+        return single_class_prototype_selection(G, ged_calculator=ged_calculator, y=y, selection_method=selection_method, size=size, comparison_method=comparison_method)
     elif selection_split == "classwise":
-        return Composite_Selection(G, ged_calculator=ged_calculator, y=y, composite_set=selection_method, size=size)
+        return Composite_Selection(G, ged_calculator=ged_calculator, y=y, composite_set=selection_method, size=size, ged_distance=comparison_method)
     else:
-        return unstratified_Composite_Selection(G, ged_calculator=ged_calculator, composite_set=selection_method, size=size)
+        return unstratified_Composite_Selection(G, ged_calculator=ged_calculator, composite_set=selection_method, size=size, ged_distance=comparison_method)
 
 def buffered_prototype_selection(G, ged_calculator: Base_Calculator, y, selection_split, selection_method, size, comparison_method, dataset_name):
     full_prototype_bzw_string = f"{ged_calculator.get_name()}_{selection_method}_{size}_{selection_split}_{comparison_method}_{dataset_name}"

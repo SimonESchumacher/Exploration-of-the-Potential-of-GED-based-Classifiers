@@ -9,17 +9,21 @@ class HybridPrototype_GED_SVC(Simple_Prototype_GED_SVC):
     model_specific_iterations = 40  # Base number of iterations for this model
     def __init__(self,
                 vector_feature_list: list,
-                dataset_name:str,
                 node_label_tag: str,
                 edge_label_tag: str,
+                dataset_name: str,
                 attributes: dict = dict(),
                  **kwargs):
         self.vector_feature_list = vector_feature_list
-        self.dataset_name = dataset_name
         self.node_label_tag = node_label_tag
         self.edge_label_tag = edge_label_tag
+        self.name= "Hybrid-Prototype-GED"
         attributes.update({
-            "vector_feature_list": self.vector_feature_list
+            "vector_feature_list": self.vector_feature_list,
+            "node_label_tag": self.node_label_tag,
+            "edge_label_tag": self.edge_label_tag,
+            "name": self.name
+
         })
         self.need_Grakel_parse = False
         if "VertexHistogram" in self.vector_feature_list:
@@ -31,7 +35,8 @@ class HybridPrototype_GED_SVC(Simple_Prototype_GED_SVC):
         if "EdgeHistogram" in self.vector_feature_list:
             self.edge_kernel = EdgeHistogram(normalize=True)
             self.need_Grakel_parse = True
-        super().__init__(dataset_name=dataset_name, attributes=attributes, name="Hybrid-Prototype-GED", **kwargs)
+        super().__init__(dataset_name=dataset_name, attributes=attributes, name=self.name, **kwargs)
+    
     def fit_transform(self, X, y=None):
         if hasattr(self, "vertex_kernel"):
             self.vertex_kernel._method_calling = 1
@@ -100,7 +105,9 @@ class HybridPrototype_GED_SVC(Simple_Prototype_GED_SVC):
     def get_params(self, deep=True):
         params = super().get_params(deep)
         params.update({
-            "vector_feature_list": self.vector_feature_list
+            "vector_feature_list": self.vector_feature_list,
+            "node_label_tag": self.node_label_tag,
+            "edge_label_tag": self.edge_label_tag,
         })
         return params
     @classmethod

@@ -76,7 +76,7 @@ class ZERO_GED_SVC(Base_GED_SVC):
             iters = range(n)
         self.feature_vectors_X_fit = np.zeros((n, len(self.prototypes)))
         start_time = pd.Timestamp.now()
-        self.D_g1_g2 = np.square(self.ged_calculator.upperbound_matrix)
+        self.D_g1_g2 = np.square(self.ged_calculator.get_complete_matrix(method=self.ged_bound))
         for i in iters:
             for k, g0 in enumerate(self.prototypes):
                 self.feature_vectors_X_fit[i, k] = self.D_g1_g2[i, g0]
@@ -168,7 +168,8 @@ class ZERO_GED_SVC(Base_GED_SVC):
             "prototype_size": self.prototype_size,
             "selection_split": self.selection_split,
             "selection_method": self.selection_method,
-            "ged_bound": self.ged_bound
+            "ged_bound": self.ged_bound,
+            "dataset_name": self.dataset_name
         })
        
         return params

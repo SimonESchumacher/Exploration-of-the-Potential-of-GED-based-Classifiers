@@ -34,7 +34,7 @@ class EdgeHistogram_SVC(SupportVectorMachine):
     
     
 class CombinedHistogram_SVC(SupportVectorMachine):
-    model_specific_iterations = 50
+    model_specific_iterations = 30
 
     def __init__(self, attributes=None,weights=[1,1], **kwargs):
         self.weights = weights

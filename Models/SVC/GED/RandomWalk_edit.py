@@ -9,7 +9,7 @@ from scipy.stats import randint, uniform, loguniform
 from typing import Dict, Any, List 
 
 class Random_walk_edit_SVC(Base_GED_SVC):
-    model_specific_iterations = 50
+    model_specific_iterations = 40
     """
     Support Vector Machine with Graph Edit Distance Kernel
     """
@@ -18,13 +18,10 @@ class Random_walk_edit_SVC(Base_GED_SVC):
                 max_walk_length,
                 attributes:dict=dict(),
                 **kwargs):
+        
         self.name="Random-Walk-Edit"
         self.decay_lambda = decay_lambda
         self.max_walk_length = max_walk_length
-        if self.max_walk_length == -1:
-            self.random_walk_function = lambda pg: infinte_length_random_walk_similarity(pg, llamda=decay_lambda)
-        else:
-            self.random_walk_function = lambda pg: limited_length_approx_random_walk_similarity(pg, llamda=decay_lambda, max_length=max_walk_length)
         # inner metrics 
         self.sum_bulid_product_graph_time = 0
         self.sum_random_walk_time = 0
@@ -35,26 +32,30 @@ class Random_walk_edit_SVC(Base_GED_SVC):
         super().__init__(attributes=attributes, name=self.name, **kwargs)
     def _calculate_kernel_matrix(self,X_graphs ,Y_graphs=None):
         # buffered, to see if calculation maybe has already been done
+        # if DEBUG:
+        #     print("Starting to calculate kernel matrix using Random Walk Edit kernel...")
         kernel_matrix = super()._calculate_kernel_matrix(X_graphs, Y_graphs)
+        if DEBUG:
+            print(f"Sum time to build product graphs: {self.sum_random_walk_time} seconds, for {self.max_walk_length}")
         return kernel_matrix
     def compare(self, g1, g2):
-        node_map = self.ged_calculator.get_node_map(g1, g2)
-        if DEBUG:
-            print(f"Node map between graphs: {node_map}")
+        node_map = self.ged_calculator.get_node_map(g1, g2, method=self.ged_bound)
         graph1 = self.ged_calculator.get_dataset()[g1]
         graph2 = self.ged_calculator.get_dataset()[g2]
         start_time = time.time()
         product_graph = build_restricted_product_graph(graph1, graph2, node_map)
         end_time = time.time()
         self.sum_bulid_product_graph_time += end_time - start_time
-        if DEBUG:
-            print(f"Product graph has {product_graph.number_of_nodes()} nodes and {product_graph.number_of_edges()} edges.")
         start_time = time.time()
-        similarity = self.random_walk_function(product_graph)
+        similarity = 0.0
+        if self.max_walk_length == 0:
+            similarity = 1.0  # similarity of 1 for walk length 0
+        elif self.max_walk_length >=1:
+            similarity = limited_length_approx_random_walk_similarity(product_graph, llamda=self.decay_lambda, max_length=self.max_walk_length)
+        elif self.max_walk_length == -1:
+            similarity = infinte_length_random_walk_similarity(product_graph, llamda=self.decay_lambda)
         end_time = time.time()
         self.sum_random_walk_time += end_time - start_time
-        if DEBUG:
-            print(f"Random walk similarity: {similarity}")
         return similarity
     def get_params(self, deep=True):
         params = super().get_params(deep=deep)
@@ -79,11 +80,11 @@ class Random_walk_edit_SVC(Base_GED_SVC):
         param_space = Base_GED_SVC.get_random_param_space()
         param_space.update({
             "decay_lambda": loguniform(a=0.005, b=0.8),
-            "max_walk_length": [2,3,4, 5,-2]  # -1 indicates infinite length
+            "max_walk_length": [2,3,4, 5,6,-1]  # -1 indicates infinite length
         })
         return param_space
 class Random_Walk_edit_accelerated(Random_walk_edit_SVC):
-    model_specific_iterations = 50
+    model_specific_iterations = 40
     
     def __init__(self,
                 decay_lambda,
@@ -91,20 +92,38 @@ class Random_Walk_edit_accelerated(Random_walk_edit_SVC):
                 random_walk_calculator: RandomWalkCalculator,
                 attributes:dict=dict(),
                 **kwargs):
+        # if DEBUG:
+        #     print(f"Initializing Random_walk_edit_SVC with decay_lambda={decay_lambda}, max_walk_length={max_walk_length}")
+        self.name="Random-Walk-Edit-Accelerated"
+        if random_walk_calculator is None:
+            raise ValueError("random_walk_calculator must be provided.")
+        else:
+            self.random_walk_calculator = random_walk_calculator
         super().__init__(decay_lambda=decay_lambda, max_walk_length=max_walk_length, attributes=attributes, **kwargs)
         self.random_walk_calculator = random_walk_calculator
-        if self.max_walk_length == -1:
-            self.random_walk_function = lambda i,j: self.random_walk_calculator.get_approx_inflength_walk(i,j, llambda=decay_lambda)
-        elif self.max_walk_length == -2:
-            self.random_walk_function = lambda i,j: self.random_walk_calculator.get_exact_inflength_walk(i,j, llambda=decay_lambda)
-        else:
-            self.random_walk_function = lambda i,j: self.random_walk_calculator.get_limited_length_walk(i,j, llambda=decay_lambda, max_length=max_walk_length)
+        # print(f"fitting random walk function for max_walk_length={max_walk_length}")
+        # start = time.time()
+               # print(f"fitted random walk function in {end-start} seconds")
     def compare(self, g1, g2):
         start_time = time.time()
-        similarity = self.random_walk_function(g1, g2)
+        if self.max_walk_length == 0:
+            similarity = 1.0  # similarity of 1 for walk length 0
+        elif self.max_walk_length >=1:
+            similarity = self.random_walk_calculator.get_limited_length_walk(g1, g2, llambda=self.decay_lambda, max_length=self.max_walk_length, method=self.ged_bound)
+        elif self.max_walk_length == -1:
+            similarity = self.random_walk_calculator.get_exact_inflength_walk(g1, g2, llambda=self.decay_lambda, method=self.ged_bound)
+        else: 
+            raise ValueError("max_walk_length must be >=0 or -1 for infinite length")
         end_time = time.time()
         self.sum_random_walk_time += end_time - start_time
         return similarity
+    def get_params(self, deep=True):
+        params = super().get_params(deep=deep)
+        # add the parameters of the ged_calculator with the prefix "GED_"
+        params.update({
+            "random_walk_calculator": self.random_walk_calculator
+        })
+        return params
 
     
 

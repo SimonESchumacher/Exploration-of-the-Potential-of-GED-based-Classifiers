@@ -1,7 +1,7 @@
 # Imports
 from multiprocessing import Pool, cpu_count
 from functools import partial
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import RepeatedKFold, RepeatedStratifiedKFold, train_test_split
 # Imports
 import networkx as nx
 # Import NetworkX for Graphs
@@ -10,6 +10,7 @@ import os
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold,KFold
 from Calculators.Base_Calculator import Base_Calculator
+from Calculators.GED_Calculator import load_GED_calculator, load_Heuristic_calculator
 from config_loader import get_conifg_param
 
 LOCAL_DATA_PATH = get_conifg_param('Dataset', 'local_data_path', type='str') # Path to the local data directory
@@ -389,9 +390,23 @@ class Dataset:
         if self.ged_calculator is not None:
             # if the type is string, than we load it from the presaved data
             if isinstance(self.ged_calculator,str):
-                self.ged_calculator =Base_Calculator.load_calculator(self.ged_calculator,self.name)
-                self.ged_calculator.make_backup()
+                if self.ged_calculator =="GED_Calculator":
+                    if DEBUG:
+                        print(f"Loading the presaved {self.ged_calculator} for dataset {self.name}")
+                    self.ged_calculator = load_GED_calculator(self.name)
+                elif self.ged_calculator =="Heuristic_Calculator":
+                    if DEBUG:
+                        print(f"Loading the presaved {self.ged_calculator} for dataset {self.name}")
+                    self.ged_calculator = load_Heuristic_calculator(self.name)
+                else:
+                    self.ged_calculator =Base_Calculator.load_calculator(self.ged_calculator,self.name)
+                    self.ged_calculator.make_backup()
                 saving_usless = True
+            elif callable(self.ged_calculator):
+                # is a new calculator type, which gets build by the function call.
+                saving_usless = False
+                self.ged_calculator = self.ged_calculator(dataset=self.nx_graphs.copy(), labels=self.target)
+                self.graphindexes=range(len(self.nx_graphs))
             else:
                 saving_usless = False
                 self.ged_calculator.add_graphs(self.nx_graphs.copy(), self.target)
@@ -457,26 +472,6 @@ class Dataset:
         #         self.ged_calculator.update_graph(g)
         # if self.ged_calculator is not None:
         #     self.ged_calculator.calculate()
-
-
-
-    def change_dataset_params(self,new_ged_calculator=False, use_node_labels=None, use_node_attributes=None, use_edge_labels=None, use_edge_attributes=None):
-        # realoads the dataset with the new parameters
-        self.data = load_dataset(self.source, self.name, use_node_labels=use_node_labels, use_node_attributes=use_node_attributes, use_edge_labels=use_edge_labels, use_edge_attributes=use_edge_attributes)
-        self.nx_graphs = self.data[0]
-        self.target = self.data[1]
-        self.unnique_labels = set(self.target)
-        # TODO: probalpy a reaload of the ged_calculator
-        if new_ged_calculator and self.ged_calculator is not None:
-            self.ged_calculator.add_graphs(self.nx_graphs.copy(), self.target)
-            self.graphindexes = self.ged_calculator.activate()
-            start_time = pd.Timestamp.now()
-            self.ged_calculator.calculate()
-            end_time = pd.Timestamp.now()
-            self.ged_calculator.runtime = (end_time - start_time).total_seconds()
-
-
-
     def __str__(self):
         return f"Dataset(name={self.name}, num_graphs={len(self.data)}, num_labels={len(set(self.target))})"
 
@@ -524,15 +519,21 @@ class Dataset:
         y_test_fold = [self.target[i] for i in test_index]
         return X_train, X_test, y_train_fold, y_test_fold
 
-    def split_k_fold(self, k=5, random_state=RANDOM_STATE, stratify=False, shuffle=SHUFFLE):
+    def split_k_fold(self, k=5, random_state=RANDOM_STATE, stratify=False, shuffle=SHUFFLE,repeat=1):
         """
         Splits the dataset into k folds for cross-validation.
         Returns a list of tuples (train_index, test_index) for each fold.
         """
-        if stratify:
-            kf = StratifiedKFold(n_splits=k, shuffle=shuffle, random_state=random_state)
+        if repeat > 1:
+            if stratify:
+                kf = RepeatedStratifiedKFold(n_splits=k, n_repeats=repeat, random_state=random_state)
+            else:
+                kf = RepeatedKFold(n_splits=k, n_repeats=repeat, random_state=random_state)
         else:
-            kf = KFold(n_splits=k, shuffle=shuffle, random_state=random_state)
+            if stratify:
+                kf = StratifiedKFold(n_splits=k, shuffle=shuffle, random_state=random_state)
+            else:
+                kf = KFold(n_splits=k, shuffle=shuffle, random_state=random_state)
         splits = []
         for train_index, test_index in kf.split(self.nx_graphs, self.target):
             splits.append(self.split_fold(train_index, test_index))

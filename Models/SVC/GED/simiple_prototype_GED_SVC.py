@@ -75,7 +75,8 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
             "prototype_size": self.prototype_size,
             "selection_split": self.selection_split,
             "selection_method": self.selection_method,
-            "ged_bound": self.ged_bound
+            "ged_bound": self.ged_bound,
+            "dataset_name": self.dataset_name
         })
         return params
     

@@ -122,18 +122,20 @@ def infinte_length_random_walk_similarity2(adj_matrix, llamda=0.1):
     
 class RandomWalkCalculator():
     backup = None
-    def __init__(self, ged_calculator: Base_Calculator, llambda_samples: list[float], dataset: Dataset):
+    def __init__(self, ged_calculator: Base_Calculator, llambda_samples: list[float], dataset: Dataset, ged_method: str):
         if (hasattr(RandomWalkCalculator, 'backup') and RandomWalkCalculator.backup is not None and dataset.__str__() == RandomWalkCalculator.backup.dataset_str):
             backup = RandomWalkCalculator.backup
             self.ged_calculator = backup.ged_calculator
             self.llambda_samples = backup.llambda_samples
             self.dataset_str = backup.dataset_str
             self.adj_matrices = backup.adj_matrices
-            self.interpolators = backup.interpolators
+            # self.interpolators = backup.interpolators
             self.is_calculated = backup.is_calculated
+            self.ged_method = backup.ged_method
         else:
             self.ged_calculator = ged_calculator
             self.llambda_samples = llambda_samples
+            self.ged_method = ged_method
             self.is_calculated = False
             self.dataset_str = dataset.__str__()
             self.calculate_prod_graphs()
@@ -154,7 +156,7 @@ class RandomWalkCalculator():
                     # for the same graph, the product graph is just the graph itself
                     self.adj_matrices[i][j] = nx.to_numpy_array(g1)
                     continue
-                node_map = self.ged_calculator.get_node_map(i, j)
+                node_map = self.ged_calculator.get_node_map(i, j, method=self.ged_method)
                 product_graph = build_restricted_product_graph(g1, g2, node_map)
                 nodelist = list(product_graph.nodes())
                 self.adj_matrices[i][j] = nx.to_numpy_array(product_graph, nodelist=nodelist)
@@ -199,7 +201,7 @@ class RandomWalkCalculator():
         if float_result < 0 or np.isnan(float_result):
             print(f"Warning: Similarity for graphs {i} and {j} with lambda={llambda} is negative or NaN ({float_result}). Setting to 0.")   
             return 0.0
-        return infinte_length_random_walk_similarity2(adj_matrix, llamda=llambda)
+        return float_result
     def get_limited_length_walk(self, i, j, llambda, max_length):
         if i > j:
             i, j = j, i

@@ -15,6 +15,10 @@ from Calculators.Base_Calculator import Base_Calculator
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
 from Custom_Kernels.GEDLIB_kernel import GEDKernel
 DEBUG = False  # Set to True for debug prints
+_ged_calculator = None
+def set_global_ged_calculator(calculator):
+    global _ged_calculator
+    _ged_calculator = calculator
 
 class Base_GED_SVC(SupportVectorMachine):
     model_specific_iterations = 50
@@ -96,6 +100,7 @@ class Base_GED_SVC(SupportVectorMachine):
 
 
     def fit_transform(self, X, y=None):
+        # print("Fitting GED_SVC...")
         X=[int(X[i].name) for i in range(len(X))]
         if DEBUG:
             print(f"Fitting GED_SVC with {len(X)} graphs")
@@ -106,7 +111,7 @@ class Base_GED_SVC(SupportVectorMachine):
         
         # Check if the generated matrix is approximately positive semi-definite (optional but good practice)
         # E.g., check eigenvalues, but SVC is usually robust enough for RBF on metric spaces.
-        
+        # print("Fitted and transformed GED SVC.")
         return K_train
     def transform(self, X):
         X=[int(X[i].name) for i in range(len(X))]

@@ -2,6 +2,7 @@
 # Imports
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import random
+import joblib
 from sklearn.metrics import accuracy_score, classification_report, f1_score, roc_auc_score, precision_score, recall_score
 import numpy as np
 import os
@@ -128,7 +129,7 @@ class experiment:
     # not done
     def __str__(self):
         return f"Experiment(name={self.experiment_name}, dataset={self.dataset_name}, model={self.model_name})"
-    def split_data(self,random_state=RANDOM_STATE):
+    def split_data(self,random_state=RANDOM_STATE, repeats=1):
         
         X_train, X_test, y_train, y_test = self.dataset.train_test_split(test_size=TEST_SIZE, random_state=random_state)
         # if DEBUG:
@@ -730,7 +731,7 @@ class experiment:
         return accuracy,f1,precision,recall,roc_auc,classification_report_str
 
     
-    def run_inner_hyperparameter_tuning(self,X_train,y_train,Y_test,y_test,inner_cv=5,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'], verbose=0, n_jobs=-1, random_seed=RANDOM_STATE, search_method="random",test_trail=False):
+    def run_inner_hyperparameter_tuning(self,X_train,y_train,Y_test,y_test,inner_cv=5,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'], verbose=0, n_jobs=-1, random_seed=RANDOM_STATE, search_method="random",test_trail=False,fold_index=None):
         random_gen = random.Random(random_seed)
         if search_method == "grid":
             param_grid = self.model.get_param_grid()
@@ -741,7 +742,9 @@ class experiment:
             tuner = RandomizedSearchCV(estimator=self.model, param_distributions=param_grid, n_iter=iterations, scoring=scoring[0], cv=inner_cv, verbose=verbose, n_jobs=n_jobs,error_score="raise",refit=scoring[0])
         else:
             raise ValueError(f"Unknown search method: {search_method}. Use 'grid' or 'random'.")
+        print(f"starting inner tuning fold {fold_index}")
         tuner.fit(X_train,y_train)
+        print(f"completed inner tuning fold {fold_index}")
         best_model = tuner.best_estimator_
         best_params = tuner.best_params_
         best_score = tuner.best_score_
@@ -862,6 +865,120 @@ class experiment:
             os.makedirs(results_dir, exist_ok=True)
             results_df.to_excel(results_path, index=False)
         return test_Dict
+    def run_joblib_parallel_nested_cv(self,outer_cv=5,inner_cv=5,num_trials=3,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'], verbose=0, n_jobs=-1, random_seed=RANDOM_STATE, search_method="random",should_print=DEBUG,get_all_results=True,test_trail=False):
+        X, y = self.dataset.data
+        random_gen = random.Random(random_seed)
+        test_Dict = dict()
+        if should_print:
+           print("\n--------------------------------------------------------------------")
+           print(f"Running extensive test for model:\n {self.model_name}")
+        estimated_test_duration = None
+        test_Dict["model_name"] = self.model_name
+        test_Dict["Calculator_name"] = self.model.get_calculator().get_Name() if self.model.get_calculator() else "None"
+        try:
+            estimated_test_duration =self.estimate_nested_cv_time(cv=outer_cv,num_trials=num_trials,search_method=search_method)
+        except Exception as e:
+            print(f"Error occurred while running speed test: {e}")
+            traceback.print_exc()
+            test_Dict["Error source"] = "Speed Test"
+            test_Dict["Error"] = str(e)
+            return test_Dict
+        test_Dict["train_test_duration"] = str(estimated_test_duration)
+        if should_print:
+            print(f"Estimated test duration: {estimated_test_duration}")
+       
+
+
+
+        accuracy_scores = []
+        f1_scores = []
+        roc_auc_scores = []
+        precision_scores = []
+        recall_scores = []
+        time_Start = pd.Timestamp.now()
+        results_df = pd.DataFrame()
+        # build a progress bar which tracks the progress of both loops.
+
+        if should_print:
+            print(f"{self.model_name} start nested CV at {pd.Timestamp.now()}")
+            # get the Parameter Grid
+            if search_method == "grid":
+                param_grid = self.model.get_param_grid()
+                print(f"Parameter grid: {param_grid}")
+            elif search_method == "random":
+                param_grid = self.model.get_random_param_space()
+                print(f"Search Space: {param_grid}")
+        delayed_calls =[
+            joblib.delayed(self.run_inner_hyperparameter_tuning)(X_train, y_train_fold, X_test, y_test_fold,
+                                                                inner_cv=inner_cv, scoring=scoring, verbose=verbose, n_jobs=1,
+                                                                random_seed=random_gen.randint(0, 1000),
+                                                                search_method=search_method,test_trail=test_trail,
+                                                                fold_index=i
+                                                                )
+            for i, (X_train, X_test, y_train_fold, y_test_fold) in enumerate(self.dataset.split_k_fold(k=inner_cv, random_state=random_gen.randint(0, 1000),repeat=num_trials))
+        ]
+        all_folds_results = joblib.Parallel(n_jobs=n_jobs,verbose=1)(delayed_calls)
+        for fold_index, (best_model, best_params, best_score, accuracy_train,f1_train,precision_train,recall_train,roc_auc_train,classification_report_train, results_dict) in enumerate(all_folds_results):
+            if fold_index ==0:
+                test_Dict["best_params"] = str(best_params)
+                test_Dict["best_score"] = best_score
+                test_Dict["classification_report_train"] = classification_report_train
+            accuracy_scores.append(accuracy_train)
+            f1_scores.append(f1_train)
+            roc_auc_scores.append(roc_auc_train)
+            precision_scores.append(precision_train)
+            recall_scores.append(recall_train)
+
+            # Append the results_dict to the results_df
+            results_dict['fold_index'] = fold_index
+            results_df = pd.concat([results_df, pd.DataFrame(results_dict)], ignore_index=True)
+        time_End = pd.Timestamp.now()
+        total_duration = time_End - time_Start
+        if should_print:
+            print(f"Nested CV completed in {total_duration}.\n")
+            print(f"Time {pd.Timestamp.now()}")
+            print("--------------------------------------------------------------------\n")
+        if test_Dict is not None:
+            erroracknowledgment = ERRORINTERVAL_SETTING
+        if erroracknowledgment == "std":
+            test_Dict["k_fold_accuracy"] = np.mean(accuracy_scores)
+            test_Dict["k_fold_acc_std"] = np.std(accuracy_scores)
+            test_Dict["k_fold_f1_score"] = np.mean(f1_scores)
+            test_Dict["k_fold_f1_std"] = np.std(f1_scores)
+            test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)
+            test_Dict["k_fold_roc_auc_std"] = np.std(roc_auc_scores)
+            test_Dict["k_fold_precision"] = np.mean(precision_scores)
+            test_Dict["k_fold_recall"] = np.mean(recall_scores)
+        elif erroracknowledgment == "confidence interval":
+            # Calculate confidence intervals for each metric
+            n = len(accuracy_scores)
+            confidence = 0.95
+            z_score = stats.norm.ppf((1 + confidence) / 2)
+            test_Dict["k_fold_accuracy"] = np.mean(accuracy_scores)
+            test_Dict["K_fold_acc_CI"] = z_score * np.std(accuracy_scores) / np.sqrt(n)
+            test_Dict["k_fold_f1_score"] = np.mean(f1_scores)
+            test_Dict["K_fold_f1_CI"] = z_score * np.std(f1_scores) / np.sqrt(n)
+            test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)
+            test_Dict["K_fold_roc_auc_CI"] = z_score * np.std(roc_auc_scores) / np.sqrt(n)
+            test_Dict["k_fold_precision"] = np.mean(precision_scores)
+            test_Dict["k_fold_recall"] = np.mean(recall_scores)
+        elif erroracknowledgment == "none":
+            test_Dict["k_fold_accuracy"] = np.mean(accuracy_scores)
+            test_Dict["k_fold_f1_score"] = np.mean(f1_scores)
+            test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)
+            test_Dict["k_fold_precision"] = np.mean(precision_scores)
+            test_Dict["k_fold_recall"] = np.mean(recall_scores)
+        else:
+            raise ValueError(f"Unknown error acknowledgment method: {erroracknowledgment}. Use 'std', 'confidence interval', or 'none'.")
+        test_Dict["nested_total_duration"] = str(total_duration)
+        if get_all_results:
+            results_dir = os.path.join("configs", "results", "Hyperparameter_tuning_results")
+            results_path = os.path.join(results_dir, f"Hyperparameter_{self.model_name}_{self.dataset_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
+            os.makedirs(results_dir, exist_ok=True)
+            results_df.to_excel(results_path, index=False)
+        return test_Dict
+        
+    
     def run_parallel_nested_cv(self,outer_cv=5,inner_cv=5,num_trials=3,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'], verbose=0, n_jobs=-1, random_seed=RANDOM_STATE, search_method="random",should_print=DEBUG,get_all_results=False,test_trail=False):
         X, y = self.dataset.data
         random_gen = random.Random(random_seed)
@@ -911,10 +1028,11 @@ class experiment:
         for trial in range(num_trials):
                 for i, (X_train, X_test, y_train_fold, y_test_fold) in enumerate(self.dataset.split_k_fold(k=inner_cv, random_state=random_gen.randint(0, 1000))):
                     runs.append( (trial,i, X_train, y_train_fold, X_test, y_test_fold) )
+
         with tqdm(total=num_trials * outer_cv) as pbar:
             with ProcessPoolExecutor(max_workers=num_trials*inner_cv) as executor:
                 futures = {executor.submit(self.run_inner_hyperparameter_tuning, X_train, y_train_fold, X_test, y_test_fold,
-                                                                 inner_cv=inner_cv, scoring=scoring, verbose=verbose, n_jobs=1, random_seed=random_gen.randint(0, 1000), search_method=search_method): (trial,i) for trial,i,X_train, y_train_fold, X_test, y_test_fold in runs}
+                                                                 inner_cv=inner_cv, scoring=scoring, verbose=verbose, n_jobs=n_jobs, random_seed=random_gen.randint(0, 1000), search_method=search_method): (trial,i) for trial,i,X_train, y_train_fold, X_test, y_test_fold in runs}
                 for future in as_completed(futures):
                     trial,i = futures[future]
                     try:
@@ -984,6 +1102,7 @@ class experiment:
             os.makedirs(results_dir, exist_ok=True)
             results_df.to_excel(results_path, index=False)
         return test_Dict
+    # jobilib and sk_leanr nested cv
         
 
 

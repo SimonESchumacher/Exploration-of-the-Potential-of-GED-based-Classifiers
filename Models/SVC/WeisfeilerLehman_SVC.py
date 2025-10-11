@@ -20,7 +20,7 @@ DEBUG = False # Set to False to disable debug prints
 # import GraphClassifier as gc
 # Class of the SVC_WeisfeilerLehman is an extension of the SVC class
 class WeisfeilerLehman_SVC(SupportVectorMachine):
-    model_specific_iterations = 100  # Base number of iterations for this model
+    model_specific_iterations = 50  # Base number of iterations for this model
     def __init__(self, n_iter=5, C=1.0,normalize_kernel=True, random_state=None,base_kernel=(VertexHistogram,{ 'sparse': True }),kernel_type="precomputed",attributes:dict=dict(),**kwargs):
         self.n_iter = n_iter
         self.normalize_kernel = normalize_kernel
