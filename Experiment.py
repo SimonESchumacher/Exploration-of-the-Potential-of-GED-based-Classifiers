@@ -908,6 +908,8 @@ class experiment:
             elif search_method == "random":
                 param_grid = self.model.get_random_param_space()
                 print(f"Search Space: {param_grid}")
+        maximum_jobs = min(n_jobs, outer_cv*num_trials) if n_jobs != -1 else outer_cv*num_trials
+        inner_jobs = n_jobs // maximum_jobs if n_jobs != -1 else 1
         delayed_calls =[
             joblib.delayed(self.run_inner_hyperparameter_tuning)(X_train, y_train_fold, X_test, y_test_fold,
                                                                 inner_cv=inner_cv, scoring=scoring, verbose=verbose, n_jobs=1,
@@ -917,7 +919,7 @@ class experiment:
                                                                 )
             for i, (X_train, X_test, y_train_fold, y_test_fold) in enumerate(self.dataset.split_k_fold(k=inner_cv, random_state=random_gen.randint(0, 1000),repeat=num_trials))
         ]
-        all_folds_results = joblib.Parallel(n_jobs=n_jobs,verbose=1)(delayed_calls)
+        all_folds_results = joblib.Parallel(n_jobs=maximum_jobs,verbose=1)(delayed_calls)
         for fold_index, (best_model, best_params, best_score, accuracy_train,f1_train,precision_train,recall_train,roc_auc_train,classification_report_train, results_dict) in enumerate(all_folds_results):
             if fold_index ==0:
                 test_Dict["best_params"] = str(best_params)

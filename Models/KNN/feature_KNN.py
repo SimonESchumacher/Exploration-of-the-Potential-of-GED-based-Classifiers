@@ -8,6 +8,8 @@ from typing import Dict, Any, List
 # imports from custom modules
 import sys
 import os
+
+from Models.KNN.GEDLIB_KNN import abstract_GED_KNN
 sys.path.append(os.getcwd())
 from Models.Graph_Classifier import GraphClassifier
 from Models.KNN_Classifer import KNN
@@ -17,8 +19,8 @@ from Calculators.Vector_creator import VectorCreator
 # from Calculators.Dummy_Calculator import Dummy_Calculator
 DEBUG = False  # Set to False to disable debug prints
 
-class Feature_KNN(KNN):
-    model_specific_iterations = 100  # Base number of iterations for this model
+class Feature_KNN(abstract_GED_KNN):
+    model_specific_iterations = 50  # Base number of iterations for this model
 
     def __init__(self,
                 vector_feature_list:list,
@@ -26,10 +28,8 @@ class Feature_KNN(KNN):
                 prototype_size:int,
                 selection_split:str,
                 selection_method:str,
-                metric:str,
                 node_label_tag:str="label",
                 edge_label_tag:str="label",
-                ged_calculator:Base_Calculator=None, ged_bound="Mean-Distance",
                 attributes: dict=dict(),
                 **kwargs):
         """
@@ -40,11 +40,8 @@ class Feature_KNN(KNN):
         self.prototype_size = prototype_size
         self.selection_split = selection_split
         self.selection_method = selection_method
-        self.ged_calculator = ged_calculator
-        self.ged_bound = ged_bound
         self.node_label_tag = node_label_tag
         self.edge_label_tag = edge_label_tag
-        self.metric = metric
         if self.selection_method not in ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"]:
             raise ValueError(f"Unknown selection method: {self.selection_method}")
         if kwargs.get("name") is None:
@@ -58,14 +55,13 @@ class Feature_KNN(KNN):
             "dataset_name": self.dataset_name,
             "vector_feature_list": self.vector_feature_list
         })
-        self.vector_creator = VectorCreator(ged_calculator=ged_calculator)
+        
         super().__init__(
-            metric=self.metric,
-            metric_name=self.metric,
             attributes=attributes,
             name=self.name,
             **kwargs
         )
+        self.vector_creator = VectorCreator(ged_calculator=self.ged_calculator)
         self.add_vector_extractors()
         if DEBUG:
             print(f"Initialized GED_KNNClassifier")

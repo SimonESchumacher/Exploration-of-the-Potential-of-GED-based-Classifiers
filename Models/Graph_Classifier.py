@@ -53,26 +53,11 @@ class GraphClassifier(BaseEstimator, ClassifierMixin, abc.ABC):
         """
         return self.modelattributes
     def set_params(self, **params):
-        """
-        Set the parameters of this estimator.
-        """
-        for param, value in params.items():
-            if hasattr(self, param):
-                setattr(self, param, value)
-            elif self.modelattributes and param in self.modelattributes:
-                self.modelattributes[param] = value
+        for key, value in params.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
             else:
-                # To be safe, you might want to handle or log unexpected parameters
-                print(f"Warning: Attempting to set a parameter '{param}' that does not exist. Ignoring.")
-        
-        # if the underlying classifier can be updated, do so
-        if hasattr(self, 'classifier') and self.classifier is not None:
-            try:
-                valid_params = {k: v for k, v in params.items() if k in self.classifier.get_params(deep=False)}
-                self.classifier.set_params(**valid_params)
-            except Exception as e:
-                print(f"Could not set params on underlying classifier: {e}")
-
+                raise ValueError(f"Parameter {key} not found in GED_Calculator.")
         return self
     
     def set_class_weights(self, class_weights):

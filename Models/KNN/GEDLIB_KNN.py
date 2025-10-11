@@ -9,33 +9,58 @@ from sklearn.neighbors import KNeighborsClassifier
 import sys
 import os
 sys.path.append(os.getcwd())
+from Calculators.GED_Calculator import load_calculator_from_id
 from Models.Graph_Classifier import GraphClassifier
 from Models.KNN_Classifer import KNN
 from Calculators import Base_Calculator, Dummy_Calculator
 # from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
 # from Calculators.Dummy_Calculator import Dummy_Calculator
 DEBUG = False  # Set to False to disable debug prints
+_ged_calculator = None
+def set_global_ged_calculator_KNN(calculator):
+    global _ged_calculator
+    _ged_calculator = calculator
 
-class GED_KNN(KNN):
+class abstract_GED_KNN(KNN):
+    def __init__(self,
+                ged_bound: str,
+                metric:str,
+                calculator_id:str,
+                attributes : dict=dict(),
+                **kwargs):
+        """
+        Initialize the GED K-NN Classifier with the given parameters.
+        """
+        self.calculator_id = calculator_id
+        global _ged_calculator
+        if _ged_calculator is None:
+            _ged_calculator = load_calculator_from_id(calculator_id)
+        self.ged_calculator = _ged_calculator
+        self.ged_bound = ged_bound
+        attributes.update({
+            "ged_calculator": _ged_calculator.get_name() if _ged_calculator else "None",
+            "comparison_method": ged_bound
+        })
+        name = kwargs.pop("name", "GED-KNN")
+        super().__init__(
+            metric=metric,
+            metric_name=metric,
+            attributes=attributes,
+            name=name,
+            **kwargs
+        )
+    
+
+class GED_KNN(abstract_GED_KNN):
     model_specific_iterations = 50  # Base number of iterations for this model
     def __init__(self,
-                 ged_calculator:Base_Calculator=None, ged_bound="Mean-Distance",
                  attributes : dict=dict(),similarity=False ,**kwargs):
         """
         Initialize the GED K-NN Classifier with the given parameters.
         """
-
-        self.ged_calculator = ged_calculator
-        self.ged_bound = ged_bound
-        self.node_del_cost = 1.0
         self.similarity = similarity
-        attributes.update({
-            "ged_calculator": ged_calculator.get_name() if ged_calculator else "None",
-            "comparison_method": ged_bound
-        })
         super().__init__(
             metric="precomputed",
-            metric_name="GED",
             attributes=attributes,
             name="GED-KNN",
             **kwargs
@@ -86,7 +111,7 @@ class GED_KNN(KNN):
         """
         params = super().get_params(deep=deep)
         params.update({
-            "ged_calculator": self.ged_calculator,
+            "calculator_id": self.calculator_id,
             "comparison_method": self.ged_bound
         })
         return params

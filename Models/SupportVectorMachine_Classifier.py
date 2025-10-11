@@ -23,8 +23,6 @@ class SupportVectorMachine(GraphClassifier):
     def __init__(self, kernel_type="precomputed", C=1.0, random_state=None,kernelfunction=None,kernel_name="unspecified",class_weight=None,classes=[0,1],attributes=None, **kwargs):
         
         self.kernel_type = kernel_type
-        if kernelfunction is None and kernel_type == "precomputed":
-            self.kernel_type ='precomputed'
         #     self.kernel = "None"
         self.kernel_fuct = kernelfunction
         self.kernel_name = kernel_name
@@ -73,29 +71,6 @@ class SupportVectorMachine(GraphClassifier):
             "class_weight": self.class_weight,
         })
         return params
-    
-    def set_params(self, **params):
-        for parameter, value in params.items():
-            if DEBUG:
-                print(f"SVC: set_params: Setting {parameter} to {value}")
-            # Directly set attribute if it exists
-            if hasattr(self, parameter):
-                setattr(self, parameter, value)
-                # If the parameter also exists in the classifier, update it there too
-                if hasattr(self.classifier, parameter):
-                    self.classifier.set_params(**{parameter: value})
-            # Pass classifier__* params to classifier
-            elif parameter.startswith('classifier_'):
-                self.classifier.set_params(**{parameter.split('_', 1)[1]: value})
-            # Pass kernel__* params to kernel
-            elif parameter.startswith('KERNEL_') and hasattr(self.kernel_fuct, 'set_params'):
-                self.kernel_fuct.set_params(**{parameter.split('_', 1)[1]: value})
-            else:
-                # Fallback to parent class
-                super().set_params(**{parameter: value})
-        if DEBUG:
-            print(f"SVC: set_params: Set parameters for SupportVectorMachine.")
-        return self
     def fit(self, X, y=None):
         """
         Fits the SVC model to the graph data.

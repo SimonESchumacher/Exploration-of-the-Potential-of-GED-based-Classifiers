@@ -8,6 +8,8 @@ import os
 
 import numpy as np
 import tqdm
+
+from Calculators.GED_Calculator import GED_Calculator, load_calculator_from_id
 sys.path.append(os.getcwd())
 from grakel.kernels import Kernel
 from Calculators.Base_Calculator import Base_Calculator
@@ -23,17 +25,18 @@ def set_global_ged_calculator(calculator):
 class Base_GED_SVC(SupportVectorMachine):
     model_specific_iterations = 50
     def __init__(self,
-            ged_calculator,
             ged_bound,
+            calculator_id,  
             attributes:dict=dict(),
             name="Base_GED_SVC",
                 **kwargs):
-        # chekc if kwargs has the key "KERNEL_comparison_method", if not, set it to "Mean-Distance"
-        if ged_calculator is None:
-            raise ValueError("ged_calculator must be provided.")
+        global _ged_calculator
+        if _ged_calculator is None or calculator_id != _ged_calculator.get_identifier_name():
+            print("Warning: _ged_calculator is None or does not match. We are rebuilding")
+            _ged_calculator = load_calculator_from_id(calculator_id)
         # get all the kwargs for the Kernel that start with "KERNEL_"
-        
-        self.ged_calculator = ged_calculator
+        self.calculator_id = calculator_id
+        self.ged_calculator = _ged_calculator
         self.ged_bound = ged_bound
         self.name = name
         # if needed.
@@ -41,7 +44,7 @@ class Base_GED_SVC(SupportVectorMachine):
 
 
         attributes.update({
-            "ged_calculator_name": ged_calculator.get_name() if ged_calculator else None,
+            "ged_calculator_name": _ged_calculator.get_name() if _ged_calculator else None,
             "ged_bound": ged_bound
         })
         # Initialize the Support Vector Machine with the GED kernel
@@ -61,8 +64,8 @@ class Base_GED_SVC(SupportVectorMachine):
         params = super().get_params(deep=deep)
         # add the parameters of the ged_calculator with the prefix "GED_"
         params.update({
-            "ged_calculator": self.ged_calculator,
-            "ged_bound": self.ged_bound
+            "ged_bound": self.ged_bound,
+            "calculator_id": self.calculator_id
         })
        
         return params

@@ -26,7 +26,7 @@ class Trivial_GED_SVC(Base_GED_SVC):
             raise ValueError(f"Unknown similarity function: {self.similarity_function}")
         self.name="Trivial-GED"
         attributes.update({
-            "KERNEL_similarity_function": self.similarity_function
+            "similarity_function": self.similarity_function
         })
         super().__init__(attributes=attributes, name=self.name, **kwargs)
     def compare(self, g1, g2):

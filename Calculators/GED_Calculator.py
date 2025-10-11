@@ -36,15 +36,34 @@ class abstract_Calculator:
     
 
 class GED_Calculator:
-    def __init__(self, **kwargs):
-
+    def __init__(self, dataset_name=None, **kwargs):
+        global GED_distance_matrix_dict_cache
+        global GED_node_map_dict_cache
+        global _dataset_cache
         self.distance_matrix_dict = GED_distance_matrix_dict_cache
+        self.dataset_name = dataset_name
+        self.identifier_name = f"GED_Calculator_{dataset_name}"
         self.node_map = GED_node_map_dict_cache
         self.dataset = _dataset_cache
         self.params = kwargs
         self.name = "GED_Calculator"
         self.isactive = True
         self.isclalculated = True
+        if self.distance_matrix_dict is None or self.distance_matrix_dict == {}:
+            print("Warning: Distance matrix dictionary is not set or empty.")
+            backup = load_GED_calculator(dataset_name)  # default to MUTAG
+            self.distance_matrix_dict = backup.distance_matrix_dict
+            self.node_map = backup.node_map
+            self.dataset = backup.dataset
+            self.params = backup.params
+            self.isactive = backup.isactive
+            self.isclalculated = backup.isclalculated
+            self.name = backup.name
+
+            GED_distance_matrix_dict_cache = self.distance_matrix_dict
+            GED_node_map_dict_cache = self.node_map
+            _dataset_cache = self.dataset
+
     def set_params(self, **params):
         for key, value in params.items():
             if hasattr(self, key):
@@ -67,7 +86,7 @@ class GED_Calculator:
             raise ValueError(f"Node map for method {method} not available.")
         return self.node_map[method][graph1_index][graph2_index]
     def compare(self, graph1_index, graph2_index, method):
-        if self.distance_matrix_dict is None:
+        if self.distance_matrix_dict is None or self.distance_matrix_dict == {}:
             raise ValueError("Distance matrix dictionary is not set.")
         if method is None:
            method = self.distance_matrix_dict.keys()[0]
@@ -79,7 +98,7 @@ class GED_Calculator:
         if method is None:
             method = self.distance_matrix_dict.keys()[0]
         elif method not in self.distance_matrix_dict:
-            if self.distance_matrix_dict is None:
+            if self.distance_matrix_dict is None or self.distance_matrix_dict == {}:
                 raise ValueError("Distance matrix dictionary is not set.")
             raise ValueError(f"Distance matrix for method {method} not available.")
         if x_graphindexes is None and y_graphindexes is None:
@@ -92,9 +111,12 @@ class GED_Calculator:
         return self.dataset
         # If specific graph indexes are provided, return the submatrix
     def save_calculator(self, dataset_name):
+        self.identifier_name = self.get_Name() + f"_{dataset_name}"
         filename = self.get_Name() + f"_{dataset_name}.joblib"
         filepath = "presaved_data/" + filename
         joblib.dump(self, filepath)
+    def get_identifier_name(self):
+        return self.identifier_name
     def get_param_grid(self):
         return {"method": list(self.distance_matrix_dict.keys())}
         
@@ -121,7 +143,10 @@ class Heuristic_Calculator:
         return self.name
     def get_name(self):
         return self.name
+    def get_identifier_name(self):
+        return self.identifier_name
     def save_calculator(self, dataset_name):
+        self.identifier_name = self.get_Name() + f"_{dataset_name}"
         filename = self.get_Name() + f"_{dataset_name}.joblib"
         filepath = "presaved_data/" + filename
         joblib.dump(self, filepath)
@@ -151,7 +176,7 @@ class Heuristic_Calculator:
     
 
 
-def build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("BIPARTITE","upper")], dataset=None, labels=None,datset_name=None, **kwargs) -> GED_Calculator:
+def build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("BIPARTITE","upper")], dataset=None, labels=None,dataset_name=None, **kwargs) -> GED_Calculator:
     if dataset is None or labels is None:
         raise ValueError("Dataset and labels must be provided to build GED_Calculator.")
     with tqdm.tqdm(total=((len(dataset)*(len(dataset)+1)/2)+2)*len(GED_calc_methods)) as pbar:
@@ -191,7 +216,7 @@ def build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("BIPARTITE
                 pbar.update(1)
     global _dataset_cache
     _dataset_cache = dataset
-    return GED_Calculator()
+    return GED_Calculator(dataset_name=dataset_name)
 
 def build_Heuristic_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=["Vertex","Edge","SUM"], dataset=None, labels=None, **kwargs) -> Heuristic_Calculator:
     if dataset is None or labels is None:
@@ -236,7 +261,7 @@ def load_GED_calculator(dataset_name: str) -> GED_Calculator:
     global GED_distance_matrix_dict_cache
     global GED_node_map_dict_cache
     global _dataset_cache
-
+    ged_calculator.identifier_name = ged_calculator.get_Name() + f"_{dataset_name}"
     GED_distance_matrix_dict_cache = ged_calculator.distance_matrix_dict
     GED_node_map_dict_cache = ged_calculator.node_map
     _dataset_cache = ged_calculator.dataset
@@ -246,16 +271,24 @@ def load_Heuristic_calculator(dataset_name: str) -> Heuristic_Calculator:
     filename = "Heuristic_Calculator_" + dataset_name + ".joblib"
     filepath = "presaved_data/" + filename
     heuristic_calculator: Heuristic_Calculator = joblib.load(filepath)
+    heuristic_calculator.identifier_name = heuristic_calculator.get_Name() + f"_{dataset_name}"
     global Heuristic_distance_matrix_dict_cache
     global Heuristic_node_map_dict_cache
     global _dataset_cache
-
     Heuristic_distance_matrix_dict_cache = heuristic_calculator.distance_matrix_dict
     Heuristic_node_map_dict_cache = heuristic_calculator.node_map
     _dataset_cache = heuristic_calculator.dataset
 
     return heuristic_calculator
 
+def load_calculator_from_id(identifier_name: str):
+    if identifier_name.startswith("GED_Calculator_"):
+        return  load_GED_calculator(identifier_name[len("GED_Calculator_"):])
+    elif identifier_name.startswith("Heuristic_Calculator_"):
+        return load_Heuristic_calculator(identifier_name[len("Heuristic_Calculator_"):])
+    else:
+        raise ValueError(f"Unknown calculator identifier: {identifier_name}")
+    
 
 _adj_matrices_dict_cache ={}
 _precomputed_walk_traces = {}  
@@ -270,6 +303,10 @@ class Randomwalk_GED_Calculator:
         self.name = "Randomwalk_GED_Calculator"
     def get_Name(self):
         return self.name
+    def get_name(self):
+        return self.name
+    def get_identifier_name(self):
+        return self.identifier_name
     def set_params(self, **params):
         for key, value in params.items():
             if hasattr(self, key):
@@ -279,6 +316,11 @@ class Randomwalk_GED_Calculator:
         return self
     def get_params(self, deep=True):
         return self.params
+    def save_calculator(self, dataset_name):
+        self.identifier_name = self.get_Name() + f"_{dataset_name}"
+        filename = self.get_Name() + f"_{dataset_name}.joblib"
+        filepath = "presaved_data/" + filename
+        joblib.dump(self, filepath)
     def get_adj_matrix(self, g1_index, g2_index,method):
         if method is None:
             method = list(self.adj_matrices_dict.keys())[0]
@@ -421,4 +463,37 @@ def build_Randomwalk_GED_calculator(ged_calculator,max_walk_length=7, **kwargs) 
     _dataset_cache = dataset
     _adj_matrices_dict_cache = adj_matrices_dict
     _precomputed_walk_traces = precomputed_walk_traces
-    return Randomwalk_GED_Calculator()
+    calculator = Randomwalk_GED_Calculator()
+    dataset_name = ged_calculator.get_identifier_name()[len("GED_Calculator_"):]
+    calculator.save_calculator(dataset_name)
+    return calculator
+
+def load_Randomwalk_GED_calculator(dataset_name: str) -> Randomwalk_GED_Calculator:
+    filename = "Randomwalk_GED_Calculator_" + dataset_name + ".joblib"
+    filepath = "presaved_data/" + filename
+    randomwalk_ged_calculator: Randomwalk_GED_Calculator = joblib.load(filepath)
+    global _adj_matrices_dict_cache
+    global _precomputed_walk_traces
+    global _dataset_cache
+    randomwalk_ged_calculator.identifier_name = randomwalk_ged_calculator.get_Name() + f"_{dataset_name}"
+    _adj_matrices_dict_cache = randomwalk_ged_calculator.adj_matrices_dict
+    _precomputed_walk_traces = randomwalk_ged_calculator.precomputed_walk_traces
+    _dataset_cache = randomwalk_ged_calculator.dataset
+
+    return randomwalk_ged_calculator
+def load_Randomwalk_calculator_from_id(identifier_name: str):
+    if identifier_name.startswith("Randomwalk_GED_Calculator_"):
+        return  load_Randomwalk_GED_calculator(identifier_name[len("Randomwalk_GED_Calculator_"):])
+    else:
+        raise ValueError(f"Unknown calculator identifier: {identifier_name}")
+
+def try_load_else_build_rw_calculator(ged_calculator, max_walk_length=7):
+    dataset_name = ged_calculator.get_identifier_name()[len("GED_Calculator_"):]
+    try:
+        rw_calculator = load_Randomwalk_GED_calculator(dataset_name)
+        print(f"Loaded precomputed Randomwalk_GED_Calculator for dataset {dataset_name}.")
+    except (FileNotFoundError, ValueError) as e:
+        print(f"Precomputed Randomwalk_GED_Calculator for dataset {dataset_name} not found or failed to load ({e}). Building new one...")
+        rw_calculator = build_Randomwalk_GED_calculator(ged_calculator, max_walk_length=max_walk_length)
+        print(f"Built and saved new Randomwalk_GED_Calculator for dataset {dataset_name}.")
+    return rw_calculator

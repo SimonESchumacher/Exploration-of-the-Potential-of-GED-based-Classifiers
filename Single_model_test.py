@@ -30,12 +30,12 @@ from Models.KNN.GEDLIB_KNN import GED_KNN
 from Models.KNN.feature_KNN import Feature_KNN
 import pandas as pd
 from io_Manager import IO_Manager
-N_JOBS = 1
+N_JOBS = 15
 SPLIT=0.2 # 10% test size alternatively 0.2 for 20%
 NUM_TRIALS=3
-TEST_TRIAL=True
+TEST_TRIAL=False
 Test_DF=pd.DataFrame()
-DATASET_NAME="PTC_FR"
+DATASET_NAME="MUTAG"
 GED_BOUND="IPFP"  # "UpperBound-Distance", "Mean-Distance", "LowerBound-Distance"
 EXPERIMENT_NAME="TEST_JOBLIB"
 ONLY_ESTIMATE=False
@@ -50,7 +50,7 @@ def get_classifier(ged_calculator):
     # random_walk_calculator = RandomWalkCalculator(ged_calculator=ged_calculator, llambda_samples=[0.005,0.01,0.03,0.05,0.1,0.2,0.45,0.89], dataset=DATASET,ged_method=GED_BOUND)
     # random_walk_calculator = build_Randomwalk_GED_calculator(ged_calculator=ged_calculator)
     # return Random_Walk_edit_accelerated(ged_calculator=ged_calculator, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced', random_walk_calculator=random_walk_calculator)
-    return Trivial_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1')
+    return Trivial_GED_SVC(calculator_id=ged_calculator.get_identifier_name(),ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1')
     # return  Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=1, selection_method="TPS", selection_split="all",dataset_name=DATASET.name)
     # return Feature_KNN(vector_feature_list=["VertexHistogram","density","Prototype-Distance"], dataset_name=DATASET.name, prototype_size=5, selection_split="all", selection_method="TPS", metric="minkowski", ged_calculator=ged_calculator, ged_bound="Mean-Distance", n_neighbors=5, weights='uniform', algorithm='auto')
     # return HybridPrototype_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=5, selection_method="TPS", selection_split="all",dataset_name=DATASET.name, vector_feature_list=["density"], node_label_tag="label", edge_label_tag="label")
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     if PRELOAD_CALCULATORS:
         ged_calculator = "GED_Calculator"
     else:
-        ged_calculator = lambda dataset, labels: build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("IPFP","upper")], dataset=dataset, labels=labels, need_node_map=True)
+        ged_calculator = lambda dataset, labels: build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("IPFP","upper")], dataset=dataset, labels=labels,dataset_name=DATASET_NAME, need_node_map=True)
     DATASET, ged_calculator = get_Dataset(DATASET_NAME, ged_calculator)
     set_global_ged_calculator(ged_calculator)
     classifier = get_classifier(ged_calculator)

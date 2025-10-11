@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import time
+from Calculators.GED_Calculator import load_Randomwalk_GED_calculator, load_Randomwalk_calculator_from_id
 from Calculators.Product_GRaphs import RandomWalkCalculator, build_restricted_product_graph, limited_length_approx_random_walk_similarity, infinte_length_random_walk_similarity
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from io_Manager import IO_Manager
@@ -83,24 +84,31 @@ class Random_walk_edit_SVC(Base_GED_SVC):
             "max_walk_length": [2,3,4, 5,6,-1]  # -1 indicates infinite length
         })
         return param_space
+_random_walk_calculator = None
+def set_global_random_walk_calculator(calculator):
+    global _random_walk_calculator
+    _random_walk_calculator = calculator
 class Random_Walk_edit_accelerated(Random_walk_edit_SVC):
     model_specific_iterations = 40
     
     def __init__(self,
                 decay_lambda,
                 max_walk_length,
-                random_walk_calculator: RandomWalkCalculator,
+                random_walk_calculator_id: str,
                 attributes:dict=dict(),
                 **kwargs):
         # if DEBUG:
         #     print(f"Initializing Random_walk_edit_SVC with decay_lambda={decay_lambda}, max_walk_length={max_walk_length}")
         self.name="Random-Walk-Edit-Accelerated"
-        if random_walk_calculator is None:
-            raise ValueError("random_walk_calculator must be provided.")
+        self.random_walk_calculator_id = random_walk_calculator_id
+        global _random_walk_calculator
+        if _random_walk_calculator is None:
+            print("Warning: _random_walk_calculator is None. We are rebuilding")
+            _random_walk_calculator = load_Randomwalk_calculator_from_id(random_walk_calculator_id)
         else:
-            self.random_walk_calculator = random_walk_calculator
+            self.random_walk_calculator = _random_walk_calculator
         super().__init__(decay_lambda=decay_lambda, max_walk_length=max_walk_length, attributes=attributes, **kwargs)
-        self.random_walk_calculator = random_walk_calculator
+        self.random_walk_calculator = _random_walk_calculator
         # print(f"fitting random walk function for max_walk_length={max_walk_length}")
         # start = time.time()
                # print(f"fitted random walk function in {end-start} seconds")
@@ -121,7 +129,7 @@ class Random_Walk_edit_accelerated(Random_walk_edit_SVC):
         params = super().get_params(deep=deep)
         # add the parameters of the ged_calculator with the prefix "GED_"
         params.update({
-            "random_walk_calculator": self.random_walk_calculator
+            "random_walk_calculator_id": self.random_walk_calculator_id
         })
         return params
 
