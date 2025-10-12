@@ -6,7 +6,7 @@ from grakel.kernels import VertexHistogram, EdgeHistogram, WeisfeilerLehman
 
 
 class HybridPrototype_GED_SVC(Simple_Prototype_GED_SVC):
-    model_specific_iterations = 40  # Base number of iterations for this model
+    model_specific_iterations = 80  # Base number of iterations for this model
     def __init__(self,
                 vector_feature_list: list,
                 node_label_tag: str,

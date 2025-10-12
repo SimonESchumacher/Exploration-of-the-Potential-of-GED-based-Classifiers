@@ -157,6 +157,8 @@ class Heuristic_Calculator:
             print("Warning, no method provided, using the first available method.")
             method = list(self.distance_matrix_dict.keys())[0]
         elif method not in self.distance_matrix_dict:
+            if self.distance_matrix_dict is None or self.distance_matrix_dict == {}:
+                raise ValueError("Distance matrix dictionary is not set.")
             raise ValueError(f"Distance matrix for method {method} not available.")
         return self.distance_matrix_dict[method][graph1_index][graph2_index]
     def get_complete_matrix(self, method, x_graphindexes=None, y_graphindexes=None):
@@ -164,6 +166,8 @@ class Heuristic_Calculator:
             print("Warning, no method provided, using the first available method.")
             method = list(self.distance_matrix_dict.keys())[0]
         elif method not in self.distance_matrix_dict:
+            if self.distance_matrix_dict is None or self.distance_matrix_dict == {}:
+                raise ValueError("Distance matrix dictionary is not set.")
             raise ValueError(f"Distance matrix for method {method} not available.")
         if x_graphindexes is None and y_graphindexes is None:
             return self.distance_matrix_dict[method]

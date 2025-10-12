@@ -26,13 +26,13 @@ from Models.SVC.GED.GED_Diffu_SVC import DIFFUSION_GED_SVC
 from Models.SVC.GED.Zero_GED_SVC import ZERO_GED_SVC
 from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
 from Models.SVC.Base_GED_SVC import Base_GED_SVC, set_global_ged_calculator
-from Models.KNN.GEDLIB_KNN import GED_KNN
+from Models.KNN.GEDLIB_KNN import GED_KNN, set_global_ged_calculator_KNN
 from Models.KNN.feature_KNN import Feature_KNN
 import pandas as pd
 from io_Manager import IO_Manager
-N_JOBS = 15
+N_JOBS = 5
 SPLIT=0.2 # 10% test size alternatively 0.2 for 20%
-NUM_TRIALS=3
+NUM_TRIALS=1
 TEST_TRIAL=False
 Test_DF=pd.DataFrame()
 DATASET_NAME="MUTAG"
@@ -45,14 +45,18 @@ USE_EDGE_LABELS="label"
 
 
 def get_classifier(ged_calculator):
+    set_global_ged_calculator_KNN(ged_calculator)
+
     # return ZERO_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=7, aggregation_method="sum",dataset_name=DATASET.name,selection_method="k-CPS")
     # return Random_walk_edit_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
     # random_walk_calculator = RandomWalkCalculator(ged_calculator=ged_calculator, llambda_samples=[0.005,0.01,0.03,0.05,0.1,0.2,0.45,0.89], dataset=DATASET,ged_method=GED_BOUND)
     # random_walk_calculator = build_Randomwalk_GED_calculator(ged_calculator=ged_calculator)
     # return Random_Walk_edit_accelerated(ged_calculator=ged_calculator, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced', random_walk_calculator=random_walk_calculator)
-    return Trivial_GED_SVC(calculator_id=ged_calculator.get_identifier_name(),ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1')
+    # return Trivial_GED_SVC(calculator_id=ged_calculator.get_identifier_name(),ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1')
     # return  Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=1, selection_method="TPS", selection_split="all",dataset_name=DATASET.name)
-    # return Feature_KNN(vector_feature_list=["VertexHistogram","density","Prototype-Distance"], dataset_name=DATASET.name, prototype_size=5, selection_split="all", selection_method="TPS", metric="minkowski", ged_calculator=ged_calculator, ged_bound="Mean-Distance", n_neighbors=5, weights='uniform', algorithm='auto')
+
+    return Feature_KNN(vector_feature_list=["VertexHistogram","density","Prototype-Distance"], dataset_name=DATASET.name, prototype_size=5, selection_split="all", selection_method="TPS", metric="minkowski", calculator_id=ged_calculator.get_identifier_name(), ged_bound=GED_BOUND, n_neighbors=5, weights='uniform', algorithm='auto')
+
     # return HybridPrototype_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=5, selection_method="TPS", selection_split="all",dataset_name=DATASET.name, vector_feature_list=["density"], node_label_tag="label", edge_label_tag="label")
     # return GED_KNN(ged_calculator=ged_calculator, ged_bound=GED_BOUND, n_neighbors=7, weights='uniform', algorithm='auto')
     # return CombinedHistogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced')

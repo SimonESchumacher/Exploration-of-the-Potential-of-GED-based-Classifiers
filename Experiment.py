@@ -2,8 +2,9 @@
 # Imports
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import random
+from time import time
 import joblib
-from sklearn.metrics import accuracy_score, classification_report, f1_score, roc_auc_score, precision_score, recall_score
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score, roc_auc_score, precision_score, recall_score
 import numpy as np
 import os
 import pandas as pd
@@ -728,7 +729,72 @@ class experiment:
         except np.AxisError:
             roc_auc = 0.0
         classification_report_str = classification_report(y_test, y_pred, zero_division=0.0)
+        # get confusion matrix as a string
         return accuracy,f1,precision,recall,roc_auc,classification_report_str
+    
+    def extensive_model_score(self,best_params,X_train,X_test,y_train,y_test,classes):
+        # create a new model instance with the best params
+        results_dict = dict()
+        self.model = self.model.__class__(**best_params)
+        # get the current time in seconds and milliseconds
+        start_time = time.time()
+        self.inner_model_fit(X_train, y_train)
+        done_training_time = time.time()
+        
+        training_duration = done_training_time - start_time
+        results_dict["training_duration"] = str(training_duration)
+        y_pred_test, y_score_test = self.inner_model_predict(X_test)
+        testing_duration = time.time() - done_training_time
+        results_dict["testing_duration"] = str(testing_duration)
+
+        # measure test scores
+        results_dict["accuracy_test"] = accuracy_score(y_test, y_pred_test)
+        results_dict["f1_macro_test"] = f1_score(y_test, y_pred_test, average='macro', zero_division=0.0)
+        results_dict["f1_micro_test"] = f1_score(y_test, y_pred_test, average='micro', zero_division=0.0)
+        results_dict["f1_weighted_test"] = f1_score(y_test, y_pred_test, average='weighted', zero_division=0.0)
+        results_dict["precision_test"] = precision_score(y_test, y_pred_test, average=REPORT_SETTING, zero_division=0.0)
+        results_dict["recall_test"] = recall_score(y_test, y_pred_test, average=REPORT_SETTING, zero_division=0.0)
+        # figure out if this is a binary or multi class classification
+        if len(classes) == 2:
+            try:
+                results_dict["roc_auc_test"] = roc_auc_score(y_test, y_score_test[:, 1], pos_label=classes[1]) if y_score_test is not None else 0.0
+            except np.AxisError:
+                results_dict["roc_auc_test"] = 0.0
+            # get the confusion matrix entries for binary classification
+            results_dict["tn"], results_dict["fp"], results_dict["fn"], results_dict["tp"] = confusion_matrix(y_test, y_pred_test, labels=classes).ravel()
+        else:
+            try:
+                results_dict["roc_auc_test"] = roc_auc_score(y_test, y_score_test, labels=classes, multi_class='ovr') if y_score_test is not None else 0.0
+            except np.AxisError:
+                results_dict["roc_auc_test"] = 0.0
+            # get the f1 score for each class
+            f1_per_class = f1_score(y_test, y_pred_test, labels=classes, average=None, zero_division=0.0)
+            for i, cls in enumerate(classes):
+                results_dict[f"f1_class_{cls}_test"] = f1_per_class[i]
+        # get the classification report as a string
+        results_dict["classification_report_test"] = classification_report(y_test, y_pred_test, zero_division=0.0)
+
+        # test for overfitting
+        y_pred_train, y_score_train = self.inner_model_predict(X_train)
+        results_dict["accuracy_train"] = accuracy_score(y_train, y_pred_train)
+        results_dict["f1_macro_train"] = f1_score(y_train, y_pred_train, average='macro', zero_division=0.0)
+        results_dict["f1_micro_train"] = f1_score(y_train, y_pred_train, average='micro', zero_division=0.0)
+        results_dict["f1_weighted_train"] = f1_score(y_train, y_pred_train, average='weighted', zero_division=0.0)
+        if len(classes) == 2:
+            try:
+                results_dict["roc_auc_train"] = roc_auc_score(y_train, y_score_train[:, 1], pos_label=classes[1]) if y_score_train is not None else 0.0
+            except np.AxisError:
+                results_dict["roc_auc_train"] = 0.0
+        else:
+            try:
+                results_dict["roc_auc_train"] = roc_auc_score(y_train, y_score_train, labels=classes, multi_class='ovr') if y_score_train is not None else 0.0
+            except np.AxisError:
+                results_dict["roc_auc_train"] = 0.0
+        return results_dict
+
+
+
+
 
     
     def run_inner_hyperparameter_tuning(self,X_train,y_train,Y_test,y_test,inner_cv=5,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'], verbose=0, n_jobs=-1, random_seed=RANDOM_STATE, search_method="random",test_trail=False,fold_index=None):
@@ -750,8 +816,9 @@ class experiment:
         best_score = tuner.best_score_
         self.model = best_model
         results_dict = tuner.cv_results_
-        accuracy,f1,precision,recall,roc_auc,classification_report_str = self.score_best_model(Y_test,y_test)
 
+        accuracy,f1,precision,recall,roc_auc,classification_report_str = self.score_best_model(Y_test,y_test)
+        # scores = self.extensive_model_score(best_params,X_train,Y_test,y_train,y_test,classes=self.model.classes_)
 
 
         return best_model, best_params, best_score, accuracy,f1,precision,recall,roc_auc,classification_report_str, results_dict
@@ -835,8 +902,6 @@ class experiment:
             test_Dict["k_fold_f1_std"] = np.std(f1_scores)
             test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)
             test_Dict["k_fold_roc_auc_std"] = np.std(roc_auc_scores)
-            test_Dict["k_fold_precision"] = np.mean(precision_scores)
-            test_Dict["k_fold_recall"] = np.mean(recall_scores)
         elif erroracknowledgment == "confidence interval":
             # Calculate confidence intervals for each metric
             n = len(accuracy_scores)
@@ -848,17 +913,17 @@ class experiment:
             test_Dict["K_fold_f1_CI"] = z_score * np.std(f1_scores) / np.sqrt(n)
             test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)
             test_Dict["K_fold_roc_auc_CI"] = z_score * np.std(roc_auc_scores) / np.sqrt(n)
-            test_Dict["k_fold_precision"] = np.mean(precision_scores)
-            test_Dict["k_fold_recall"] = np.mean(recall_scores)
         elif erroracknowledgment == "none":
             test_Dict["k_fold_accuracy"] = np.mean(accuracy_scores)
             test_Dict["k_fold_f1_score"] = np.mean(f1_scores)
-            test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)
-            test_Dict["k_fold_precision"] = np.mean(precision_scores)
-            test_Dict["k_fold_recall"] = np.mean(recall_scores)
+            test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)  
         else:
             raise ValueError(f"Unknown error acknowledgment method: {erroracknowledgment}. Use 'std', 'confidence interval', or 'none'.")
+        test_Dict["k_fold_precision"] = np.mean(precision_scores)
+        test_Dict["k_fold_recall"] = np.mean(recall_scores)
         test_Dict["nested_total_duration"] = str(total_duration)
+        test_Dict["total_folds"] = num_trials * outer_cv * inner_cv * self.model.random_search_iterations() if search_method == "random" else num_trials * outer_cv * inner_cv * np.prod([len(v) for v in param_grid.values()])
+        test_Dict["time_now"] = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
         if get_all_results:
             results_dir = os.path.join("configs", "results", "Hyperparameter_tuning_results")
             results_path = os.path.join(results_dir, f"Hyperparameter_{self.model_name}_{self.dataset_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
@@ -912,12 +977,12 @@ class experiment:
         inner_jobs = n_jobs // maximum_jobs if n_jobs != -1 else 1
         delayed_calls =[
             joblib.delayed(self.run_inner_hyperparameter_tuning)(X_train, y_train_fold, X_test, y_test_fold,
-                                                                inner_cv=inner_cv, scoring=scoring, verbose=verbose, n_jobs=1,
+                                                                inner_cv=inner_cv, scoring=scoring, verbose=verbose, n_jobs=inner_jobs,
                                                                 random_seed=random_gen.randint(0, 1000),
                                                                 search_method=search_method,test_trail=test_trail,
                                                                 fold_index=i
                                                                 )
-            for i, (X_train, X_test, y_train_fold, y_test_fold) in enumerate(self.dataset.split_k_fold(k=inner_cv, random_state=random_gen.randint(0, 1000),repeat=num_trials))
+            for i, (X_train, X_test, y_train_fold, y_test_fold) in enumerate(self.dataset.split_k_fold(k=inner_cv, random_state=random_gen.randint(0, 1000),repeat=num_trials,stratify=True))
         ]
         all_folds_results = joblib.Parallel(n_jobs=maximum_jobs,verbose=1)(delayed_calls)
         for fold_index, (best_model, best_params, best_score, accuracy_train,f1_train,precision_train,recall_train,roc_auc_train,classification_report_train, results_dict) in enumerate(all_folds_results):
@@ -934,6 +999,9 @@ class experiment:
             # Append the results_dict to the results_df
             results_dict['fold_index'] = fold_index
             results_df = pd.concat([results_df, pd.DataFrame(results_dict)], ignore_index=True)
+
+
+
         time_End = pd.Timestamp.now()
         total_duration = time_End - time_Start
         if should_print:
@@ -975,7 +1043,7 @@ class experiment:
         test_Dict["nested_total_duration"] = str(total_duration)
         if get_all_results:
             results_dir = os.path.join("configs", "results", "Hyperparameter_tuning_results")
-            results_path = os.path.join(results_dir, f"Hyperparameter_{self.model_name}_{self.dataset_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
+            results_path = os.path.join(results_dir, f"HP_{pd.Timestamp.now().strftime('%Y%m%d')}_{self.model_name}_{self.dataset_name}.xlsx")
             os.makedirs(results_dir, exist_ok=True)
             results_df.to_excel(results_path, index=False)
         return test_Dict

@@ -31,22 +31,22 @@ from Models.KNN.GEDLIB_KNN import GED_KNN, set_global_ged_calculator_KNN
 import pandas as pd
 import networkx as nx
 from io_Manager import IO_Manager
-N_JOBS =3
+N_JOBS =15
 SPLIT=0.2
-NUM_TRIALS=1
+NUM_TRIALS=3
 SEARCH_METHOD="random"  # "grid" or "random"
  # 10% test size alternatively 0.2 for 20%
 EXPERIMENT_NAME="BIG_TEST"
-GED_BOUND="ANCHOR_AWARE_GED"  # "UpperBound-Distance", "Mean-Distance", "LowerBound-Distance"
+GED_BOUND="IPFP"  # "UpperBound-Distance", "Mean-Distance", "LowerBound-Distance"
 HEURISTIC_BOUND="Combined"  # "Vertex", "Edge", "Combined"
-GED_CALC_METHOD="ANCHOR_AWARE_GED"  # "BIPARTITE", "ANCHOR_AWARE_GED", "IPFP"
+GED_CALC_METHOD="IPFP"  # "BIPARTITE", "ANCHOR_AWARE_GED", "IPFP"
 ONLY_ESTIMATE=False
 PRELOAD_CALCULATORS=True
 ONLY_LOAD_CALCULATORS=False
-GED_EDIT_COST="LETTER"  # "CONSTANT"
-TEST_TRAIL=True
+GED_EDIT_COST="CONSTANT"  # "CONSTANT"
+TEST_TRAIL=False
 MULTI=False
-DATASET_STR="Letter-high"
+DATASET_STR="PTC_FR"
 DATASET_EDGE_LABELS=None
 DATASETS = ["MUTAG","MSRC_9","PTC_FR"]
 DATASET_Labels =["label",None,"label"]
@@ -65,11 +65,11 @@ def nonGEd_classifiers(ged_calculator: Base_Calculator, dataset: Dataset):
 
 
 def ged_classifiers(ged_calculator: Base_Calculator, dataset: Dataset):
-    # if PRELOAD_CALCULATORS:
-    #     random_walk_calculator = try_load_else_build_rw_calculator(ged_calculator=ged_calculator)
-    # else:
-    #     random_walk_calculator = build_Randomwalk_GED_calculator(ged_calculator=ged_calculator, llambda_samples=[0.005,0.01,0.03,0.05,0.1,0.2,0.45], dataset=dataset)
-    # random_walk_calculator_id = random_walk_calculator.get_identifier_name()
+    if PRELOAD_CALCULATORS:
+        random_walk_calculator = try_load_else_build_rw_calculator(ged_calculator=ged_calculator)
+    else:
+        random_walk_calculator = build_Randomwalk_GED_calculator(ged_calculator=ged_calculator, llambda_samples=[0.005,0.01,0.03,0.05,0.1,0.2,0.45], dataset=dataset)
+    random_walk_calculator_id = random_walk_calculator.get_identifier_name()
     set_global_ged_calculator(ged_calculator)
     set_global_ged_calculator_KNN(ged_calculator)
     calculator_id = ged_calculator.get_identifier_name()
@@ -82,7 +82,7 @@ def ged_classifiers(ged_calculator: Base_Calculator, dataset: Dataset):
         Simple_Prototype_GED_SVC(calculator_id=calculator_id, ged_bound=GED_BOUND, C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=8, selection_method="k-CPS", selection_split="all",dataset_name=dataset.name),
         ZERO_GED_SVC(calculator_id=calculator_id, ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=1, aggregation_method="sum",dataset_name=dataset.name,selection_method="k-CPS"),
         HybridPrototype_GED_SVC(calculator_id=calculator_id, ged_bound=GED_BOUND, C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=5, selection_method="TPS", selection_split="all",dataset_name=dataset.name, vector_feature_list=["VertexHistogram","density"],node_label_tag=dataset.Node_label_name, edge_label_tag=dataset.Edge_label_name),
-        # Random_Walk_edit_accelerated(calculator_id=calculator_id, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1,random_walk_calculator_id=random_walk_calculator_id, C=1.0,kernel_type="precomputed", class_weight='balanced')
+        Random_Walk_edit_accelerated(calculator_id=calculator_id, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1,random_walk_calculator_id=random_walk_calculator_id, C=1.0,kernel_type="precomputed", class_weight='balanced')
         ]
 # def get_Random_walk_edit_SVC(ged_calculator: Base_Calculator, dataset: Dataset):
 #     random_walk_calculator = RandomWalkCalculator(ged_calculator=ged_calculator, llambda_samples=[0.005,0.01,0.03,0.05,0.1,0.2,0.45], dataset=dataset)
@@ -93,7 +93,7 @@ def reference_classifiers(ged_calculator: Base_Calculator, dataset: Dataset):
     calculator_id = ged_calculator.get_identifier_name()
     return [
         GED_KNN(calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, n_neighbors=7, weights='uniform', algorithm='auto'),
-        Feature_KNN(vector_feature_list=["VertexHistogram","density","Prototype-Distance"], dataset_name=dataset.name, prototype_size=5, selection_split="all", selection_method="TPS", metric="minkowski", calculator_id=calculator_id, ged_bound=GED_BOUND, n_neighbors=5, weights='uniform', algorithm='auto', node_label_tag=dataset.Node_label_name, edge_label_tag=dataset.Edge_label_name),
+        Feature_KNN(vector_feature_list=["VertexHistogram","density","Prototype-Distance"], dataset_name=dataset.name, prototype_size=5, selection_split="all", selection_method="TPS", metric="minkowski", calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, n_neighbors=5, weights='uniform', algorithm='auto', node_label_tag=dataset.Node_label_name, edge_label_tag=dataset.Edge_label_name),
         Base_GED_SVC(calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced'),
         Trivial_GED_SVC(calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1'),
         DIFFUSION_GED_SVC(C=1.0, llambda=1.0, calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
@@ -104,9 +104,9 @@ def reference_classifiers(ged_calculator: Base_Calculator, dataset: Dataset):
 
 
 def get_Dataset(dataset_name: str, ged_calculator, edge_labels=None):
-    DATASET= Dataset(name=dataset_name, source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels=edge_labels,load_now=False,use_node_attributes="attributes", use_edge_attributes=None)
-    # DATASET.load()
-    DATASET.load_with_attributes(new_attributes=["x","y"], encoding_dimension=2, remove_old=True)
+    DATASET= Dataset(name=dataset_name, source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels=edge_labels,load_now=False,use_node_attributes=None, use_edge_attributes=None)
+    DATASET.load()
+    # DATASET.load_with_attributes(new_attributes=["x","y"], encoding_dimension=2, remove_old=True)
     return DATASET, DATASET.get_calculator()
 # run a list of classifiers on a dataset and return the results in a dataframe
 last_save_time = pd.Timestamp.now()

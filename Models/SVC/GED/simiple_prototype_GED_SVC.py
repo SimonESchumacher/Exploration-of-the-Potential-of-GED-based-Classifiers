@@ -17,7 +17,7 @@ from Calculators.Prototype_Selction import select_Prototype, Prototype_Selector,
 DEBUG = False  # Set to True for debug prints
 
 class Simple_Prototype_GED_SVC(Base_GED_SVC):
-    model_specific_iterations = 60  # Base number of iterations for this model
+    model_specific_iterations = 90  # Base number of iterations for this model
     def __init__(self,
                 prototype_size,
                 selection_split,

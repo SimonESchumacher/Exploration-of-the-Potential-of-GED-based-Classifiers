@@ -52,8 +52,10 @@ class abstract_GED_KNN(KNN):
     
 
 class GED_KNN(abstract_GED_KNN):
-    model_specific_iterations = 50  # Base number of iterations for this model
+    model_specific_iterations = 80  # Base number of iterations for this model
     def __init__(self,
+                ged_bound: str,
+                calculator_id:str,
                  attributes : dict=dict(),similarity=False ,**kwargs):
         """
         Initialize the GED K-NN Classifier with the given parameters.
@@ -61,6 +63,8 @@ class GED_KNN(abstract_GED_KNN):
         self.similarity = similarity
         super().__init__(
             metric="precomputed",
+            ged_bound=ged_bound,
+            calculator_id=calculator_id,
             attributes=attributes,
             name="GED-KNN",
             **kwargs

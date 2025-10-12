@@ -20,7 +20,7 @@ from Calculators.Vector_creator import VectorCreator
 DEBUG = False  # Set to False to disable debug prints
 
 class Feature_KNN(abstract_GED_KNN):
-    model_specific_iterations = 50  # Base number of iterations for this model
+    model_specific_iterations = 80  # Base number of iterations for this model
 
     def __init__(self,
                 vector_feature_list:list,
@@ -28,6 +28,8 @@ class Feature_KNN(abstract_GED_KNN):
                 prototype_size:int,
                 selection_split:str,
                 selection_method:str,
+                ged_bound: str,
+                calculator_id:str,
                 node_label_tag:str="label",
                 edge_label_tag:str="label",
                 attributes: dict=dict(),
@@ -59,6 +61,8 @@ class Feature_KNN(abstract_GED_KNN):
         super().__init__(
             attributes=attributes,
             name=self.name,
+            ged_bound=ged_bound,
+            calculator_id=calculator_id,
             **kwargs
         )
         self.vector_creator = VectorCreator(ged_calculator=self.ged_calculator)
@@ -104,8 +108,8 @@ class Feature_KNN(abstract_GED_KNN):
         """
         params = super().get_params(deep=deep)
         params.update({
-            "ged_calculator": self.ged_calculator,
             "ged_bound": self.ged_bound,
+            "calculator_id": self.calculator_id,
             "vector_feature_list": self.vector_feature_list,
             "dataset_name": self.dataset_name,
             "prototype_size": self.prototype_size,
