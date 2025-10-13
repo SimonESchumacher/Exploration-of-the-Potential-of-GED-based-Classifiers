@@ -31,7 +31,7 @@ from Models.KNN.GEDLIB_KNN import GED_KNN, set_global_ged_calculator_KNN
 import pandas as pd
 import networkx as nx
 from io_Manager import IO_Manager
-N_JOBS =15
+N_JOBS =8
 SPLIT=0.2
 NUM_TRIALS=3
 SEARCH_METHOD="random"  # "grid" or "random"
@@ -46,7 +46,7 @@ ONLY_LOAD_CALCULATORS=False
 GED_EDIT_COST="CONSTANT"  # "CONSTANT"
 TEST_TRAIL=False
 MULTI=False
-DATASET_STR="PTC_FR"
+DATASET_STR="Letter-high"
 DATASET_EDGE_LABELS=None
 DATASETS = ["MUTAG","MSRC_9","PTC_FR"]
 DATASET_Labels =["label",None,"label"]
@@ -104,9 +104,9 @@ def reference_classifiers(ged_calculator: Base_Calculator, dataset: Dataset):
 
 
 def get_Dataset(dataset_name: str, ged_calculator, edge_labels=None):
-    DATASET= Dataset(name=dataset_name, source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels=edge_labels,load_now=False,use_node_attributes=None, use_edge_attributes=None)
-    DATASET.load()
-    # DATASET.load_with_attributes(new_attributes=["x","y"], encoding_dimension=2, remove_old=True)
+    DATASET= Dataset(name=dataset_name, source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels=None, use_edge_labels=edge_labels,load_now=False,use_node_attributes="attribute", use_edge_attributes=None)
+    # DATASET.load()
+    DATASET.load_with_attributes(new_attributes=["x","y"], encoding_dimension=2, remove_old=True)
     return DATASET, DATASET.get_calculator()
 # run a list of classifiers on a dataset and return the results in a dataframe
 last_save_time = pd.Timestamp.now()
