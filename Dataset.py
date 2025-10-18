@@ -598,6 +598,10 @@ class Dataset:
         return self.target
     def get_graph_pair(self, index):
         return self.nx_graphs[index], self.target[index]
+    def get_name(self):
+        """ Returns the name of the dataset.
+        """
+        return self.name
     
 
    
