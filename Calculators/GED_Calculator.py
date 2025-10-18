@@ -293,11 +293,15 @@ def load_calculator_from_id(identifier_name: str):
         return  load_GED_calculator(identifier_name[len("GED_Calculator_"):])
     elif identifier_name.startswith("Heuristic_Calculator_"):
         return load_Heuristic_calculator(identifier_name[len("Heuristic_Calculator_"):])
+    elif identifier_name.startswith("Randomwalk_GED_Calculator_"):
+        return load_Randomwalk_GED_calculator(identifier_name[len("Randomwalk_GED_Calculator_"):])
+    elif identifier_name.startswith("Exact_GED_"):
+        return load_exact_GED_calculator(identifier_name[len("Exact_GED_"):])
     else:
         raise ValueError(f"Unknown calculator identifier: {identifier_name}")
     
 
-_adj_matrices_dict_cache ={}
+_adj_matrices_dict_cache = {}
 _precomputed_walk_traces = {}  
 class Randomwalk_GED_Calculator:
     def __init__(self, **kwargs):
@@ -523,7 +527,7 @@ class exact_GED_Calculator(GED_Calculator):
         # Any specific initialization for exact GED can be added here
     def get_node_map(self, graph1_index, graph2_index, method):
         return None
-    def compare(self, g1, g2):
+    def compare(self, g1, g2,method=None,**kwargs):
         return self.distance_matrix[g1, g2]
     def get_params(self, deep=True):
         params = super().get_params(deep=deep)
@@ -533,7 +537,12 @@ class exact_GED_Calculator(GED_Calculator):
         })
         return params
     def get_complete_matrix(self, method, x_graphindexes=None, y_graphindexes=None):
-        return self.distance_matrix[np.ix_(x_graphindexes, x_graphindexes)]
+        if x_graphindexes is None and y_graphindexes is None:
+            return self.distance_matrix
+        elif y_graphindexes is None:
+            return self.distance_matrix[np.ix_(x_graphindexes, x_graphindexes)]
+        else:
+            return self.distance_matrix[np.ix_(x_graphindexes, y_graphindexes)]
 
 
 
