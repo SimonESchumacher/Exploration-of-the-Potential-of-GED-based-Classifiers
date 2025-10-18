@@ -26,7 +26,7 @@ class Trivial_GED_SVC(Base_GED_SVC):
                 **kwargs):
         self.similarity_function = similarity_function
         self.llambda = llambda
-        if self.similarity_function not in ["k1", "k2", "k3", "k4", "frac"]:
+        if self.similarity_function not in ["k1", "k2", "k3", "k4"]:
             raise ValueError(f"Unknown similarity function: {self.similarity_function}")
         self.name="Trivial-GED"
         attributes.update({
@@ -63,7 +63,7 @@ class Trivial_GED_SVC(Base_GED_SVC):
         param_grid = Base_GED_SVC.get_param_grid()
         # this is a problem, because the kernel has its own parameters
         param_grid.update({
-            "similarity_function": ['k1', 'k2', 'k3', 'k4', 'frac'],
+            "similarity_function": ['k1', 'k2', 'k3', 'k4'],
             "llambda": [0.01, 0.1, 1, 10, 100]
         })
 
@@ -73,7 +73,7 @@ class Trivial_GED_SVC(Base_GED_SVC):
         param_grid = Base_GED_SVC.get_random_param_space()
         # this is a problem, because the kernel has its own parameters
         param_grid.update({
-            "similarity_function": ['k1', 'k2', 'k3', 'k4', 'frac'],
+            "similarity_function": ['k1', 'k2', 'k3', 'k4'],
             "llambda": loguniform(0.01, 200)
         })
         return param_grid

@@ -1,4 +1,6 @@
 import math
+import os
+import re
 import joblib
 import tqdm
 # from Calculators.Product_GRaphs import build_restricted_product_graph
@@ -7,7 +9,8 @@ from gedlibpy import gedlibpy
 import numpy as np
 from scipy.linalg import inv
 import networkx as nx
-
+import subprocess
+from joblib import Parallel, delayed
 
 GED_distance_matrix_dict_cache = {}
 GED_node_map_dict_cache = {}
@@ -35,7 +38,7 @@ class abstract_Calculator:
         raise NotImplementedError
     
 
-class GED_Calculator:
+class GED_Calculator(abstract_Calculator):
     def __init__(self, dataset_name=None, **kwargs):
         global GED_distance_matrix_dict_cache
         global GED_node_map_dict_cache
@@ -121,7 +124,7 @@ class GED_Calculator:
         return {"method": list(self.distance_matrix_dict.keys())}
         
 
-class Heuristic_Calculator:
+class Heuristic_Calculator(abstract_Calculator):
     def __init__(self, **kwargs):
         self.distance_matrix_dict = Heuristic_distance_matrix_dict_cache
         self.node_map = Heuristic_node_map_dict_cache
@@ -501,3 +504,170 @@ def try_load_else_build_rw_calculator(ged_calculator, max_walk_length=7):
         rw_calculator = build_Randomwalk_GED_calculator(ged_calculator, max_walk_length=max_walk_length)
         print(f"Built and saved new Randomwalk_GED_Calculator for dataset {dataset_name}.")
     return rw_calculator
+
+_ged_matrix: np.ndarray = None
+class exact_GED_Calculator(GED_Calculator):
+    def __init__(self, dataset_name, **kwargs):
+        global _ged_matrix
+        global _node_map_dict
+        global _dataset_cache
+        self.distance_matrix = _ged_matrix
+        self.node_map_dict = _node_map_dict
+        self.dataset = _dataset_cache
+        self.name = "Exact_GED"
+        self.dataset_name = dataset_name
+        self.params = kwargs
+        self.isactive = True
+        self.isclalculated = True
+        self.save_calculator(dataset_name)
+        # Any specific initialization for exact GED can be added here
+    def get_node_map(self, graph1_index, graph2_index, method):
+        return None
+    def compare(self, g1, g2):
+        return self.distance_matrix[g1, g2]
+    def get_params(self, deep=True):
+        params = super().get_params(deep=deep)
+        # add the parameters of the ged_calculator with the prefix "GED_"
+        params.update({
+            # no specific parameters for exact GED
+        })
+        return params
+    def get_complete_matrix(self, method, x_graphindexes=None, y_graphindexes=None):
+        return self.distance_matrix[np.ix_(x_graphindexes, x_graphindexes)]
+
+
+
+def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,timeout=2, lb=0):
+    # load the graphs from files
+    filepath1 = f"Datasets/ged/{dataset_name}/g_{g_id1}.txt"
+    filepath2 = f"Datasets/ged/{dataset_name}/g_{g_id2}.txt"
+
+    try:
+        command = ["Graph_Edit_Distance/ged", "-q", filepath1, "-d", filepath2, "-g"]
+        process = subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout,
+        )
+        output: str = process.stdout.decode()
+        err_output: str = process.stderr.decode()
+        # print(output)
+        # Extract GED
+        ged_match = re.search(r"\*\*\* GEDs \*\*\*\s*(\d+)", output)
+        # total_time_match = re.search(
+        #     r"Total time: ([\d,]+) \(microseconds\)", output
+        # )
+        if ged_match:
+            ged = int(ged_match.group(1))
+            # convert the time to a readable string (seconds.milliseconds)
+            # time_us = int(total_time_match.group(1).replace(",", "")) if total_time_match else None
+            # if time_us is None:
+            #     time = None
+            # else:
+            #     secs = time_us // 1_000_000
+            #     ms = (time_us % 1_000_000) // 1000
+            #     time = f"{secs}.{ms:03d}s"  # e.g. "1.234s" or "0.123s"
+            return ged
+
+            # print(f"Computed {g_id1} and graph {g_id2}: {ged} in {time}")
+        else:
+            raise Exception(
+                "GED value not found in output:"
+                + "\nSTDOUT:\n "
+                + output
+                + "\nSTDERR:\n "
+                + err_output
+            )
+
+        # Extract mapping
+        # mapping_match = re.search(r"Mapping: (.+)", output)
+        # if mapping_match:
+        #     mapping: dict[int, int] = {}
+        #     pairs = mapping_match.group(1).split(", ")
+        #     for pair in pairs:
+        #         if "->" in pair:
+        #             q, g = map(int, pair.split(" -> "))
+        #             mapping[q] = g
+        #     global _node_map_dict
+        #     _node_map_dict[g_id1, g_id2] = mapping
+        #     # reverse mapping
+        #     reverse_mapping = {v: k for k, v in mapping.items()}
+        #     _node_map_dict[g_id2, g_id1] = reverse_mapping
+        # else:
+        #     raise Exception(
+        #         "Mapping not found in output:"
+        #         + "\nSTDOUT:\n "
+        #         + output
+        #         + "\nSTDERR:\n "
+        #         + err_output
+        #     )
+
+        # ===
+        # Extract total time. For some unknown reason, time is not always
+        # present in the binary's output, hence None is also accepted here.
+        # ===
+        
+
+
+
+    except subprocess.TimeoutExpired:
+        print(f"Timeout expired when computing GED between graph {g_id1} and graph {g_id2}.")
+        # inifite distance max int
+        return  10000
+        # global _ged_matrix
+
+def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, **kwargs) -> exact_GED_Calculator:
+    # we assume the Dataset is already loadded, but also we have the files of the Graphs in the directories.
+    n = len(dataset)
+    # we distribute the Jobs, sot that every Jobs needs to caclulate the same amount of GEDs
+    global _ged_matrix
+    global _node_map_dict
+    global _dataset_cache
+    _ged_matrix = np.zeros((n,n), dtype=np.int32)
+    _node_map_dict = np.empty((n,n), dtype=object)
+    # first we compute the diagonal
+    for i in range(n):
+        _dataset_cache = dataset[i]
+        _ged_matrix[i,i] = 0
+        _node_map_dict[i,i] = {k:k for k in range(len(dataset[i].nodes()))}
+    # then we compute the upper triangle
+    # we distribute the Jobs so that every Jobs needs to caclulate the same amount of GEDs
+    tasks = [] # will be n/2 tasks
+    for i in range(n):
+        for j in range(i+1, n):
+            tasks.append( (i,j) )
+    # start parallel processing
+    # for every entry in task the GED needs to be calculated
+    print(f"Starting calculation of exact GED distance matrix with {n_jobs} parallel jobs...")
+    # execute in parallel and collect results
+    results = Parallel(n_jobs=n_jobs)(
+        delayed(calculate_ged_between_two_graphs)(dataset_name, i, j)
+        for (i, j) in tasks
+    )
+
+    # write results into the distance matrix (symmetric)
+    for (i, j), ged in zip(tasks, results):
+        _ged_matrix[i, j] = ged
+        _ged_matrix[j, i] = ged
+
+    # process results
+    print("Finished calculating exact GED distance matrix.")
+    print(_ged_matrix)
+
+    # create GED_Calculator_object
+    ged_calculator = exact_GED_Calculator(dataset_name=dataset_name)
+    return ged_calculator
+
+def load_exact_GED_calculator(dataset_name: str) -> exact_GED_Calculator:
+    filename = "Exact_GED_" + dataset_name + ".joblib"
+    filepath = "presaved_data/" + filename
+    exact_ged_calculator: exact_GED_Calculator = joblib.load(filepath)
+    global _ged_matrix
+    global _node_map_dict
+    global _dataset_cache
+    exact_ged_calculator.identifier_name = exact_ged_calculator.get_Name() + f"_{dataset_name}"
+    _ged_matrix = exact_ged_calculator.distance_matrix
+    _node_map_dict = exact_ged_calculator.node_map_dict
+    _dataset_cache = exact_ged_calculator.dataset
+    return exact_ged_calculator

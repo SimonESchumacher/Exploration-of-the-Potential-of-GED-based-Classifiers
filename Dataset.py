@@ -10,8 +10,9 @@ import os
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold,KFold
 from Calculators.Base_Calculator import Base_Calculator
-from Calculators.GED_Calculator import load_GED_calculator, load_Heuristic_calculator
+from Calculators.GED_Calculator import load_GED_calculator, load_Heuristic_calculator, load_exact_GED_calculator
 from config_loader import get_conifg_param
+from Calculators.GED_Calculator import exact_GED_Calculator
 
 LOCAL_DATA_PATH = get_conifg_param('Dataset', 'local_data_path', type='str') # Path to the local data directory
 # DOWNLOAD_SOURCE = 'TUD'
@@ -398,6 +399,10 @@ class Dataset:
                     if DEBUG:
                         print(f"Loading the presaved {self.ged_calculator} for dataset {self.name}")
                     self.ged_calculator = load_Heuristic_calculator(self.name)
+                elif self.ged_calculator =="Exact_GED":
+                    if DEBUG:
+                        print(f"Loading the presaved {self.ged_calculator} for dataset {self.name}")
+                    self.ged_calculator = load_exact_GED_calculator(self.name)
                 else:
                     self.ged_calculator =Base_Calculator.load_calculator(self.ged_calculator,self.name)
                     self.ged_calculator.make_backup()
