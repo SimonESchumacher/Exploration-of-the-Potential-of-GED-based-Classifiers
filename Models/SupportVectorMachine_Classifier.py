@@ -86,7 +86,7 @@ class SupportVectorMachine(GraphClassifier):
         duration = (pd.Timestamp.now() - start_time).total_seconds()
         if duration > 5:
             print(f"Warning: SVC fitting took {duration} seconds, which is longer than expected.")
-            # print(self.get_params())
+            print(self.get_params())
             # print(f"Fitting details: X shape: {X.shape}, y length: {len(y)}")
         # print(f"Completed fit {random_number}")
         self.post_fit(X, y)

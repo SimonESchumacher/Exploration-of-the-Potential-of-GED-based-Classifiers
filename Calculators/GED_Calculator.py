@@ -520,6 +520,7 @@ class exact_GED_Calculator(GED_Calculator):
         self.dataset = _dataset_cache
         self.name = "Exact_GED"
         self.dataset_name = dataset_name
+        self.identifier_name = f"Exact_GED_{dataset_name}"
         self.params = kwargs
         self.isactive = True
         self.isclalculated = True
@@ -543,10 +544,11 @@ class exact_GED_Calculator(GED_Calculator):
             return self.distance_matrix[np.ix_(x_graphindexes, x_graphindexes)]
         else:
             return self.distance_matrix[np.ix_(x_graphindexes, y_graphindexes)]
+   
 
 
 
-def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_size_j,timeout=50, lb=0):
+def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_size_j,nx_1,nx_2,timeout=50, lb=0):
     # load the graphs from files
     filepath1 = None
     filepath2 = None
@@ -627,9 +629,20 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_
 
 
     except subprocess.TimeoutExpired:
-        print(f"Timeout expired when computing GED between graph {g_id1} and graph {g_id2}.")
         # inifite distance max int
-        return  -10
+        # fallback to a approximation
+        gedlibpy.restart_env()
+        gedlibpy.add_nx_graph(nx_1, "")
+        gedlibpy.add_nx_graph(nx_2, "")
+        gedlibpy.set_edit_cost("CONSTANT")
+        gedlibpy.init()
+        gedlibpy.set_method("IPFP", "")
+        gedlibpy.init_method()
+        gedlibpy.run_method(0, 1)
+        approx_ged = gedlibpy.get_upper_bound(0, 1)
+        print(f"Using approximate GED {approx_ged} for graphs {g_id1} and {g_id2} due to timeout.")
+        return approx_ged
+
         # global _ged_matrix
 
 def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, **kwargs) -> exact_GED_Calculator:
@@ -659,7 +672,7 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, **kwar
     print(f"Starting calculation of exact GED distance matrix with {n_jobs} parallel jobs...")
     # execute in parallel and collect results
     results = Parallel(n_jobs=n_jobs)(
-        delayed(calculate_ged_between_two_graphs)(dataset_name, i, j, node_size_i=node_sizes[i], node_size_j=node_sizes[j], timeout=300)
+        delayed(calculate_ged_between_two_graphs)(dataset_name, i, j, node_size_i=node_sizes[i], node_size_j=node_sizes[j], nx_1=dataset[i], nx_2=dataset[j], timeout=300)
         for (i, j) in tasks
     )
 

@@ -50,95 +50,13 @@ class experiment:
         self.ged_calculator = ged_calculator
         # Results file Collums (to be added):
         # experiment_name, dataset_name, model_name,filename,saving timestamp,timstamp_experiment_run,testsize,has_edge_labels,has_node_labels,dataset_mean_Nodes,dataset_mean_edges,dataset_Num_clases,datset_domain, accuracy, f1_score, precision, recall, 
-        self.diagnostic_log = {
-            "experiment_name": self.experiment_name,
-            "dataset_name": self.dataset_name,
-            "model_name": self.model_name,
-            "filename": None,  # To be set after saving the model
-            "dataset_load_duration": None,  # To be set after loading the dataset
-            "saving_timestamp": None,  # To be set after saving the model
-            "timestamp_experiment_run": pd.Timestamp.now(),
-            "Error": None,  # To be set if an error occurs
-        }
-        self.results_log = {
-            "experiment_name": self.experiment_name,
-            "dataset_name": self.dataset_name,
-            "model_name": self.model_name,
-            "Calculator_name": self.ged_calculator.get_Name() if self.ged_calculator else "None",
-            "Action": None,
-            "testsize": TEST_SIZE,
-            "training_duration": None,  # To be set after training
-            "testing_duration": None,  # To be set after testing
-            "accuracy": None,
-            "f1_score": None,
-            "precision": None,
-            "recall": None,
-            "roc_auc": None,
-            "saving_timestamp": None,  # To be set after saving the model
-            "timestamp_experiment_run": pd.Timestamp.now(),
-        }
-    def save_log_to_excel(self):
-        """
-        Writes the content of self.log_dict to an Excel file.
-        If the file exists, it appends the new entry as a new row.
-        """
-        if not SAVE_LOGS:
-            return
-        # Create a DataFrame from the current log_dict.
-        # We wrap it in a list to ensure it's treated as a single row.
-        new_entry__diagnostics_df = pd.DataFrame([self.diagnostic_log])
-        new_entry_results_df = pd.DataFrame([self.results_log])
-        # Ensure the directory exists
-
-        # Check if the file already exists
-       
-        try:
-            # Read the existing Excel file
-            results_old = pd.read_excel(RESULTS_FILE)
-            diagnostics_old = pd.read_excel(DIAGNOSTIC_FILE)
-            # Check if headers match, or if the new entry has extra columns
-            # This is a robust check to prevent misaligned appends
-
-            # results_Save
-            if not results_old.empty and not new_entry_results_df.columns.isin(results_old.columns).all():
-                print(f"Warning: New entry columns do not exactly match existing Excel columns in {RESULTS_FILE}.")                         
-            # Concatenate the existing data with the new entry
-            combined_df = pd.concat([results_old, new_entry_results_df], ignore_index=True)
-            # Write the combined DataFrame back to the Excel file
-            combined_df.to_excel(RESULTS_FILE, index=False)
-            if DEBUG:
-                print(f"Appended experiment log to existing file: {RESULTS_FILE}")
-            
-            # diagnostics_Save
-            if not diagnostics_old.empty and not new_entry__diagnostics_df.columns.isin(diagnostics_old.columns).all():
-                print(f"Warning: New entry columns do not exactly match existing Excel columns in {DIAGNOSTIC_FILE}.")                
-            # Concatenate the existing data with the new entry
-            combined_df = pd.concat([diagnostics_old, new_entry__diagnostics_df], ignore_index=True)            
-            # Write the combined DataFrame back to the Excel file
-            combined_df.to_excel(DIAGNOSTIC_FILE, index=False)
-            if DEBUG:
-                print(f"Appended experiment log to existing file: {DIAGNOSTIC_FILE}")
-
-        except Exception as e:
-            print(f"Error while saving to Excel: {e}")
-
-  
-            
 
         # Update filename in the original log_dict for internal reference
     
     # not done
     def __str__(self):
         return f"Experiment(name={self.experiment_name}, dataset={self.dataset_name}, model={self.model_name})"
-    def split_data(self,random_state=RANDOM_STATE, repeats=1):
-        
-        X_train, X_test, y_train, y_test = self.dataset.train_test_split(test_size=TEST_SIZE, random_state=random_state)
-        # if DEBUG:
-        #     print(f"Successfully split Data:{self.dataset_name} into training (len:{len(X_train)}) and testing (len:{len(X_test)})sets.")
-        #     print("Dataset Attributes:")
-        #     print(self.dataset.attributes())
-        return X_train, X_test, y_train, y_test
-    
+ 
     def inner_model_fit(self, G_train, y_train):
         """
         Fits the model to the training data.
@@ -282,7 +200,7 @@ class experiment:
 
 
 
-        X_train, X_test, y_train, y_test = self.split_data()
+        X_train, X_test, y_train, y_test = self.dataset.train_test_split(test_size=TEST_SIZE, random_state=RANDOM_STATE)
         if tuning_method == 'grid':
             param_grid = self.model.get_param_grid()
         elif tuning_method == 'random':
@@ -350,18 +268,18 @@ class experiment:
             print(classification_report_str)
         # Save results to the log
         self.save_log_to_excel()
-        if DEBUG and False:
-            all_results =hyperparameter_tuner.cv_results_
+        if DEBUG:
+            all_results = hyperparameter_tuner.cv_results_
             print("\nAll hyperparameter tuning results:")
             for key in all_results.keys():
                 print(f"{key}: {all_results[key]}")
-            
-        return hyperparameter_tuner.cv_results_,best_model, best_params
+
+        return hyperparameter_tuner.cv_results_, best_model, best_params
     
     def run_simple(self,use_class_weights=False):
         
         print(f"Running experiment: {self.experiment_name}")
-        G_train, G_test, y_train, y_test = self.split_data()
+        G_train, G_test, y_train, y_test = self.dataset.train_test_split(test_size=TEST_SIZE, random_state=RANDOM_STATE)
         # not really used
         # could be added to hyperparameter tuning
         if use_class_weights:
@@ -397,7 +315,7 @@ class experiment:
     
     def run_speed_test(self):
         start_time = pd.Timestamp.now()
-        G_train, G_test, y_train, y_test = self.split_data() 
+        G_train, G_test, y_train, y_test = self.dataset.train_test_split(test_size=TEST_SIZE, random_state=RANDOM_STATE)
         self.inner_model_fit(G_train, y_train)
         trained_model = self.model
         if trained_model is None:
@@ -408,35 +326,6 @@ class experiment:
         training_duration = pd.Timestamp.now() - start_time
         return training_duration
 
-    def silent_hyperparameter_tuning(self,X_train,y_train,scoring='f1_macro',cv=5, verbose=0, n_jobs=1,param_grid=None,get_all_results=False,search_method="grid"):
-        hyperparameter_tuning_start_time = datetime.now()
-        hyperparameter_tuner = None
-        try:
-            if search_method == "grid":
-                hyperparameter_tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, error_score='raise')
-            elif search_method == "random":
-                hyperparameter_tuner = RandomizedSearchCV(estimator=self.model, n_iter=self.model.random_search_iterations(), param_distributions=param_grid, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, error_score='raise')
-        except Exception as e:
-            print(f"Error initializing hyperparameter tuner: {e}")
-            traceback.print_exc()
-            raise e
-        try:
-            hyperparameter_tuner.fit(X_train, y_train)
-        except Exception as e:
-            print(f"Error during hyperparameter tuning: {e}")
-            traceback.print_exc()
-            raise e
-        best_model = hyperparameter_tuner.best_estimator_
-        best_params = hyperparameter_tuner.best_params_
-        best_score = hyperparameter_tuner.best_score_
-        tuning_duration = datetime.now() - hyperparameter_tuning_start_time
-        if get_all_results:
-            results = pd.DataFrame(hyperparameter_tuner.cv_results_)
-            results_dir = os.path.join("configs", "results", "Hyperparameter_tuning_results")
-            results_path = os.path.join(results_dir, f"{self.model_name}_hyperparameter_tuning_all_results.xlsx")
-            os.makedirs(results_dir, exist_ok=True)
-            results.to_excel(results_path, index=False)
-        return best_model, best_params, best_score, tuning_duration
 
     def overfitting_simple_run(self,X_train, X_test, y_train, y_test,test_DF):
         fit_start_time = datetime.now()
@@ -483,205 +372,7 @@ class experiment:
 
         # Save results
         return classification_report_str
-    def run_silent_multi_k_fold(self, k=5,repeat=3,test_DF=None,random_seed=RANDOM_STATE):
-        durations_fit = []
-        durattions_test = []
-        accuracies = []
-        f1_scores = []
-        roc_aucs = []
-        precisions = []
-        recalls = []
-        random_gen = random.Random(random_seed)
-        for i in range(repeat):
-            for X_train, X_test, y_train_fold, y_test_fold in self.dataset.split_k_fold(k=k, random_state=random_gen.randint(0, 1000)):
-                fit_start_time = datetime.now()
-                try:
-                    self.inner_model_fit(X_train, y_train_fold)
-                except Exception as e:
-                    print(f"Error during model fitting in multi k-fold: {e}")
-                    traceback.print_exc()
-                    raise e
-                durations_fit.append((datetime.now() - fit_start_time).total_seconds())
-                test_start_time = datetime.now()
-                y_pred, y_score = self.inner_model_predict(X_test)
-                durattions_test.append((datetime.now() - test_start_time).total_seconds())
-
-                accuracies.append(accuracy_score(y_test_fold, y_pred))
-                f1_scores.append(f1_score(y_test_fold, y_pred, labels=self.model.classes_, average=REPORT_SETTING, zero_division=0.0))
-                try:
-                    roc_aucs.append(roc_auc_score(y_test_fold, y_score, labels=self.model.classes_, multi_class='ovr'))
-                except np.AxisError:
-                    roc_aucs.append(0.0)
-                
-
-                precisions.append(precision_score(y_test_fold, y_pred, labels=self.model.classes_, average=REPORT_SETTING, zero_division=0.0))
-                recalls.append(recall_score(y_test_fold, y_pred, labels=self.model.classes_, average=REPORT_SETTING, zero_division=0.0))
-        erroraccnolagement = ERRORINTERVAL_SETTING
-        if erroraccnolagement == "std":
-            test_DF["multi_k_fold_accuracy"] = np.mean(accuracies) 
-            test_DF["multi_k_fold_acc_std"] = np.std(accuracies)
-            test_DF["multi_k_fold_f1_score"] = np.mean(f1_scores)
-            test_DF["multi_k_fold_f1_std"] = np.std(f1_scores)
-            test_DF["multi_k_fold_roc_auc"] = np.mean(roc_aucs)
-            test_DF["multi_k_fold_roc_auc_std"] = np.std(roc_aucs)
-            test_DF["multi_k_fold_precision"] = np.mean(precisions)
-            test_DF["multi_k_fold_recall"] = np.mean(recalls)
-        elif erroraccnolagement == "confidence interval":
-            # Calculate confidence intervals for each metric
-            n = len(accuracies)
-            confidence = 0.95
-            z_score = stats.norm.ppf((1 + confidence) / 2)
-            test_DF["multi_k_fold_accuracy"] = np.mean(accuracies)
-            test_DF["multi_k_fold_acc_CI"] = z_score * np.std(accuracies) / np.sqrt(n)
-            test_DF["multi_k_fold_f1_score"] = np.mean(f1_scores)
-            test_DF["multi_k_fold_f1_CI"] = z_score * np.std(f1_scores) / np.sqrt(n)
-            test_DF["multi_k_fold_roc_auc"] = np.mean(roc_aucs)
-            test_DF["multi_k_fold_roc_auc_CI"] = z_score * np.std(roc_aucs) / np.sqrt(n)
-            test_DF["multi_k_fold_precision"] = np.mean(precisions)
-            test_DF["multi_k_fold_recall"] = np.mean(recalls)
-        elif erroraccnolagement == "none":
-            test_DF["multi_k_fold_accuracy"] = np.mean(accuracies)
-            test_DF["multi_k_fold_f1_score"] = np.mean(f1_scores)
-            test_DF["multi_k_fold_roc_auc"] = np.mean(roc_aucs)
-            test_DF["multi_k_fold_precision"] = np.mean(precisions)
-            test_DF["multi_k_fold_recall"] = np.mean(recalls)
-        else:
-            raise ValueError(f"Unknown error acknowledgment method: {erroraccnolagement}. Use 'std', 'confidence interval', or 'none'.")
-
-
-    def run_silent_k_fold(self, k=5,test_DF=None,random_state=RANDOM_STATE):
-
-
-        durations_fit = []
-        durattions_test = []
-        accuracies = []
-        f1_scores = []
-        roc_aucs = []
-        precisions = []
-        recalls = []
-        for X_train, X_test, y_train_fold, y_test_fold in self.dataset.split_k_fold(k=k, random_state=random_state):
-            fit_start_time = datetime.now()
-            self.inner_model_fit(X_train, y_train_fold)
-            durations_fit.append((datetime.now() - fit_start_time).total_seconds())
-            test_start_time = datetime.now()
-            y_pred, y_score = self.inner_model_predict(X_test)
-            durattions_test.append((datetime.now() - test_start_time).total_seconds())
-
-            accuracies.append(accuracy_score(y_test_fold, y_pred))
-            f1_scores.append(f1_score(y_test_fold, y_pred, labels=self.model.classes_, average=REPORT_SETTING, zero_division=0.0))
-            try:
-                roc_aucs.append(roc_auc_score(y_test_fold, y_score, labels=self.model.classes_, multi_class='ovr'))
-            except np.AxisError:
-                roc_aucs.append(0.0)
-            precisions.append(precision_score(y_test_fold, y_pred, labels=self.model.classes_, average=REPORT_SETTING, zero_division=0.0))
-            recalls.append(recall_score(y_test_fold, y_pred, labels=self.model.classes_, average=REPORT_SETTING, zero_division=0.0))
-        erroraccnolagement = ERRORINTERVAL_SETTING
-        if erroraccnolagement == "std":
-            test_DF["k_fold_accuracy"] = np.mean(accuracies) 
-            test_DF["k_fold_acc_std"] = np.std(accuracies)
-            test_DF["k_fold_f1_score"] = np.mean(f1_scores)
-            test_DF["k_fold_f1_std"] = np.std(f1_scores)
-            test_DF["k_fold_roc_auc"] = np.mean(roc_aucs)
-            test_DF["k_fold_roc_auc_std"] = np.std(roc_aucs)
-            test_DF["k_fold_precision"] = np.mean(precisions)
-            test_DF["k_fold_recall"] = np.mean(recalls)
-        elif erroraccnolagement == "confidence interval":
-            # Calculate confidence intervals for each metric
-            n = len(accuracies)
-            confidence = 0.95
-            z_score = stats.norm.ppf((1 + confidence) / 2)
-            test_DF["k_fold_accuracy"] = np.mean(accuracies)
-            test_DF["K_fold_acc_CI"] = z_score * np.std(accuracies) / np.sqrt(n)
-            test_DF["k_fold_f1_score"] = np.mean(f1_scores)
-            test_DF["K_fold_f1_CI"] = z_score * np.std(f1_scores) / np.sqrt(n)
-            test_DF["k_fold_roc_auc"] = np.mean(roc_aucs)
-            test_DF["K_fold_roc_auc_CI"] = z_score * np.std(roc_aucs) / np.sqrt(n)
-            test_DF["k_fold_precision"] = np.mean(precisions)
-            test_DF["k_fold_recall"] = np.mean(recalls)
-        elif erroraccnolagement == "none":
-            test_DF["k_fold_accuracy"] = np.mean(accuracies)
-            test_DF["k_fold_f1_score"] = np.mean(f1_scores)
-            test_DF["k_fold_roc_auc"] = np.mean(roc_aucs)
-            test_DF["k_fold_precision"] = np.mean(precisions)
-            test_DF["k_fold_recall"] = np.mean(recalls)
-        else:
-            raise ValueError(f"Unknown error acknowledgment method: {erroraccnolagement}. Use 'std', 'confidence interval', or 'none'.")
-
-      
-
-    def run_extensive_test(self,test_DF,should_print=False,scoring='f1_macro',cv=5, verbose=0, n_jobs=-1,random_seed=RANDOM_STATE,get_all_tuning_results=False,search_method="grid"):
-        # get a random number generator with the seed
-        random_gen = random.Random(random_seed)
-
-
-        if should_print:
-           print("\n--------------------------------------------------------------------")
-           print(f"Running extensive test for model:\n {self.model_name}")
-        duration1train = None
-        test_DF["model_name"] = self.model_name
-        test_DF["Calculator_name"] = self.model.get_calculator().get_Name() if self.model.get_calculator() else "None"
-        try:
-            duration1train =self.run_speed_test()
-        except Exception as e:
-            print(f"Error occurred while running speed test: {e}")
-            test_DF["Error source"] = "Speed Test"
-            test_DF["Error"] = str(e)
-            return test_DF
-        test_DF["train_test_duration"] = str(duration1train)
-        if search_method == "grid":
-            param_grid = self.model.get_param_grid()
-            total_combinations = cv
-            for key in param_grid:
-                total_combinations *= len(param_grid[key])
-            total_combinations += cv +1           
-        elif search_method == "random":
-            param_grid = self.model.get_random_param_space()
-            total_combinations = self.model.random_search_iterations()*cv+cv+2
-        estimated_test_duration = duration1train * total_combinations
-        if should_print:
-            print(f"Estimated test duration: {estimated_test_duration}")
-        if should_print:
-            print(f"Parameter grid: {param_grid}")
-        # multipy all posibilities for the param grid times 5
-        
-        X_train, X_test, y_train, y_test = self.split_data(random_state=random_gen.randint(0, 1000))
-        # hyperparameter tuning with cross validation
-        if should_print:
-            print(f"{self.model_name} start tuning at {pd.Timestamp.now()}")
-        try:
-            best_model, best_params, best_score, tuning_duration = self.silent_hyperparameter_tuning(X_train, y_train, scoring=scoring, cv=cv, verbose=verbose, n_jobs=n_jobs, param_grid=param_grid,get_all_results=get_all_tuning_results,search_method=search_method)
-        except Exception as e:
-            print(f"Error occurred while running hyperparameter tuning: {e}")
-            test_DF["Error source"] = "Hyperparameter Tuning"
-            test_DF["Error"] = str(e)
-            return test_DF
-        test_DF["tuning_duration"] = str(tuning_duration)
-        test_DF["tuning_best_params"] = str(best_params)
-        test_DF["tuning_best_score"] = best_score
-        if should_print:
-            print(f"Hyperparameter tuning completed in {tuning_duration}.\n  Best score: {best_score:.4f}")
-            # print(f"Best parameters: {best_params}")
-        # single train test with the best model
-        # goal here is to compare results with the hyperparameter tuning results
-        # but also to compare train and test metrics for overfitting
-        self.model = best_model
-        classification_report= self.overfitting_simple_run(X_train, X_test, y_train, y_test,test_DF)
-        if should_print:
-            print("Overfitting simple test completed.")
-            print("Classification Report:")
-            print(classification_report)
-        # perform k_fold Crossvalidation with the best model
-        try:
-            self.run_silent_multi_k_fold(k=cv,repeat=3,test_DF=test_DF,random_seed=random_gen.randint(0, 1000))
-        except Exception as e:
-            test_DF["Error source"] = "Multi K-Fold"
-            test_DF["Error"] = str(e)
-            return test_DF
-        if should_print:
-            print("Extensive test completed.")
-            print(f"Time {pd.Timestamp.now()}")
-            print("--------------------------------------------------------------------\n")
-        return test_DF
+    
     def run_nested_cross_validation(self, outer_cv=5, inner_cv=5, num_trials=3, scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'], verbose=0, n_jobs=-1, random_seed=RANDOM_STATE, search_method="random",test_DF=None,stratify=False):
         random_gen = random.Random(random_seed)
         outer_accuracies = []
@@ -824,112 +515,7 @@ class experiment:
         return best_model, best_params, best_score, accuracy,f1,precision,recall,roc_auc,classification_report_str, results_dict
 
     
-    def run_manual_nested_cv(self,outer_cv=5,inner_cv=5,num_trials=3,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'], verbose=0, n_jobs=-1, random_seed=RANDOM_STATE, search_method="random",should_print=DEBUG,get_all_results=False,test_trail=False):
-        X, y = self.dataset.data
-        random_gen = random.Random(random_seed)
-        test_Dict = dict()
-        if should_print:
-           print("\n--------------------------------------------------------------------")
-           print(f"Running extensive test for model:\n {self.model_name}")
-        estimated_test_duration = None
-        test_Dict["model_name"] = self.model_name
-        test_Dict["Calculator_name"] = self.model.get_calculator().get_Name() if self.model.get_calculator() else "None"
-        try:
-            estimated_test_duration =self.estimate_nested_cv_time(cv=outer_cv,num_trials=num_trials,search_method=search_method)
-        except Exception as e:
-            print(f"Error occurred while running speed test: {e}")
-            traceback.print_exc()
-            test_Dict["Error source"] = "Speed Test"
-            test_Dict["Error"] = str(e)
-            return test_Dict
-        test_Dict["train_test_duration"] = str(estimated_test_duration)
-        if should_print:
-            print(f"Estimated test duration: {estimated_test_duration}")
-       
 
-
-
-        accuracy_scores = []
-        f1_scores = []
-        roc_auc_scores = []
-        precision_scores = []
-        recall_scores = []
-        time_Start = pd.Timestamp.now()
-        results_df = pd.DataFrame()
-        # build a progress bar which tracks the progress of both loops.
-
-        if should_print:
-            print(f"{self.model_name} start nested CV at {pd.Timestamp.now()}")
-            # get the Parameter Grid
-            if search_method == "grid":
-                param_grid = self.model.get_param_grid()
-                print(f"Parameter grid: {param_grid}")
-            elif search_method == "random":
-                param_grid = self.model.get_random_param_space()
-                print(f"Search Space: {param_grid}")
-
-        with tqdm(total=num_trials * outer_cv) as pbar: 
-            for trial in range(num_trials):
-                for i, (X_train, X_test, y_train_fold, y_test_fold) in enumerate(self.dataset.split_k_fold(k=inner_cv, random_state=random_gen.randint(0, 1000))):
-                    best_model, best_params, best_score, accuracy_train,f1_train,precision_train,recall_train,roc_auc_train,classification_report_train, results_dict = self.run_inner_hyperparameter_tuning(X_train, y_train_fold, X_test, y_test_fold,
-                                                                                                                                                                                                              inner_cv=inner_cv, scoring=scoring, verbose=verbose, n_jobs=n_jobs, random_seed=random_gen.randint(0, 1000), search_method=search_method, test_trail=test_trail)
-                    if trial ==0 and i ==0:
-                        test_Dict["best_params"] = str(best_params)
-                        test_Dict["best_score"] = best_score
-                        test_Dict["classification_report_train"] = classification_report_train
-
-                    accuracy_scores.append(accuracy_train)
-                    f1_scores.append(f1_train)
-                    roc_auc_scores.append(roc_auc_train)
-                    precision_scores.append(precision_train)
-                    recall_scores.append(recall_train)
-
-                    # Append the results_dict to the results_df
-                    results_df = pd.concat([results_df, pd.DataFrame(results_dict)], ignore_index=True)
-                    pbar.update(1)
-        time_End = pd.Timestamp.now()
-        total_duration = time_End - time_Start
-        if should_print:
-            print(f"Nested CV completed in {total_duration}.\n")
-            print(f"Time {pd.Timestamp.now()}")
-            print("--------------------------------------------------------------------\n")
-        if test_Dict is not None:
-            erroracknowledgment = ERRORINTERVAL_SETTING
-        if erroracknowledgment == "std":
-            test_Dict["k_fold_accuracy"] = np.mean(accuracy_scores)
-            test_Dict["k_fold_acc_std"] = np.std(accuracy_scores)
-            test_Dict["k_fold_f1_score"] = np.mean(f1_scores)
-            test_Dict["k_fold_f1_std"] = np.std(f1_scores)
-            test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)
-            test_Dict["k_fold_roc_auc_std"] = np.std(roc_auc_scores)
-        elif erroracknowledgment == "confidence interval":
-            # Calculate confidence intervals for each metric
-            n = len(accuracy_scores)
-            confidence = 0.95
-            z_score = stats.norm.ppf((1 + confidence) / 2)
-            test_Dict["k_fold_accuracy"] = np.mean(accuracy_scores)
-            test_Dict["K_fold_acc_CI"] = z_score * np.std(accuracy_scores) / np.sqrt(n)
-            test_Dict["k_fold_f1_score"] = np.mean(f1_scores)
-            test_Dict["K_fold_f1_CI"] = z_score * np.std(f1_scores) / np.sqrt(n)
-            test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)
-            test_Dict["K_fold_roc_auc_CI"] = z_score * np.std(roc_auc_scores) / np.sqrt(n)
-        elif erroracknowledgment == "none":
-            test_Dict["k_fold_accuracy"] = np.mean(accuracy_scores)
-            test_Dict["k_fold_f1_score"] = np.mean(f1_scores)
-            test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)  
-        else:
-            raise ValueError(f"Unknown error acknowledgment method: {erroracknowledgment}. Use 'std', 'confidence interval', or 'none'.")
-        test_Dict["k_fold_precision"] = np.mean(precision_scores)
-        test_Dict["k_fold_recall"] = np.mean(recall_scores)
-        test_Dict["nested_total_duration"] = str(total_duration)
-        test_Dict["total_folds"] = num_trials * outer_cv * inner_cv * self.model.random_search_iterations() if search_method == "random" else num_trials * outer_cv * inner_cv * np.prod([len(v) for v in param_grid.values()])
-        test_Dict["time_now"] = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
-        if get_all_results:
-            results_dir = os.path.join("configs", "results", "Hyperparameter_tuning_results")
-            results_path = os.path.join(results_dir, f"Hyperparameter_{self.model_name}_{self.dataset_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
-            os.makedirs(results_dir, exist_ok=True)
-            results_df.to_excel(results_path, index=False)
-        return test_Dict
     def run_joblib_parallel_nested_cv(self,outer_cv=5,inner_cv=5,num_trials=3,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'], verbose=0, n_jobs=-1, random_seed=RANDOM_STATE, search_method="random",should_print=DEBUG,get_all_results=True,test_trail=False):
         X, y = self.dataset.data
         random_gen = random.Random(random_seed)
@@ -1032,12 +618,6 @@ class experiment:
             test_Dict["K_fold_roc_auc_CI"] = z_score * np.std(roc_auc_scores) / np.sqrt(n)
             test_Dict["k_fold_precision"] = np.mean(precision_scores)
             test_Dict["k_fold_recall"] = np.mean(recall_scores)
-        elif erroracknowledgment == "none":
-            test_Dict["k_fold_accuracy"] = np.mean(accuracy_scores)
-            test_Dict["k_fold_f1_score"] = np.mean(f1_scores)
-            test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)
-            test_Dict["k_fold_precision"] = np.mean(precision_scores)
-            test_Dict["k_fold_recall"] = np.mean(recall_scores)
         else:
             raise ValueError(f"Unknown error acknowledgment method: {erroracknowledgment}. Use 'std', 'confidence interval', or 'none'.")
         test_Dict["nested_total_duration"] = str(total_duration)
@@ -1048,133 +628,6 @@ class experiment:
             results_df.to_excel(results_path, index=False)
         return test_Dict
         
-    
-    def run_parallel_nested_cv(self,outer_cv=5,inner_cv=5,num_trials=3,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'], verbose=0, n_jobs=-1, random_seed=RANDOM_STATE, search_method="random",should_print=DEBUG,get_all_results=False,test_trail=False):
-        X, y = self.dataset.data
-        random_gen = random.Random(random_seed)
-        test_Dict = dict()
-        if should_print:
-           print("\n--------------------------------------------------------------------")
-           print(f"Running extensive test for model:\n {self.model_name}")
-        estimated_test_duration = None
-        test_Dict["model_name"] = self.model_name
-        test_Dict["Calculator_name"] = self.model.get_calculator().get_Name() if self.model.get_calculator() else "None"
-        try:
-            estimated_test_duration =self.estimate_nested_cv_time(cv=outer_cv,num_trials=num_trials,search_method=search_method)
-        except Exception as e:
-            print(f"Error occurred while running speed test: {e}")
-            traceback.print_exc()
-            test_Dict["Error source"] = "Speed Test"
-            test_Dict["Error"] = str(e)
-            return test_Dict
-        test_Dict["train_test_duration"] = str(estimated_test_duration)
-        if should_print:
-            print(f"Estimated test duration: {estimated_test_duration}")
-       
-
-
-
-        accuracy_scores = []
-        f1_scores = []
-        roc_auc_scores = []
-        precision_scores = []
-        recall_scores = []
-        time_Start = pd.Timestamp.now()
-        results_df = pd.DataFrame()
-        # build a progress bar which tracks the progress of both loops.
-
-        if should_print:
-            print(f"{self.model_name} start nested CV at {pd.Timestamp.now()}")
-            # get the Parameter Grid
-            if search_method == "grid":
-                param_grid = self.model.get_param_grid()
-                print(f"Parameter grid: {param_grid}")
-            elif search_method == "random":
-                param_grid = self.model.get_random_param_space()
-                print(f"Search Space: {param_grid}")
-
-        lock = multiprocessing.Lock()
-        runs = []
-        for trial in range(num_trials):
-                for i, (X_train, X_test, y_train_fold, y_test_fold) in enumerate(self.dataset.split_k_fold(k=inner_cv, random_state=random_gen.randint(0, 1000))):
-                    runs.append( (trial,i, X_train, y_train_fold, X_test, y_test_fold) )
-
-        with tqdm(total=num_trials * outer_cv) as pbar:
-            with ProcessPoolExecutor(max_workers=num_trials*inner_cv) as executor:
-                futures = {executor.submit(self.run_inner_hyperparameter_tuning, X_train, y_train_fold, X_test, y_test_fold,
-                                                                 inner_cv=inner_cv, scoring=scoring, verbose=verbose, n_jobs=n_jobs, random_seed=random_gen.randint(0, 1000), search_method=search_method): (trial,i) for trial,i,X_train, y_train_fold, X_test, y_test_fold in runs}
-                for future in as_completed(futures):
-                    trial,i = futures[future]
-                    try:
-                        best_model, best_params, best_score, accuracy_train,f1_train,precision_train,recall_train,roc_auc_train,classification_report_train, results_dict = future.result()
-                        if trial ==0 and i ==0:
-                            test_Dict["best_params"] = str(best_params)
-                            test_Dict["best_score"] = best_score
-                            test_Dict["classification_report_train"] = classification_report_train
-                        # protect from concurrent write
-                        with lock:
-                            accuracy_scores.append(accuracy_train)
-                            f1_scores.append(f1_train)
-                            roc_auc_scores.append(roc_auc_train)
-                            precision_scores.append(precision_train)
-                            recall_scores.append(recall_train)
-
-                            # Append the results_dict to the results_df
-                            results_dict['trial'] = trial
-                            results_dict['fold'] = i
-                            results_df = pd.concat([results_df, pd.DataFrame(results_dict)], ignore_index=True)
-                    except Exception as e:
-                        print(f"Error in trial {trial}, fold {i}: {e}")
-                        traceback.print_exc()
-                    pbar.update(1)
-        time_End = pd.Timestamp.now()
-        total_duration = time_End - time_Start
-        if should_print:
-            print(f"Nested CV completed in {total_duration}.\n")
-            print(f"Time {pd.Timestamp.now()}")
-            print("--------------------------------------------------------------------\n")
-        if test_Dict is not None:
-            erroracknowledgment = ERRORINTERVAL_SETTING
-        if erroracknowledgment == "std":
-            test_Dict["k_fold_accuracy"] = np.mean(accuracy_scores)
-            test_Dict["k_fold_acc_std"] = np.std(accuracy_scores)
-            test_Dict["k_fold_f1_score"] = np.mean(f1_scores)
-            test_Dict["k_fold_f1_std"] = np.std(f1_scores)
-            test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)
-            test_Dict["k_fold_roc_auc_std"] = np.std(roc_auc_scores)
-            test_Dict["k_fold_precision"] = np.mean(precision_scores)
-            test_Dict["k_fold_recall"] = np.mean(recall_scores)
-        elif erroracknowledgment == "confidence interval":
-            # Calculate confidence intervals for each metric
-            n = len(accuracy_scores)
-            confidence = 0.95
-            z_score = stats.norm.ppf((1 + confidence) / 2)
-            test_Dict["k_fold_accuracy"] = np.mean(accuracy_scores)
-            test_Dict["K_fold_acc_CI"] = z_score * np.std(accuracy_scores) / np.sqrt(n)
-            test_Dict["k_fold_f1_score"] = np.mean(f1_scores)
-            test_Dict["K_fold_f1_CI"] = z_score * np.std(f1_scores) / np.sqrt(n)
-            test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)
-            test_Dict["K_fold_roc_auc_CI"] = z_score * np.std(roc_auc_scores) / np.sqrt(n)
-            test_Dict["k_fold_precision"] = np.mean(precision_scores)
-            test_Dict["k_fold_recall"] = np.mean(recall_scores)
-        elif erroracknowledgment == "none":
-            test_Dict["k_fold_accuracy"] = np.mean(accuracy_scores)
-            test_Dict["k_fold_f1_score"] = np.mean(f1_scores)
-            test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)
-            test_Dict["k_fold_precision"] = np.mean(precision_scores)
-            test_Dict["k_fold_recall"] = np.mean(recall_scores)
-        else:
-            raise ValueError(f"Unknown error acknowledgment method: {erroracknowledgment}. Use 'std', 'confidence interval', or 'none'.")
-        test_Dict["nested_total_duration"] = str(total_duration)
-        if get_all_results:
-            results_dir = os.path.join("configs", "results", "Hyperparameter_tuning_results")
-            results_path = os.path.join(results_dir, f"Hyperparameter_{self.model_name}_{self.dataset_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
-            os.makedirs(results_dir, exist_ok=True)
-            results_df.to_excel(results_path, index=False)
-        return test_Dict
-    # jobilib and sk_leanr nested cv
-        
-
 
 
     def estimate_nested_cv_time(self,cv=5,num_trials=3,search_method="grid"):
@@ -1211,7 +664,7 @@ class experiment:
         print(f" {self.model_name}: {duration1train} x {total_combinations} combinations = Estimated tuning duration: {estimated_test_duration}")
         return estimated_test_duration
 
-    def run_extensive_cross_validation(self,test_DF,should_print=False,scoring='f1_macro',cv=5, verbose=0, n_jobs=-1,random_seed=RANDOM_STATE,get_all_tuning_results=False,search_method="grid"):
+    def run_extensive_cross_validation(self,test_DF,should_print=False,cv=5, verbose=0, n_jobs=-1,random_seed=RANDOM_STATE,get_all_tuning_results=False,search_method="grid"):
         # get a random number generator with the seed
         random_gen = random.Random(random_seed)
 

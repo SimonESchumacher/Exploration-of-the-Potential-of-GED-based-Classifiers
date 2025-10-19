@@ -35,8 +35,8 @@ SPLIT=0.2 # 10% test size alternatively 0.2 for 20%
 NUM_TRIALS=3
 TEST_TRIAL=False
 Test_DF=pd.DataFrame()
-DATASET_NAME="PTC_FR"
-GED_BOUND="IPFP"  # "UpperBound-Distance", "Mean-Distance", "LowerBound-Distance"
+DATASET_NAME="MUTAG"
+GED_BOUND="Vertex"  # "UpperBound-Distance", "Mean-Distance", "LowerBound-Distance"
 EXPERIMENT_NAME="test_llambda"
 ONLY_ESTIMATE=False
 PRELOAD_CALCULATORS=True
@@ -52,7 +52,7 @@ def get_classifier(ged_calculator):
     # random_walk_calculator = RandomWalkCalculator(ged_calculator=ged_calculator, llambda_samples=[0.005,0.01,0.03,0.05,0.1,0.2,0.45,0.89], dataset=DATASET,ged_method=GED_BOUND)
     # random_walk_calculator = build_Randomwalk_GED_calculator(ged_calculator=ged_calculator)
     # return Random_Walk_edit_accelerated(ged_calculator=ged_calculator, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced', random_walk_calculator=random_walk_calculator)
-    return Trivial_GED_SVC(calculator_id=ged_calculator.get_identifier_name(),ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1',llambda=0.1)
+    return Trivial_GED_SVC(calculator_id=ged_calculator.get_identifier_name(),ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1',llambda=100)
     # return  Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=1, selection_method="TPS", selection_split="all",dataset_name=DATASET.name)
 
     # return Feature_KNN(vector_feature_list=["VertexHistogram","density","Prototype-Distance"], dataset_name=DATASET.name, prototype_size=5, selection_split="all", selection_method="TPS", metric="minkowski", calculator_id=ged_calculator.get_identifier_name(), ged_bound=GED_BOUND, n_neighbors=5, weights='uniform', algorithm='auto')
@@ -92,24 +92,7 @@ def estimate_experiment_duration(classifier: GraphClassifier, DATASET: Dataset, 
                     model=classifier,model_name=classifier.get_name,ged_calculator=None)
     estimated_time = expi.estimate_nested_cv_time(cv=int(1/SPLIT),num_trials=NUM_TRIALS,search_method=search_method) 
     return estimated_time
-def run_classifiers(classifier: GraphClassifier, DATASET: Dataset, ged_calculator: Base_Calculator, testDF: pd.DataFrame,experiment_name: str="unknown",search_method="grid"):        
-    expi=experiment(f"{classifier.__class__.__name__}",DATASET,dataset_name=DATASET.name,
-                    model=classifier,model_name=classifier.get_name,ged_calculator=ged_calculator)
-    try:
-        instance_dict =expi.run_extensive_test(should_print=True, cv=int(1/SPLIT),test_DF= dict(), n_jobs=N_JOBS,get_all_tuning_results=True,search_method=search_method,scoring="f1_macro")
-    except Exception as e:
-        #  print the full traceback
-        traceback.print_exc()
-        print(f"Error running {classifier.get_name} on {DATASET.name}: {e}")
-        instance_dict = {
-            "Model": classifier.get_name,
-            "Dataset": DATASET.name,
-            "Error": str(e)
-        }
-    # add the values form instance_dict as the last row of testDF
-    instance_df = pd.DataFrame([instance_dict])
-    testDF = pd.concat([testDF, instance_df], ignore_index=True)
-    return testDF
+
 def run_classifiers_new(classifier: GraphClassifier, DATASET: Dataset, ged_calculator: Base_Calculator,testDF: pd.DataFrame, experiment_name: str="unknown",search_method="grid"):        
     expi=experiment(f"{classifier.__class__.__name__}",DATASET,dataset_name=DATASET.name,
                     model=classifier,model_name=classifier.get_name,ged_calculator=ged_calculator)
@@ -142,7 +125,7 @@ if __name__ == "__main__":
     # else:
     #     ged_calculator = GEDLIB_Calculator(GED_calc_method="IPFP", GED_edit_cost="CONSTANT",need_node_map=True)
     if PRELOAD_CALCULATORS:
-        ged_calculator = "GED_Calculator"
+        ged_calculator = "Heuristic_Calculator"
     else:
         ged_calculator = lambda dataset, labels: build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("IPFP","upper")], dataset=dataset, labels=labels,dataset_name=DATASET_NAME, need_node_map=True)
     DATASET, ged_calculator = get_Dataset(DATASET_NAME, ged_calculator)

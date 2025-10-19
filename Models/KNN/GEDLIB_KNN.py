@@ -52,7 +52,7 @@ class abstract_GED_KNN(KNN):
     
 
 class GED_KNN(abstract_GED_KNN):
-    model_specific_iterations = 50  # Base number of iterations for this model
+    model_specific_iterations = 100  # Base number of iterations for this model
     def __init__(self,
                 ged_bound: str,
                 calculator_id:str,

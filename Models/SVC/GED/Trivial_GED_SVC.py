@@ -15,7 +15,7 @@ from scipy.stats import randint, uniform, loguniform
 DEBUG = False  # Set to True for debug prints
 
 class Trivial_GED_SVC(Base_GED_SVC):
-    model_specific_iterations = 70  # Base number of iterations for this model
+    model_specific_iterations = 100  # Base number of iterations for this model
     """
     Support Vector Machine with Graph Edit Distance Kernel
     """
@@ -34,18 +34,33 @@ class Trivial_GED_SVC(Base_GED_SVC):
         })
         super().__init__(attributes=attributes, name=self.name, **kwargs)
     def compare(self, g1, g2):
+        ged = self.ged_calculator.compare(g1, g2, method=self.ged_bound)
+        HIGH = 1e100  # high but non-infinite cap
+
         if self.similarity_function == 'k1':
-            return -((self.llambda * self.ged_calculator.compare(g1, g2, method=self.ged_bound)) ** 2)
+            val = -((self.llambda * ged) ** 2)
         elif self.similarity_function == 'k2':
-            return -(self.llambda * self.ged_calculator.compare(g1, g2, method=self.ged_bound))
+            val = -(self.llambda * ged)
         elif self.similarity_function == 'k3':
-            return np.tanh(-(self.llambda * self.ged_calculator.compare(g1, g2, method=self.ged_bound)))
+            val = np.tanh(-(self.llambda * ged))
         elif self.similarity_function == 'k4':
-            return np.exp(-(self.llambda * self.ged_calculator.compare(g1, g2, method=self.ged_bound)))
+            val = np.exp(-(self.llambda * ged))
         elif self.similarity_function == 'frac':
-            return 1 / (1 + (self.llambda * self.ged_calculator.compare(g1, g2, method=self.ged_bound)))
+            # avoid division by zero if ged is -1/(llambda) (very unlikely), handled by isfinite below
+            val = 1.0 / (1.0 + (self.llambda * ged))
         else:
             raise ValueError(f"Unknown similarity function: {self.similarity_function}")
+
+        # handle non-finite results: replace infinities with a large finite number, NaNs with 0.0
+        if not np.isfinite(val):
+            if np.isnan(val):
+                val = 0.0
+            else:  # +/- inf
+                sign = np.sign(val)
+                # if sign is 0 for some reason, use positive HIGH
+                val = sign * HIGH if sign != 0 else HIGH
+
+        return val
     def get_params(self, deep=True):
         params = super().get_params(deep=deep)
         # add the parameters of the ged_calculator with the prefix "GED_"

@@ -108,35 +108,6 @@ def load_dataset_files(data_dir, dataset_name,use_node_labels="label", use_edge_
                 print(f"Loaded edge attributes for {len(edge_attributes)} edges.")
     return edges, node_to_graph_map, y, node_labels, node_attributes, edge_labels, edge_attributes
 
-def load_dataset_into_networkx(data_dir, dataset_name,use_node_labels="label", use_edge_labels="label", use_node_attributes:str=None, use_edge_attributes:str=None):
-
-    edges, node_to_graph_map, y, node_labels, node_attributes, edge_labels, edge_attributes = (
-        load_dataset_files(data_dir, dataset_name, use_node_labels, use_edge_labels, use_node_attributes, use_edge_attributes)
-    )
-
-    num_graphs = np.max(node_to_graph_map) + 1
-    nx_graphs = []
-    if DEBUG:
-        iterable= tqdm(range(num_graphs), desc="Converting graphs to NetworkX format")
-    else:
-        iterable = range(num_graphs)
-    for i in iterable:
-        g = _build_single_graph(
-            i,
-            np.where(node_to_graph_map == i)[0],
-            edges,
-            node_labels,
-            node_attributes,
-            edge_labels,
-            edge_attributes,
-            use_node_attributes,
-            use_edge_attributes
-        )        
-        nx_graphs.append(g)
-    if DEBUG:
-        print(f"Converted {num_graphs} graphs to NetworkX format.")
-    return nx_graphs, y
-
 def _build_single_graph(
     graph_index,
     nodes_in_graph,
@@ -182,7 +153,7 @@ def _build_single_graph(
 
     return G
 
-def load_dataset_into_networkx_multi(data_dir, dataset_name, use_node_labels="label", use_edge_labels="label", use_node_attributes:str=None, use_edge_attributes:str=None):
+def load_data_to_nx(data_dir, dataset_name, use_node_labels="label", use_edge_labels="label", use_node_attributes:str=None, use_edge_attributes:str=None):
     
     edges, node_to_graph_map, y, node_labels, node_attributes, edge_labels, edge_attributes = (
         load_dataset_files(data_dir, dataset_name, use_node_labels, use_edge_labels, use_node_attributes, use_edge_attributes)
@@ -219,7 +190,7 @@ def load_dataset(source,name,use_node_labels=None,use_node_attributes=None,use_e
     # dataset_path = f"{LOCAL_DATA_PATH}/{source}/{name}"
     if source == 'TUD':
         try:       
-            nx_graphs, y = load_dataset_into_networkx_multi(dataset_path, name, use_node_labels=use_node_labels, use_node_attributes=use_node_attributes, use_edge_labels=use_edge_labels, use_edge_attributes=use_edge_attributes)  
+            nx_graphs, y = load_data_to_nx(dataset_path, name, use_node_labels=use_node_labels, use_node_attributes=use_node_attributes, use_edge_labels=use_edge_labels, use_edge_attributes=use_edge_attributes)  
         except FileNotFoundError as e:
             print(f"Error: {e}")
             print(f"The Dataset '{name}' could not be loaded from directory: {dataset_path}")
@@ -346,7 +317,7 @@ def extract_simple_graph_features(data):
 
 class Dataset:
 
-    def __init__(self, name,source, domain=None,ged_calculator=None, use_node_labels="label", use_node_attributes="label", use_edge_labels=None, use_edge_attributes=None,load_now=True,save_calculator=True):
+    def __init__(self, name,source="TUD", domain=None,ged_calculator=None, use_node_labels="label", use_node_attributes="label", use_edge_labels=None, use_edge_attributes=None,load_now=True,save_calculator=True):
         
         self.name = name
         self.ged_calculator = ged_calculator
@@ -359,7 +330,7 @@ class Dataset:
         if load_now:
             self.load()
         
-    def load_data(self,save_calculator=True):
+    def load_data(self):
         self.data = load_dataset(self.source, self.name, use_node_labels=self.Node_label_name, use_node_attributes=self.Node_attribute_name, use_edge_labels=self.Edge_label_name, use_edge_attributes=self.Edge_attribute_name)
         self.nx_graphs= self.data[0]
         self.target = self.data[1]
@@ -424,10 +395,10 @@ class Dataset:
                     print(f"Saving the Calculator for later use")
                 self.ged_calculator.save_calculator(self.name)
     def load(self, save_calculator=True):
-        self.load_data(save_calculator=save_calculator)
+        self.load_data()
         self.load_ged_calculator(save_calculator=save_calculator)
     def load_with_attributes(self, save_calculator=True,new_attributes: list[str]=["x","y"], encoding_dimension:int=2, remove_old=True):
-        self.load_data(save_calculator=save_calculator)
+        self.load_data()
         self.relabel_node_attributes(initial_encoding=self.Node_attribute_name, encoding_dimension=encoding_dimension,new_encodings=new_attributes,remove_old=remove_old)
         self.load_ged_calculator(save_calculator=save_calculator)
     def relabel_node_attributes(self,initial_encoding:str="attribute",encoding_dimension:int=2,new_encodings:list[str]=["x","y"],remove_old=True):
@@ -460,23 +431,7 @@ class Dataset:
                     else:
                         g.nodes[node][new_enc] = 0.0  # or some other default value
 
-        #         if initial_encoding in data:
-        #             initial_attr = data[initial_encoding]
-        #             if isinstance(initial_attr, str):
-        #                 initial_attr = list(map(float, initial_attr.split(',')))
-        #             if len(initial_attr) != encoding_dimension:
-        #                 raise ValueError(f"Node {n} has attribute dimension {len(initial_attr)}, expected {encoding_dimension}.")
-        #             for i, new_enc in enumerate(new_encodings):
-        #                 if i < encoding_dimension:
-        #                     data[new_enc] = initial_attr[i]
-        #                 else:
-        #                     data[new_enc] = 0.0  # or some other default value
-        #             if remove_old:
-        #                 del data[initial_encoding]
-        #     if self.ged_calculator is not None:
-        #         self.ged_calculator.update_graph(g)
-        # if self.ged_calculator is not None:
-        #     self.ged_calculator.calculate()
+
     def __str__(self):
         return f"Dataset(name={self.name}, num_graphs={len(self.data)}, num_labels={len(set(self.target))})"
 
@@ -514,15 +469,6 @@ class Dataset:
             # X_train = [g for g in X_train]
             # X_test = [g for g in X_test]
             return X_train, X_test, y_train, y_test
-    def split_fold(self,train_index, test_index):
-        """
-        Splits the dataset into training and testing sets based on provided indices.
-        """
-        X_train = [self.nx_graphs[i] for i in train_index]
-        X_test = [self.nx_graphs[i] for i in test_index]
-        y_train_fold = [self.target[i] for i in train_index]
-        y_test_fold = [self.target[i] for i in test_index]
-        return X_train, X_test, y_train_fold, y_test_fold
 
     def split_k_fold(self, k=5, random_state=RANDOM_STATE, stratify=False, shuffle=SHUFFLE,repeat=1):
         """
@@ -541,8 +487,13 @@ class Dataset:
                 kf = KFold(n_splits=k, shuffle=shuffle, random_state=random_state)
         splits = []
         for train_index, test_index in kf.split(self.nx_graphs, self.target):
-            splits.append(self.split_fold(train_index, test_index))
+            X_train = [self.nx_graphs[i] for i in train_index]
+            X_test = [self.nx_graphs[i] for i in test_index]
+            y_train_fold = [self.target[i] for i in train_index]
+            y_test_fold = [self.target[i] for i in test_index]
+            splits.append((X_train, X_test, y_train_fold, y_test_fold))
         return splits
+    
     def get_param_grid(self):
         """
         Returns a dictionary of parameters for the dataset.
