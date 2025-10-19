@@ -15,7 +15,7 @@ from scipy.stats import randint, uniform, loguniform
 DEBUG = False  # Set to True for debug prints
 
 class Trivial_GED_SVC(Base_GED_SVC):
-    model_specific_iterations = 50  # Base number of iterations for this model
+    model_specific_iterations = 70  # Base number of iterations for this model
     """
     Support Vector Machine with Graph Edit Distance Kernel
     """
@@ -26,7 +26,7 @@ class Trivial_GED_SVC(Base_GED_SVC):
                 **kwargs):
         self.similarity_function = similarity_function
         self.llambda = llambda
-        if self.similarity_function not in ["k1", "k2", "k3", "k4"]:
+        if self.similarity_function not in ["k1", "k2", "k3", "k4", "frac"]:
             raise ValueError(f"Unknown similarity function: {self.similarity_function}")
         self.name="Trivial-GED"
         attributes.update({
@@ -74,7 +74,7 @@ class Trivial_GED_SVC(Base_GED_SVC):
         # this is a problem, because the kernel has its own parameters
         param_grid.update({
             "similarity_function": ['k1', 'k2', 'k3', 'k4'],
-            "llambda": loguniform(0.01, 200)
+            "llambda": loguniform(0.01, 100)
         })
         return param_grid
         # param_grid.update({

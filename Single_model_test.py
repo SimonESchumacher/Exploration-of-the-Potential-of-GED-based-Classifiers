@@ -32,12 +32,12 @@ import pandas as pd
 from io_Manager import IO_Manager
 N_JOBS = 5
 SPLIT=0.2 # 10% test size alternatively 0.2 for 20%
-NUM_TRIALS=1
+NUM_TRIALS=3
 TEST_TRIAL=False
 Test_DF=pd.DataFrame()
-DATASET_NAME="MUTAG"
+DATASET_NAME="PTC_FR"
 GED_BOUND="IPFP"  # "UpperBound-Distance", "Mean-Distance", "LowerBound-Distance"
-EXPERIMENT_NAME="TEST_JOBLIB"
+EXPERIMENT_NAME="test_llambda"
 ONLY_ESTIMATE=False
 PRELOAD_CALCULATORS=True
 USE_NODE_LABELS="label"
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     # else:
     #     ged_calculator = GEDLIB_Calculator(GED_calc_method="IPFP", GED_edit_cost="CONSTANT",need_node_map=True)
     if PRELOAD_CALCULATORS:
-        ged_calculator = "Exact_GED"
+        ged_calculator = "GED_Calculator"
     else:
         ged_calculator = lambda dataset, labels: build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("IPFP","upper")], dataset=dataset, labels=labels,dataset_name=DATASET_NAME, need_node_map=True)
     DATASET, ged_calculator = get_Dataset(DATASET_NAME, ged_calculator)

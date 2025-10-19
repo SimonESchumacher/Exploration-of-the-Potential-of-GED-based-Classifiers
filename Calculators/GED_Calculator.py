@@ -546,11 +546,16 @@ class exact_GED_Calculator(GED_Calculator):
 
 
 
-def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,timeout=2, lb=0):
+def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_size_j,timeout=50, lb=0):
     # load the graphs from files
-    filepath1 = f"Datasets/ged/{dataset_name}/g_{g_id1}.txt"
-    filepath2 = f"Datasets/ged/{dataset_name}/g_{g_id2}.txt"
-
+    filepath1 = None
+    filepath2 = None
+    if node_size_i < node_size_j:
+        filepath1 = f"Datasets/ged/{dataset_name}/g_{g_id1}.txt"
+        filepath2 = f"Datasets/ged/{dataset_name}/g_{g_id2}.txt"
+    else:
+        filepath1 = f"Datasets/ged/{dataset_name}/g_{g_id2}.txt"
+        filepath2 = f"Datasets/ged/{dataset_name}/g_{g_id1}.txt"
     try:
         command = ["Graph_Edit_Distance/ged", "-q", filepath1, "-d", filepath2, "-g"]
         process = subprocess.run(
@@ -564,22 +569,23 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,timeout=2, lb=0):
         # print(output)
         # Extract GED
         ged_match = re.search(r"\*\*\* GEDs \*\*\*\s*(\d+)", output)
-        # total_time_match = re.search(
-        #     r"Total time: ([\d,]+) \(microseconds\)", output
-        # )
-        if ged_match:
+        total_time_match = re.search(
+            r"Total time: ([\d,]+) \(microseconds\)", output
+        )
+        if ged_match and total_time_match:
             ged = int(ged_match.group(1))
             # convert the time to a readable string (seconds.milliseconds)
-            # time_us = int(total_time_match.group(1).replace(",", "")) if total_time_match else None
-            # if time_us is None:
-            #     time = None
-            # else:
-            #     secs = time_us // 1_000_000
-            #     ms = (time_us % 1_000_000) // 1000
-            #     time = f"{secs}.{ms:03d}s"  # e.g. "1.234s" or "0.123s"
+            time_us = int(total_time_match.group(1).replace(",", "")) if total_time_match else None
+            if time_us is None:
+                time = None
+            else:
+                secs = time_us // 1_000_000
+                ms = (time_us % 1_000_000) // 1000
+                time = f"{secs}.{ms:03d}s"  # e.g. "1.234s" or "0.123s"
+                print(f"Computed {g_id1} and graph {g_id2}: {ged} in {time}")
+
             return ged
 
-            # print(f"Computed {g_id1} and graph {g_id2}: {ged} in {time}")
         else:
             raise Exception(
                 "GED value not found in output:"
@@ -623,7 +629,7 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,timeout=2, lb=0):
     except subprocess.TimeoutExpired:
         print(f"Timeout expired when computing GED between graph {g_id1} and graph {g_id2}.")
         # inifite distance max int
-        return  10000
+        return  -10
         # global _ged_matrix
 
 def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, **kwargs) -> exact_GED_Calculator:
@@ -635,11 +641,13 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, **kwar
     global _dataset_cache
     _ged_matrix = np.zeros((n,n), dtype=np.int32)
     _node_map_dict = np.empty((n,n), dtype=object)
+    node_sizes = [len(g.nodes()) for g in dataset]
     # first we compute the diagonal
     for i in range(n):
         _dataset_cache = dataset[i]
         _ged_matrix[i,i] = 0
         _node_map_dict[i,i] = {k:k for k in range(len(dataset[i].nodes()))}
+        node_sizes[i] = len(dataset[i].nodes())
     # then we compute the upper triangle
     # we distribute the Jobs so that every Jobs needs to caclulate the same amount of GEDs
     tasks = [] # will be n/2 tasks
@@ -651,7 +659,7 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, **kwar
     print(f"Starting calculation of exact GED distance matrix with {n_jobs} parallel jobs...")
     # execute in parallel and collect results
     results = Parallel(n_jobs=n_jobs)(
-        delayed(calculate_ged_between_two_graphs)(dataset_name, i, j)
+        delayed(calculate_ged_between_two_graphs)(dataset_name, i, j, node_size_i=node_sizes[i], node_size_j=node_sizes[j], timeout=300)
         for (i, j) in tasks
     )
 
@@ -680,3 +688,6 @@ def load_exact_GED_calculator(dataset_name: str) -> exact_GED_Calculator:
     _node_map_dict = exact_ged_calculator.node_map_dict
     _dataset_cache = exact_ged_calculator.dataset
     return exact_ged_calculator
+
+
+
