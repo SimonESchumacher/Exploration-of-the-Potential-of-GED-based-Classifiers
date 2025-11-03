@@ -1,15 +1,12 @@
 from sklearn.base import clone
 
-from Models_single.SVC.Base_GED_SVC import Base_GED_SVC
-from Models_single.SVC.GED.Trivial_GED_SVC import Trivial_GED_SVC
-from Models_single.SVC.GED.RandomWalk_edit import Random_walk_edit_SVC
-from Models_single.SVC.GED.GED_Diffu_SVC import DIFFUSION_GED_SVC
+from Models.SVC.random_walk import RandomWalk_SVC
 from Dataset import Dataset
-ged_calculator = "GEDLIB_Calculator"
+ged_calculator = "Exact_GED"
 DATASET= Dataset(name="MUTAG", source="TUD", domain="Bioinformatics", ged_calculator=ged_calculator, use_node_labels="label", use_edge_labels="weight",load_now=False)
 DATASET.load()
 ged_calculator = DATASET.get_calculator()
-estimator = DIFFUSION_GED_SVC(C=1.0, llambda=1.0, ged_calculator=ged_calculator, ged_bound="Mean-Distance", diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5)
+estimator = RandomWalk_SVC(normalize_kernel=True, rw_kernel_type="geometric", p_steps=3,C=1.0, kernel_type="precomputed")
 try:
     cloned = clone(estimator)
     print("Cloning works!")

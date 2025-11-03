@@ -98,9 +98,90 @@ class DIFFUSION_GED_SVC(Base_GED_SVC):
     def get_random_param_space(cls):
         param_space = Base_GED_SVC.get_random_param_space()
         param_space.update({
-            "llambda": loguniform(0.01, 0.99),
+            "llambda": loguniform(0.01, 0.89),
             "diffusion_function": ["exp_diff_kernel", "von_Neumann_diff_kernel"],
             "t_iterations": randint(2, 6)
         })
         return param_space
+    
+class Diffusion_GED_new(DIFFUSION_GED_SVC):
+
+    def fit_transform(self, X, y=None):
+        X=[int(X[i].name) for i in range(len(X))]
+        self._X_fit = X
+        n = len(X)
+
+        # 1) Compute pairwise GED distances
+        D = self.ged_calculator.get_complete_matrix(method=self.ged_bound,x_graphindexes=X)
+
+        # 2) Compute base similarity matrix B
+        self.d_max = D.max()
+        self.B = self.d_max - D  # higher similarity = smaller distance
+
+        # 3) Compute diffusion kernel using truncated series
+        if self.diffusion_function == "exp_diff_kernel":
+            K = np.eye(n)
+            term = np.eye(n)  # current power of B
+            k_factorial = 1
+            for k in range(1, self.t_iterations + 1):
+                k_factorial *= k   # update k_factorial!
+                term = self.B @ term  # multiply by B
+                K += (self.llambda ** k / k_factorial) * term
+        elif self.diffusion_function == "von_Neumann_diff_kernel":
+            K = np.eye(n)
+            term = np.eye(n)
+            for k in range(1, self.t_iterations + 1):
+                term = self.B @ term  # matrix power
+                K += (self.llambda ** k) * term
+
+            return K, self.B, self.d_max
+        return K
+    
+    def transform(self, X):
+        X=[int(X[i].name) for i in range(len(X))]
+
+        n = len(self._X_fit)
+        m = len(X)
+        K_test = np.zeros((m, n))
+        for p, g in enumerate(X):
+            # --- Step 1: compute similarity vector b between test graph g and all training graphs ---
+            b = np.zeros(n)
+            for i in range(n):
+                d = self.ged_calculator.compare(g, self._X_fit[i], method=self.ged_bound)   
+                b[i] = self.d_max - d
+            b_gg = self.d_max  # self-similarity
+
+            # --- Step 2: initialize vectors (Option A algorithm) ---
+            v_train = np.zeros(n)
+            v_g = 1.0
+
+            s_train = v_train.copy()
+            s_g = v_g
+
+            # --- Step 3: iterative diffusion series computation ---
+            if self.diffusion_function == "exp_diff_kernel":
+                k_factorial = 1
+                for k in range(1, self.t_iterations + 1):
+                    w_train = self.B @ v_train + v_g * b
+                    w_g = b @ v_train + v_g * b_gg
+                    k_factorial *= k
+                    coeff = self.llambda ** k / k_factorial
+                    s_train += coeff * w_train
+                    s_g += coeff * w_g
+
+                    v_train, v_g = w_train, w_g
+            elif self.diffusion_function == "von_Neumann_diff_kernel":
+                for k in range(1, self.t_iterations + 1):
+                    w_train = self.B @ v_train + v_g * b
+                    w_g = b @ v_train + v_g * b_gg
+
+                    coeff = self.llambda ** k  # von Neumann weights (no factorial)
+                    s_train += coeff * w_train
+                    s_g += coeff * w_g
+
+                    v_train, v_g = w_train, w_g
+            # --- Step 4: save results ---
+            K_test[p, :] = s_train
+
+        return K_test
 

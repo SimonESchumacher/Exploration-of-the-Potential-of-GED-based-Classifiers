@@ -373,7 +373,7 @@ class Dataset:
                 elif self.ged_calculator =="Exact_GED":
                     if DEBUG:
                         print(f"Loading the presaved {self.ged_calculator} for dataset {self.name}")
-                    self.ged_calculator = load_exact_GED_calculator(self.name)
+                    self.ged_calculator = load_exact_GED_calculator(f"{self.name}_{int(self.use_node_labels())}_{int(self.use_edge_labels())}")
                 else:
                     self.ged_calculator =Base_Calculator.load_calculator(self.ged_calculator,self.name)
                     self.ged_calculator.make_backup()
@@ -558,6 +558,19 @@ class Dataset:
         """ Returns the name of the dataset.
         """
         return self.name
-    
-
-   
+    def has_node_labels(self):
+        """ Returns whether the dataset uses node labels.
+        """
+        return self.characteristics['has_node_labels']
+    def has_edge_labels(self):
+        """ Returns whether the dataset uses edge labels.
+        """
+        return self.characteristics['has_edge_labels']
+    def use_node_labels(self):
+        """ Returns the name of the node labels used in the dataset.
+        """
+        return self.Node_label_name != None
+    def use_edge_labels(self):
+        """ Returns the name of the edge labels used in the dataset.
+        """
+        return self.Edge_label_name != None

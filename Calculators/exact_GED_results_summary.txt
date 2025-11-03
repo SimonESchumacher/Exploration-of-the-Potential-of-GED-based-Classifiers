@@ -1,0 +1,2 @@
+MUTAG_1_1: Approximations=43, Relative Deviation=4.2152
+MUTAG_0_0: Approximations=1757, Relative Deviation=5.6952

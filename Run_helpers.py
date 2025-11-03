@@ -64,6 +64,11 @@ def set_Mode(mode_level: int):
         Test_TRAIL = False
         Only_estimate = False
         Get_All_tuning_results = True
+    elif mode_level == 5:
+        num_trials = 7
+        Test_TRAIL = False
+        Only_estimate = False
+        Get_All_tuning_results = True
     else:
         raise ValueError(f"Unknown mode level: {mode_level}")
     return num_trials, Test_TRAIL, Only_estimate, Get_All_tuning_results

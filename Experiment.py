@@ -511,7 +511,7 @@ class experiment:
         accuracy,f1,precision,recall,roc_auc,classification_report_str = self.score_best_model(Y_test,y_test)
         # scores = self.extensive_model_score(best_params,X_train,Y_test,y_train,y_test,classes=self.model.classes_)
 
-
+        # return best_model,best_params,scores, results_dict
         return best_model, best_params, best_score, accuracy,f1,precision,recall,roc_auc,classification_report_str, results_dict
 
     
@@ -571,6 +571,19 @@ class experiment:
             for i, (X_train, X_test, y_train_fold, y_test_fold) in enumerate(self.dataset.split_k_fold(k=inner_cv, random_state=random_gen.randint(0, 1000),repeat=num_trials,stratify=True))
         ]
         all_folds_results = joblib.Parallel(n_jobs=maximum_jobs,verbose=1)(delayed_calls)
+        all_scores_list = pd.DataFrame()
+        # for fold_index, (best_model,best_params, scores, results_dict) in enumerate(all_folds_results):
+        #     if fold_index ==0:
+        #         test_Dict["best_params"] = str(best_params)
+        #         test_Dict["best_score"] = scores["accuracy_test"]
+        #         test_Dict["classification_report_train"] = results_dict["classification_report_test"]
+
+
+        #     # Append the results_dict to the results_df
+        #     results_dict['fold_index'] = fold_index
+        #     results_df = pd.concat([results_df, pd.DataFrame([results_dict])], ignore_index=True)
+        #     all_scores_list = pd.concat([all_scores_list, pd.DataFrame([scores])], ignore_index=True)
+        
         for fold_index, (best_model, best_params, best_score, accuracy_train,f1_train,precision_train,recall_train,roc_auc_train,classification_report_train, results_dict) in enumerate(all_folds_results):
             if fold_index ==0:
                 test_Dict["best_params"] = str(best_params)
