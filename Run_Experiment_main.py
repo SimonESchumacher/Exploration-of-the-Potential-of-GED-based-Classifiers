@@ -37,7 +37,7 @@ import pandas as pd
 
 
 # to set the mode:
-TESTING_MODE= "SINGLE" # "SINGLE" or "ALL"
+TESTING_MODE= "ALL" # "SINGLE" or "ALL"
 CALCULATOR_NAME= "Exact_GED"
 HEURISTIC_CALCULATOR_NAME="Heuristic_Calculator"
 N_JOBS=8
@@ -51,9 +51,9 @@ testing_level= 4 # Number from 1 to 4
 NUM_TRIALS, TEST_TRIAL, ONLY_ESTIMATE, GET_ALL_TUNING_RESULTS = set_Mode(testing_level)
 
 # DATASET
-DATASET_NAME="MUTAG"
-DATASET_EDGE_LABELS="label"
-DATASET_NODE_LABELS="label"
+DATASET_NAME="MSRC_9"
+DATASET_EDGE_LABELS=None
+DATASET_NODE_LABELS=None
 DATASET_NODE_ATTRIBUTES=None  # e.g. ["x","y"]
 DATASET_EDGE_ATTRIBUTES=None  # e.g. ["weight"]
 
@@ -115,8 +115,8 @@ def reference_classifiers(ged_calculator: Base_Calculator):
     calculator_id = set_global_ged_calculator_All(ged_calculator)
     return [
         GED_KNN(calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, n_neighbors=7, weights='uniform', algorithm='auto'),
-        Trivial_GED_SVC(calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1',llambda=1.0),
-        Diffusion_GED_new(C=1.0, llambda=1.0, calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
+        # Trivial_GED_SVC(calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1',llambda=1.0),
+        # Diffusion_GED_new(C=1.0, llambda=1.0, calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
         ]
 
 def run_classifier(classifier: GraphClassifier,expi: experiment,cv:int,testDF: pd.DataFrame):        

@@ -1,4 +1,5 @@
 import math
+import multiprocessing
 import os
 import re
 import traceback
@@ -226,7 +227,7 @@ def build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("BIPARTITE
     _dataset_cache = dataset
     return GED_Calculator(dataset_name=dataset_name)
 
-def build_Heuristic_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=["Vertex","Edge","SUM"], dataset=None, labels=None, **kwargs) -> Heuristic_Calculator:
+def build_Heuristic_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=["Vertex","Edge"], dataset=None, labels=None, **kwargs) -> Heuristic_Calculator:
     if dataset is None or labels is None:
         raise ValueError("Dataset and labels must be provided to build Heuristic_Calculator.")
     def run_method(graph1, graph2, method):
@@ -672,8 +673,24 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_
         return ged, mapping_dict, time, approx_ged
 
         # global _ged_matrix
-
-def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, **kwargs) -> exact_GED_Calculator:
+def run_ged_calculation(i, j, dataset_name, node_size_i, node_size_j, nx_1, nx_2, timeout):
+    # Unpack all your arguments    
+    try:
+        # Call your original function
+        # NOTE: Your original function must return (i, j) so we know which task is finished
+        (ged, mapping_dict, time, approx_ged) = calculate_ged_between_two_graphs(
+            dataset_name, i, j, 
+            node_size_i=node_size_i, 
+            node_size_j=node_size_j, 
+            nx_1=nx_1, nx_2=nx_2, 
+            timeout=timeout
+        )
+        return (i, j, ged, mapping_dict, time, approx_ged, None) # Add 'None' for no error
+    except Exception as e:
+        # Return the error to be handled in the main process
+        return (i, j, None, None, None, None, e)
+    
+def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeout=10, **kwargs) -> exact_GED_Calculator:
     # we assume the Dataset is already loadded, but also we have the files of the Graphs in the directories.
     n = len(dataset)
     # we distribute the Jobs, sot that every Jobs needs to caclulate the same amount of GEDs
@@ -693,6 +710,7 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, **kwar
     # then we compute the upper triangle
     # we distribute the Jobs so that every Jobs needs to caclulate the same amount of GEDs
     tasks = [] # will be n/2 tasks
+    
     for i in range(n):
         for j in range(i+1, n):
             tasks.append( (i,j) )
@@ -702,7 +720,7 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, **kwar
     # execute in parallel and collect results
     try:
         results = Parallel(n_jobs=n_jobs)(
-            delayed(calculate_ged_between_two_graphs)(dataset_name, i, j, node_size_i=node_sizes[i], node_size_j=node_sizes[j], nx_1=dataset[i], nx_2=dataset[j], timeout=10)
+            delayed(run_ged_calculation)(i, j, dataset_name, node_size_i=node_sizes[i], node_size_j=node_sizes[j], nx_1=dataset[i], nx_2=dataset[j], timeout=timeout)
             for (i, j) in tasks
         )
     except Exception as e:
@@ -711,13 +729,17 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, **kwar
     # write results into the distance matrix (symmetric)
     approximation_counter = 0
     deviation_sum = 0.0
-    for (i, j), (ged,mapping_dict,time, approx_ged) in zip(tasks, results):
-        if ged is None:
-            ged = approx_ged
-            approximation_counter += 1
+    for (i, j), (ged,mapping_dict,time, approx_ged, error) in zip(tasks, results):
+        if error is not None:
+            print(f"Error calculating GED between graphs {i} and {j}: {error}")
+            raise error
         else:
-            # calculate the devation between approx and exact
-            deviation_sum += abs(ged - approx_ged)  
+            if ged is None:
+                ged = approx_ged
+                approximation_counter += 1
+            else:
+                # calculate the devation between approx and exact
+                deviation_sum += abs(ged - approx_ged)  
 
         _ged_matrix[i, j] = ged
         _ged_matrix[j, i] = ged
@@ -750,5 +772,79 @@ def load_exact_GED_calculator(dataset_name: str) -> exact_GED_Calculator:
     _dataset_cache = exact_ged_calculator.dataset
     return exact_ged_calculator
 
+def build_exact_ged_calculator_anti_leak(dataset=None, dataset_name=None, n_jobs=1, timeout=10, **kwargs) -> exact_GED_Calculator:
+    # we assume the Dataset is already loadded, but also we have the files of the Graphs in the directories.
+    n = len(dataset)
+    # we distribute the Jobs, sot that every Jobs needs to caclulate the same amount of GEDs
+    global _ged_matrix
+    global _node_map_dict
+    global _dataset_cache
+    _ged_matrix = np.zeros((n,n), dtype=np.int32)
+    _node_map_dict = np.empty((n,n), dtype=object)
+    node_sizes = [len(g.nodes()) for g in dataset]
+    # first we compute the diagonal
+    _dataset_cache = [None for _ in range(n)]
+    for i in range(n):
+        _dataset_cache[i] = dataset[i]
+        _ged_matrix[i,i] = 0
+        _node_map_dict[i,i] = {k:k for k in range(len(dataset[i].nodes()))}
+        node_sizes[i] = len(dataset[i].nodes())
+    # then we compute the upper triangle
+    # we distribute the Jobs so that every Jobs needs to caclulate the same amount of GEDs
+
+    mapping_dir = "presaved_data/node_mappings"
+    os.makedirs(mapping_dir, exist_ok=True)
+
+    tasks = [] # will be n/2 tasks
+    
+    for i in range(n):
+        for j in range(i+1, n):
+            task_args = (
+            i, j, dataset_name, 
+            node_sizes[i], node_sizes[j], 
+            dataset[i], dataset[j], 
+            timeout
+            )
+            tasks.append(task_args)
+    # start parallel processing
+    # for every entry in task the GED needs to be calculated
+    print(f"Starting calculation of exact GED distance matrix with {n_jobs} parallel jobs...")
+    # execute in parallel and collect results
+    approximation_counter = 0
+    deviation_sum = 0.0
+    try:
+        with multiprocessing.Pool(processes=n_jobs) as pool:
+            results_iterator = pool.imap_unordered(run_ged_calculation, tasks)
+            # write results into the distance matrix (symmetric)
+            for result in results_iterator:
+                (i, j, ged, mapping_dict, time, approx_ged, error) = result
+                if error:
+                    print(f"Error in task (i={i}, j={j}): {error}")
+                    continue # Skip this result
+                    
+                if ged is None:
+                    ged = approx_ged
+                    approximation_counter += 1
+                else:
+                    deviation_sum += abs(ged - approx_ged)
+
+                _ged_matrix[i, j] = ged
+                _ged_matrix[j, i] = ged
+                _node_map_dict[i, j] = mapping_dict
+                # reverse mapping
+                reverse_mapping = {v: k for k, v in mapping_dict.items()}
+                _node_map_dict[j, i] = reverse_mapping
+                # process results
+    except Exception as e:
+        print(f"Error during parallel GED calculation: {e}")
+        traceback.print_exc()
+    print("Finished calculating exact GED distance matrix.")
+    print(_ged_matrix)
+    print(f"Number of approximations used due to timeouts: {approximation_counter} out of {len(tasks)}")
+    rel_deviation = deviation_sum / (len(tasks) - approximation_counter) if len(tasks) > 0 else 0.0
+    print(f"Average deviation between approximate and exact GED: {rel_deviation:.4f}")
+    # create GED_Calculator_object
+    ged_calculator = exact_GED_Calculator(dataset_name=dataset_name)
+    return ged_calculator, approximation_counter, rel_deviation
 
 

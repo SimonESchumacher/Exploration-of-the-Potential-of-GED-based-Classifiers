@@ -134,7 +134,8 @@ class Diffusion_GED_new(DIFFUSION_GED_SVC):
                 term = self.B @ term  # matrix power
                 K += (self.llambda ** k) * term
 
-            return K, self.B, self.d_max
+            return K
+        
         return K
     
     def transform(self, X):

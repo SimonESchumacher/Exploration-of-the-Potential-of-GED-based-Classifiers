@@ -3,7 +3,9 @@ import os
 # add the root directory to the sys.path
 sys.path.append(os.getcwd())
 from Dataset import Dataset
-from Calculators.GED_Calculator import build_exact_ged_calculator
+from Calculators.GED_Calculator import build_Heuristic_calculator, build_exact_ged_calculator
+TIMEOUT= 0.1
+N_JOBS=8
 def convert_Dataset_to_exact_GED_format(dataset:Dataset,use_node_labels=True,use_edge_labels=True):
     dataset_name = dataset.get_name()
     label_info = f"{int(use_node_labels)}_{int(use_edge_labels)}"
@@ -54,7 +56,7 @@ def convert_Dataset_to_exact_GED_format(dataset:Dataset,use_node_labels=True,use
                 f.write('\n'.join(output_lines) + '\n') # Add final newline for file hygiene
         except IOError as e:
             print(f"\nError writing to file '{graph_path}': {e}")
-dataset_names = ["PTC_FR_1_1","PTC_FR_0_0","BZR_0_0","MSRC_9_1_1","MSRC_9_0_0","IMDB-BINARY_0_0","IMDB_MULTI_0_0","ENZYMES_0_0"]
+dataset_names =["KKI_0_0","BZR_MD_1_1","BZR_MD_0_0","COX2_MD_0_0"]
 # for dataset_name in dataset_names:
 #     # check for the digits at the end to determine whether to use node/edge labels
 #     use_node_edge_labels = not dataset_name.endswith("_0_0")
@@ -69,19 +71,22 @@ rel_deviations = {}
 try:
     for dataset_name in dataset_names:
         use_node_edge_labels = not dataset_name.endswith("_0_0")
+
         load = "label" if use_node_edge_labels else None
         dataset_name_only :str = dataset_name.rsplit("_",2)[0]
         DATASET = Dataset(name=dataset_name_only, source="TUD", domain="Bioinformatics", ged_calculator=None, use_node_labels=load, use_edge_labels=load, load_now=False)
         DATASET.load()
         Dataset_name = DATASET.get_name() + f"_{int(DATASET.use_node_labels())}_{int(DATASET.use_edge_labels())}"
-        ged_calculator, approximation_counter, rel_deviation = build_exact_ged_calculator(DATASET.get_graphs(),Dataset_name, n_jobs=8)
+        ged_calculator, approximation_counter, rel_deviation = build_exact_ged_calculator(DATASET.get_graphs(),Dataset_name, n_jobs=N_JOBS,timeout=TIMEOUT)
         approximation_counters[Dataset_name] = approximation_counter
         rel_deviations[Dataset_name] = rel_deviation
         print(f"Finished dataset {Dataset_name}: Approximations={approximation_counter}, Relative Deviation={rel_deviation:.4f}")
         # save the number of approximations and relative deviation to a file
         with open(f"Calculators/exact_GED_results_summary.txt", "a") as f:
             f.write(f"{Dataset_name}: Approximations={approximation_counter}, Relative Deviation={rel_deviation:.4f}\n")
-
+        # also load a heuristic calculator
+        heuristic_calculator = build_Heuristic_calculator(GED_edit_cost="CONSTANT", dataset=DATASET.get_graphs(), labels=DATASET.get_targets())
+        heuristic_calculator.save_calculator(DATASET.get_name())
 except Exception as e:
     print(f"Error processing dataset {dataset_name}: {e}")
     # print all the approximation counters and relative deviations collected so far

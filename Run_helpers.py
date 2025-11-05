@@ -14,8 +14,8 @@ last_save_time = pd.Timestamp.now()
 def save_progress(testDF: pd.DataFrame, experiment_name: str):
     global last_save_time
     current_time = pd.Timestamp.now()
-    if (current_time - last_save_time).seconds >= 600:  # Save every 10 minutes
-        results_dir = os.path.join("configs", "results")
+    if (current_time - last_save_time).seconds >= 5:  # Save every 5 seconds
+        results_dir = os.path.join("configs", "results","intermediate")
         os.makedirs(results_dir, exist_ok=True)
         results_path = os.path.join(results_dir, f"{experiment_name}_results.xlsx")
         testDF.to_excel(results_path, index=False)
