@@ -4,8 +4,8 @@ import os
 sys.path.append(os.getcwd())
 from Dataset import Dataset
 from Calculators.GED_Calculator import build_Heuristic_calculator, build_exact_ged_calculator, build_exact_ged_calculator_anti_leak, build_exact_ged_calculator_buffered
-TIMEOUT= 0.1
-N_JOBS=32
+TIMEOUT= 2.5
+N_JOBS=64
 def convert_Dataset_to_exact_GED_format(dataset:Dataset,use_node_labels=True,use_edge_labels=True):
     dataset_name = dataset.get_name()
     label_info = f"{int(use_node_labels)}_{int(use_edge_labels)}"
@@ -56,7 +56,7 @@ def convert_Dataset_to_exact_GED_format(dataset:Dataset,use_node_labels=True,use
                 f.write('\n'.join(output_lines) + '\n') # Add final newline for file hygiene
         except IOError as e:
             print(f"\nError writing to file '{graph_path}': {e}")
-dataset_names =["Letter-high_0_0"]
+dataset_names =["IMDB-MULTI_0_0"]
 # for dataset_name in dataset_names:
 #     #  check for the digits at the end to determine whether to use node/edge labels
 #     use_node_edge_labels = not dataset_name.endswith("_0_0")
@@ -77,7 +77,7 @@ try:
         DATASET = Dataset(name=dataset_name_only, source="TUD", domain="Bioinformatics", ged_calculator=None, use_node_labels=load, use_edge_labels=load, load_now=False)
         DATASET.load()
         Dataset_name = DATASET.get_name() + f"_{int(DATASET.use_node_labels())}_{int(DATASET.use_edge_labels())}"
-        ged_calculator, approximation_counter, rel_deviation = build_exact_ged_calculator_buffered(DATASET.get_graphs(),Dataset_name, n_jobs=N_JOBS,timeout=TIMEOUT)
+        ged_calculator, approximation_counter, rel_deviation = build_exact_ged_calculator(DATASET.get_graphs(),Dataset_name, n_jobs=N_JOBS,timeout=TIMEOUT)
         approximation_counters[Dataset_name] = approximation_counter
         rel_deviations[Dataset_name] = rel_deviation
         print(f"Finished dataset {Dataset_name}: Approximations={approximation_counter}, Relative Deviation={rel_deviation:.4f}")

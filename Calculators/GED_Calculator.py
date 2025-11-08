@@ -15,7 +15,7 @@ from scipy.linalg import inv
 import networkx as nx
 import subprocess
 from joblib import Parallel, delayed
-
+ENABLE_NODE_MAPPING = False
 GED_distance_matrix_dict_cache = {}
 GED_node_map_dict_cache = {}
 _dataset_cache = None
@@ -523,10 +523,10 @@ _ged_matrix: np.ndarray = None
 class exact_GED_Calculator(GED_Calculator):
     def __init__(self, dataset_name, **kwargs):
         global _ged_matrix
-        global _node_map_dict
+        global GED_node_map_dict
         global _dataset_cache
         self.distance_matrix = _ged_matrix
-        self.node_map_dict = _node_map_dict
+        self.node_map_dict = GED_node_map_dict
         self.dataset = _dataset_cache
         self.name = "Exact_GED"
         self.dataset_name = dataset_name
@@ -560,7 +560,7 @@ class exact_GED_Calculator(GED_Calculator):
 
 
 
-def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_size_j,nx_1,nx_2,timeout=5, lb=0,gedlibpy_edit_cost="CONSTANT",gedlibpy_method="IPFP"):
+def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_size_j,nx_1,nx_2,timeout=5, lb=0,gedlibpy_edit_cost="CONSTANT",gedlibpy_method="IPFP",use_node_mapping=ENABLE_NODE_MAPPING):
     # load the graphs from files
     filepath1 = None
     filepath2 = None
@@ -652,13 +652,10 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_
             if total_time_match
             else None
         )
-        return ged, mapping, time, approx_ged
-        # Extract mapping
-
-        # ===
-        # Extract total time. For some unknown reason, time is not always
-        # present in the binary's output, hence None is also accepted here.
-        # ===
+        if use_node_mapping:
+            return ged, mapping, time, approx_ged
+        else:
+            return ged, None, time, approx_ged
         
 
 
@@ -698,17 +695,17 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
     n = len(dataset)
     # we distribute the Jobs, sot that every Jobs needs to caclulate the same amount of GEDs
     global _ged_matrix
-    global _node_map_dict
+    global GED_node_map_dict
     global _dataset_cache
     _ged_matrix = np.zeros((n,n), dtype=np.int32)
-    _node_map_dict = np.empty((n,n), dtype=object)
+    GED_node_map_dict = np.empty((n,n), dtype=object)
     node_sizes = [len(g.nodes()) for g in dataset]
     # first we compute the diagonal
     _dataset_cache = [None for _ in range(n)]
     for i in range(n):
         _dataset_cache[i] = dataset[i]
         _ged_matrix[i,i] = 0
-        _node_map_dict[i,i] = {k:k for k in range(len(dataset[i].nodes()))}
+        GED_node_map_dict[i,i] = {k:k for k in range(len(dataset[i].nodes()))}
         node_sizes[i] = len(dataset[i].nodes())
     # then we compute the upper triangle
     # we distribute the Jobs so that every Jobs needs to caclulate the same amount of GEDs
@@ -746,10 +743,10 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
 
         _ged_matrix[i, j] = ged
         _ged_matrix[j, i] = ged
-        _node_map_dict[i, j] = mapping_dict
+        GED_node_map_dict[i, j] = mapping_dict
         # reverse mapping
         reverse_mapping = {v: k for k, v in mapping_dict.items()}
-        _node_map_dict[j, i] = reverse_mapping
+        GED_node_map_dict[j, i] = reverse_mapping
 
     # process results
     print("Finished calculating exact GED distance matrix.")
@@ -767,11 +764,11 @@ def load_exact_GED_calculator(dataset_name: str) -> exact_GED_Calculator:
     filepath = f"presaved_data/{filename}"
     exact_ged_calculator: exact_GED_Calculator = joblib.load(filepath)
     global _ged_matrix
-    global _node_map_dict
+    global GED_node_map_dict
     global _dataset_cache
     exact_ged_calculator.identifier_name = exact_ged_calculator.get_Name() + f"_{dataset_name}"
     _ged_matrix = exact_ged_calculator.distance_matrix
-    _node_map_dict = exact_ged_calculator.node_map_dict
+    GED_node_map_dict = exact_ged_calculator.node_map_dict
     _dataset_cache = exact_ged_calculator.dataset
     return exact_ged_calculator
 
@@ -780,17 +777,17 @@ def build_exact_ged_calculator_anti_leak(dataset=None, dataset_name=None, n_jobs
     n = len(dataset)
     # we distribute the Jobs, sot that every Jobs needs to caclulate the same amount of GEDs
     global _ged_matrix
-    global _node_map_dict
+    global GED_node_map_dict
     global _dataset_cache
     _ged_matrix = np.zeros((n,n), dtype=np.int32)
-    _node_map_dict = np.empty((n,n), dtype=object)
+    GED_node_map_dict = np.empty((n,n), dtype=object)
     node_sizes = [len(g.nodes()) for g in dataset]
     # first we compute the diagonal
     _dataset_cache = [None for _ in range(n)]
     for i in range(n):
         _dataset_cache[i] = dataset[i]
         _ged_matrix[i,i] = 0
-        _node_map_dict[i,i] = {k:k for k in range(len(dataset[i].nodes()))}
+        GED_node_map_dict[i,i] = {k:k for k in range(len(dataset[i].nodes()))}
         node_sizes[i] = len(dataset[i].nodes())
     # then we compute the upper triangle
     # we distribute the Jobs so that every Jobs needs to caclulate the same amount of GEDs
@@ -843,7 +840,7 @@ def build_exact_ged_calculator_anti_leak(dataset=None, dataset_name=None, n_jobs
                             print(f"Failed to save mapping for ({i}, {j}): {e}")
 
                     # Store the *file path* in the dict, not the data
-                    _node_map_dict[i, j] = map_filepath
+                    GED_node_map_dict[i, j] = map_filepath
                 
                     # Handle reverse mapping if needed, e.g., by storing another file
                     # or just noting the relationship.
@@ -855,16 +852,16 @@ def build_exact_ged_calculator_anti_leak(dataset=None, dataset_name=None, n_jobs
                     except Exception as e:
                         print(f"Failed to save reverse mapping for ({j}, {i}): {e}")
 
-                    _node_map_dict[j, i] = reverse_map_filepath
+                    GED_node_map_dict[j, i] = reverse_map_filepath
     except Exception as e:
         print(f"Error during parallel GED calculation: {e}")
         traceback.print_exc()
-    for i, maps_list in enumerate(_node_map_dict):
+    for i, maps_list in enumerate(GED_node_map_dict):
         for j, dict_file in enumerate(maps_list):
             try:
                 with open(dict_file, 'r') as f:
                     mapping_dict = json.load(f)
-                _node_map_dict[i, j] = mapping_dict
+                GED_node_map_dict[i, j] = mapping_dict
             except Exception as e:
                 print(f"Failed to load mapping for ({i}, {j}): {e}")
     print("Finished calculating exact GED distance matrix.")
@@ -885,17 +882,17 @@ def build_exact_ged_calculator_buffered(dataset=None, dataset_name=None, n_jobs=
     n = len(dataset)
     # we distribute the Jobs, sot that every Jobs needs to caclulate the same amount of GEDs
     global _ged_matrix
-    global _node_map_dict
+    global GED_node_map_dict
     global _dataset_cache
     _ged_matrix = np.zeros((n,n), dtype=np.int32)
-    _node_map_dict = np.empty((n,n), dtype=object)
+    GED_node_map_dict = np.empty((n,n), dtype=object)
     node_sizes = [len(g.nodes()) for g in dataset]
     # first we compute the diagonal
     _dataset_cache = [None for _ in range(n)]
     for i in range(n):
         _dataset_cache[i] = dataset[i]
         _ged_matrix[i,i] = 0
-        _node_map_dict[i,i] = {k:k for k in range(len(dataset[i].nodes()))}
+        GED_node_map_dict[i,i] = {k:k for k in range(len(dataset[i].nodes()))}
         node_sizes[i] = len(dataset[i].nodes())
     # then we compute the upper triangle
     # we distribute the Jobs so that every Jobs needs to caclulate the same amount of GEDs
@@ -903,7 +900,7 @@ def build_exact_ged_calculator_buffered(dataset=None, dataset_name=None, n_jobs=
     mapping_dir = f"presaved_data/node_mappings/{dataset_name}.joblib"
     try:
         # save with joblib
-        joblib.dump(_node_map_dict, mapping_dir)
+        joblib.dump(GED_node_map_dict, mapping_dir)
     except Exception as e:
         print(f"Failed to save initial node map dict: {e}")
         raise e
