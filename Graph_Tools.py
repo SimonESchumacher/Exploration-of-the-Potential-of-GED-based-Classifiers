@@ -27,7 +27,7 @@ def convert_nx_to_grakel_graph(nx_graph, use_edge_labels=True, use_node_labels=T
         edge_labels_dict = {edge: nx_graph.edges[edge].get('attributes', None) for edge in nx_graph.edges()}
     else:
         edge_labels_dict = None
-    return Graph(initialization_object=edges_list, node_labels=node_labels_dict,edge_labels=edge_labels_dict,graph_format="dictionary")
+    return Graph(initialization_object=edges_list, node_labels=node_labels_dict,edge_labels=edge_labels_dict,graph_format="dictionary",construct_labels=True)
 
 def graph_from_networkx(nx_graph, node_label_tag="label", edge_label_tag="label"):
     """

@@ -7,3 +7,6 @@ KKI_1_1: Approximations=1884, Relative Deviation=2.6057
 BZR_MD_1_1: Approximations=25390, Relative Deviation=4.7496
 BZR_MD_0_0: Approximations=0, Relative Deviation=0.0000
 COX2_MD_0_0: Approximations=0, Relative Deviation=0.0000
+Letter-high_0_0: Approximations=0, Relative Deviation=0.0000
+MUTAG_0_0: Approximations=10840, Relative Deviation=5.4550
+Letter-high_0_0: Approximations=0, Relative Deviation=4.3959
