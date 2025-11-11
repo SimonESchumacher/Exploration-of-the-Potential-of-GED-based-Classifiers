@@ -53,7 +53,7 @@ NUM_TRIALS, TEST_TRIAL, ONLY_ESTIMATE, GET_ALL_TUNING_RESULTS = set_Mode(testing
 # DATASET
 DATASET_NAME="IMDB-MULTI" if TESTING_MODE != "MULTI" else "MULTI"  # e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
 DATASET_ARRAY=["MUTAG", "PTC_MR", "KKI","BZR_MD","MSRC_9","IMDB-MULTI"]
-TUNINING_METRIC="f1_macro"  # e.g. "accuracy", "f1_macro", "roc_auc"
+TUNING_METRIC="accuracy"  # e.g. "accuracy", "f1_macro", "roc_auc"
 DATASET_EDGE_LABELS=None
 DATASET_NODE_LABELS=None
 DATASET_NODE_ATTRIBUTES=None  # e.g. ["x","y"]
@@ -123,7 +123,7 @@ def reference_classifiers(ged_calculator: Base_Calculator):
 
 def run_classifier(classifier: GraphClassifier,expi: experiment,cv:int,testDF: pd.DataFrame):        
     try:
-        instance_dict =expi.run_joblib_parallel_nested_cv(outer_cv=cv,inner_cv=cv,num_trials=NUM_TRIALS,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'], verbose=0, n_jobs=N_JOBS, search_method=SEARCH_METHOD,should_print=True,test_trail=TEST_TRIAL, get_all_results=GET_ALL_TUNING_RESULTS)
+        instance_dict =expi.run_joblib_parallel_nested_cv(outer_cv=cv,inner_cv=cv,num_trials=NUM_TRIALS,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'],tuning_metric=TUNINING_METRIC, verbose=0, n_jobs=N_JOBS, search_method=SEARCH_METHOD,should_print=True,test_trail=TEST_TRIAL, get_all_results=GET_ALL_TUNING_RESULTS)
     except Exception as e:
         #  print the full traceback
         traceback.print_exc()
@@ -183,8 +183,13 @@ if __name__ == "__main__":
     elif TESTING_MODE == "MULTI":
         for ds in DATASET_ARRAY:
             DATASET_NAME=ds
-            Test_df, total_duration_ds = run_classifier_group(ged_classifiers,  calculator_type=CALCULATOR_NAME,testDF=Test_df)
-            total_duration += total_duration_ds
+            Test_df["Dataset"] = ds
+            Test_df, total_duration_nonGED = run_classifier_group(nonGEd_classifiers,  calculator_type=None, testDF=Test_df)
+
+            Test_df, total_duration_GED = run_classifier_group(ged_classifiers,  calculator_type=CALCULATOR_NAME,testDF=Test_df)
+
+            Test_df, total_duration_reference = run_classifier_group(reference_classifiers,  calculator_type=HEURISTIC_CALCULATOR_NAME, testDF=Test_df)
+            total_duration = total_duration_nonGED + total_duration_GED + total_duration_reference
     else:
         raise ValueError(f"Invalid TESTING_MODE: {TESTING_MODE}. Use 'SINGLE' or 'ALL'.")
     

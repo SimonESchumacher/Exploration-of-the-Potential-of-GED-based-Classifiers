@@ -516,7 +516,11 @@ class experiment:
 
     
 
-    def run_joblib_parallel_nested_cv(self,outer_cv=5,inner_cv=5,num_trials=3,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'], verbose=0, n_jobs=-1, random_seed=RANDOM_STATE, search_method="random",should_print=DEBUG,get_all_results=True,test_trail=False):
+    def run_joblib_parallel_nested_cv(self,outer_cv=5,inner_cv=5,num_trials=3,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'],tuning_metric="f1_macro", verbose=0, n_jobs=-1, random_seed=RANDOM_STATE, search_method="random",should_print=DEBUG,get_all_results=True,test_trail=False):
+        # insert the main scoring metric at the first position
+        if tuning_metric != scoring[0]:
+            scoring.remove(tuning_metric)
+            scoring.insert(0, tuning_metric)
         X, y = self.dataset.data
         random_gen = random.Random(random_seed)
         test_Dict = dict()
