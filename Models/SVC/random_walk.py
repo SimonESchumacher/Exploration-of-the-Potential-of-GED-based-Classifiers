@@ -16,21 +16,24 @@ sys.path.append(os.getcwd())
 from scipy.stats import randint
 from Models.Graph_Classifier import GraphClassifier
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
+from scipy.stats import randint, uniform, loguniform
 
 DEBUG = False 
 
 class RandomWalk_SVC(SupportVectorMachine):
-    model_specific_iterations = 2  # Base number of iterations for this model
+    model_specific_iterations = 10  # Base number of iterations for this model
 
-    def __init__(self, normalize_kernel,rw_kernel_type,p_steps,C=1.0,  kernel_type="precomputed", attributes: dict = dict(), **kwargs):
+    def __init__(self, normalize_kernel,rw_kernel_type,p_steps,C=1.0,  kernel_type="precomputed",decay_lambda: float = 0.1, attributes: dict = dict(), **kwargs):
         self.normalize_kernel = normalize_kernel
         self.rw_kernel_type = rw_kernel_type
         self.p_steps = p_steps
-        self.kernel = RandomWalkLabeled(normalize=self.normalize_kernel, kernel_type=self.rw_kernel_type, p=self.p_steps,method_type="fast")
+        self.decay_lambda = decay_lambda
+        self.kernel = RandomWalkLabeled(normalize=self.normalize_kernel, kernel_type=self.rw_kernel_type, p=self.p_steps,lamda=self.decay_lambda, method_type="fast")
         attributes.update({
             "normalize_kernel": self.normalize_kernel,
             "rw_kernel_type": self.rw_kernel_type,
-            "p_steps": self.p_steps
+            "p_steps": self.p_steps,
+            "decay_lambda": self.decay_lambda
         })
         super().__init__(
             kernel_type=kernel_type,
@@ -48,7 +51,8 @@ class RandomWalk_SVC(SupportVectorMachine):
         params.update({
             "normalize_kernel": self.normalize_kernel,
             "rw_kernel_type": self.rw_kernel_type,
-            "p_steps": self.p_steps
+            "p_steps": self.p_steps,
+            "decay_lambda": self.decay_lambda
         })
         return params
 
@@ -69,6 +73,9 @@ class RandomWalk_SVC(SupportVectorMachine):
             elif parameter == 'p_steps':
                 self.p_steps = value
                 need_new_kernel = True
+            elif parameter == 'decay_lambda':
+                self.decay_lambda = value
+                need_new_kernel = True
 
             # Handle parameters that belong to the parent SVC class
             elif parameter in ['C', 'kernel', 'degree', 'gamma', 'coef0', 'shrinking', 'probability', 'tol', 'cache_size', 'class_weight', 'verbose', 'max_iter', 'decision_function_shape', 'break_ties', 'random_state']:
@@ -83,7 +90,7 @@ class RandomWalk_SVC(SupportVectorMachine):
         if need_new_kernel:
             if DEBUG:
                 print("SVC_RandomWalk: set_params: Updating kernel due to parameter change.")
-            self.kernel = RandomWalkLabeled(normalize=self.normalize_kernel, kernel_type=self.rw_kernel_type, p=self.p_steps,method_type="fast")
+            self.kernel = RandomWalkLabeled(normalize=self.normalize_kernel, kernel_type=self.rw_kernel_type, p=self.p_steps,lamda=self.decay_lambda, method_type="fast")
             self.kernelfunction = self.kernel
 
         return self
@@ -131,7 +138,8 @@ class RandomWalk_SVC(SupportVectorMachine):
         param_space.update({
             "normalize_kernel": [True, False],
             "rw_kernel_type": ["geometric", "exponential"],
-            "p_steps": [-1,-1,-1, 1, 2, 3, 4, 5, 6, 7, 8]
+            "decay_lambda": loguniform(0.005, 0.95),
+            "p_steps": [-1, 1, 2, 3, 4, 5, 6]
             #, 'normalize_kernel': [True, False] # Not really needed
         })
         return param_space

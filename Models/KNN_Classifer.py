@@ -183,8 +183,8 @@ class KNN(GraphClassifier):
         param_space.update({
             'n_neighbors': randint(1, 7),
             'weights': ['uniform', 'distance'],
-            'leaf_size': randint(10, 50),
-            'metric': ['precomputed', 'euclidean']
+            'leaf_size': randint(10, 50)
+            # 'metric': ['precomputed', 'euclidean']
             # 'metric': ['euclidean','precomputed']  # KNN with precomputed metric
         })
         return param_space

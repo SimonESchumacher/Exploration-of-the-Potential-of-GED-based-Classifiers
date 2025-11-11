@@ -98,7 +98,7 @@ class DIFFUSION_GED_SVC(Base_GED_SVC):
     def get_random_param_space(cls):
         param_space = Base_GED_SVC.get_random_param_space()
         param_space.update({
-            "llambda": loguniform(0.01, 0.89),
+            "llambda": loguniform(0.005, 0.95),
             "diffusion_function": ["exp_diff_kernel", "von_Neumann_diff_kernel"],
             "t_iterations": randint(2, 6)
         })

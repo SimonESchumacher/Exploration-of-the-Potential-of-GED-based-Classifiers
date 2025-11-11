@@ -34,7 +34,7 @@ class EdgeHistogram_SVC(SupportVectorMachine):
     
     
 class CombinedHistogram_SVC(SupportVectorMachine):
-    model_specific_iterations = 30
+    model_specific_iterations = 50
 
     def __init__(self, attributes=None,weights=[1,1], **kwargs):
         self.weights = weights
@@ -47,14 +47,14 @@ class CombinedHistogram_SVC(SupportVectorMachine):
     def get_param_grid(cls):
         param_grid = SupportVectorMachine.get_param_grid()
         param_grid.update({
-            'weights': [[1, 1], [1, 0.5], [0.5, 1]],  # Different weight combinations for the histograms
+            'weights': [[1, 1], [1, 0.5], [0.5, 1],[0,1],[0,1]],  # Different weight combinations for the histograms
         })
         return param_grid
     @classmethod
     def get_random_param_space(cls):
         param_space = SupportVectorMachine.get_random_param_space()
         param_space.update({
-            'weights': [[1, 1], [1, 0.5], [0.5, 1]],  # Different weight combinations for the histograms
+            'weights': [[1, 1], [1, 0.5], [0.5, 1],[0,1],[0,1]],  # Different weight combinations for the histograms
         })
         return param_space
     

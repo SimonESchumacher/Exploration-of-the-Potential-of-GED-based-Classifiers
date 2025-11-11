@@ -15,7 +15,7 @@ from Models.Graph_Classifier import GraphClassifier
 from scipy.stats import randint, uniform, loguniform
 from typing import Dict, Any, List
 DEBUG = False # Set to False to disable debug prints
-
+PROBABILITY_ESTIMATES = True  # Enable probability estimates for SVC
 class SupportVectorMachine(GraphClassifier):
     model_specific_iterations = 50
     # Support Vector Machine Classifier for Graphs
@@ -29,7 +29,8 @@ class SupportVectorMachine(GraphClassifier):
         self.C = C
         self.class_weight = class_weight
         self.random_state = random_state
-        classifier = SVC(kernel=self.kernel_type, C=self.C, random_state=self.random_state,class_weight=class_weight, probability=True)
+        self.probability = PROBABILITY_ESTIMATES  # Enable probability estimates
+        classifier = SVC(kernel=self.kernel_type, C=self.C, random_state=self.random_state,class_weight=class_weight, probability=self.probability,tol=1e-2)
         default_attributes = {
             "Kernel_type": self.kernel_type,
             "Kernel": self.kernel_name,
@@ -133,11 +134,20 @@ class SupportVectorMachine(GraphClassifier):
             raise e
         return y_conf
     def predict_both(self, X):
-        probabilities = self.predict_proba(X)
-        if self.classes_.shape[0] == 2:
-            return self.classes_[np.argmax(probabilities, axis=1)], probabilities[:,0]
+        if self.probability:
+            probabilities = self.predict_proba(X)
+            if self.classes_.shape[0] == 2:
+                return self.classes_[np.argmax(probabilities, axis=1)], probabilities[:,0]
+            else:
+                return self.classes_[np.argmax(probabilities, axis=1)], probabilities
         else:
-            return self.classes_[np.argmax(probabilities, axis=1)], probabilities
+            # simply return 1 for the class we prectict and else 0
+            predictions = self.predict(X)
+            probabilities = np.zeros((len(predictions), len(self.classes_)))
+            for i, pred in enumerate(predictions):
+                class_index = np.where(self.classes_ == pred)[0][0]
+                probabilities[i, class_index] = 1.0
+            return predictions, probabilities
     def __str__(self):
         return (f"SVC_{self.kernel_name}(kernel_type={self.kernel_type}, C={self.C}, "
                 f"random_state={self.random_state})")

@@ -80,7 +80,7 @@ class Random_walk_edit_SVC(Base_GED_SVC):
     def get_random_param_space(cls):
         param_space = Base_GED_SVC.get_random_param_space()
         param_space.update({
-            "decay_lambda": loguniform(a=0.005, b=0.8),
+            "decay_lambda": loguniform(a=0.005, b=0.95),
             "max_walk_length": [2,3,4, 5,6,-1]  # -1 indicates infinite length
         })
         return param_space

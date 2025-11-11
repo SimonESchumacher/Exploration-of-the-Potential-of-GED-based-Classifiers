@@ -37,7 +37,7 @@ import pandas as pd
 
 
 # to set the mode:
-TESTING_MODE= "ALL" # "SINGLE" or "ALL"
+TESTING_MODE= "ALL" # "SINGLE" or "ALL", "MULTI"
 CALCULATOR_NAME= "Exact_GED"
 HEURISTIC_CALCULATOR_NAME="Heuristic_Calculator"
 N_JOBS=16
@@ -51,7 +51,9 @@ testing_level= 4 # Number from 1 to 4
 NUM_TRIALS, TEST_TRIAL, ONLY_ESTIMATE, GET_ALL_TUNING_RESULTS = set_Mode(testing_level)
 
 # DATASET
-DATASET_NAME="IMDB-MULTI"  # e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
+DATASET_NAME="IMDB-MULTI" if TESTING_MODE != "MULTI" else "MULTI"  # e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
+DATASET_ARRAY=["MUTAG", "PTC_MR", "KKI","BZR_MD","MSRC_9","IMDB-MULTI"]
+TUNINING_METRIC="f1_macro"  # e.g. "accuracy", "f1_macro", "roc_auc"
 DATASET_EDGE_LABELS=None
 DATASET_NODE_LABELS=None
 DATASET_NODE_ATTRIBUTES=None  # e.g. ["x","y"]
@@ -178,6 +180,11 @@ if __name__ == "__main__":
 
         Test_df, total_duration_reference = run_classifier_group(reference_classifiers,  calculator_type=HEURISTIC_CALCULATOR_NAME, testDF=Test_df)
         total_duration = total_duration_nonGED + total_duration_GED + total_duration_reference
+    elif TESTING_MODE == "MULTI":
+        for ds in DATASET_ARRAY:
+            DATASET_NAME=ds
+            Test_df, total_duration_ds = run_classifier_group(ged_classifiers,  calculator_type=CALCULATOR_NAME,testDF=Test_df)
+            total_duration += total_duration_ds
     else:
         raise ValueError(f"Invalid TESTING_MODE: {TESTING_MODE}. Use 'SINGLE' or 'ALL'.")
     
