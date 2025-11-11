@@ -30,7 +30,7 @@ class SupportVectorMachine(GraphClassifier):
         self.class_weight = class_weight
         self.random_state = random_state
         self.probability = PROBABILITY_ESTIMATES  # Enable probability estimates
-        classifier = SVC(kernel=self.kernel_type, C=self.C, random_state=self.random_state,class_weight=class_weight, probability=self.probability,tol=1e-2)
+        classifier = SVC(kernel=self.kernel_type, C=self.C, random_state=self.random_state,class_weight=class_weight, probability=self.probability,tol=1e-2,cache_size=1000)
         default_attributes = {
             "Kernel_type": self.kernel_type,
             "Kernel": self.kernel_name,
