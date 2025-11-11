@@ -123,7 +123,7 @@ def reference_classifiers(ged_calculator: Base_Calculator):
 
 def run_classifier(classifier: GraphClassifier,expi: experiment,cv:int,testDF: pd.DataFrame):        
     try:
-        instance_dict =expi.run_joblib_parallel_nested_cv(outer_cv=cv,inner_cv=cv,num_trials=NUM_TRIALS,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'],tuning_metric=TUNINING_METRIC, verbose=0, n_jobs=N_JOBS, search_method=SEARCH_METHOD,should_print=True,test_trail=TEST_TRIAL, get_all_results=GET_ALL_TUNING_RESULTS)
+        instance_dict =expi.run_joblib_parallel_nested_cv(outer_cv=cv,inner_cv=cv,num_trials=NUM_TRIALS,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'],tuning_metric=TUNING_METRIC, verbose=0, n_jobs=N_JOBS, search_method=SEARCH_METHOD,should_print=True,test_trail=TEST_TRIAL, get_all_results=GET_ALL_TUNING_RESULTS)
     except Exception as e:
         #  print the full traceback
         traceback.print_exc()
