@@ -15,7 +15,7 @@ from scipy.linalg import inv
 import networkx as nx
 import subprocess
 from joblib import Parallel, delayed
-ENABLE_NODE_MAPPING = False
+ENABLE_NODE_MAPPING = True
 GED_distance_matrix_dict_cache = {}
 GED_node_map_dict_cache = {}
 _dataset_cache = None
@@ -188,7 +188,7 @@ class Heuristic_Calculator(abstract_Calculator):
 
 
 def build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("BIPARTITE","upper")], dataset=None, labels=None,dataset_name=None, **kwargs) -> GED_Calculator:
-    if dataset is None or labels is None:
+    if dataset is None:
         raise ValueError("Dataset and labels must be provided to build GED_Calculator.")
     with tqdm.tqdm(total=((len(dataset)*(len(dataset)+1)/2)+2)*len(GED_calc_methods)) as pbar:
         for method, bound in GED_calc_methods:
@@ -571,29 +571,7 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_
     else:
         filepath1 = f"Datasets/ged/{dataset_name}/g_{g_id2}.txt"
         filepath2 = f"Datasets/ged/{dataset_name}/g_{g_id1}.txt"
-    try:
-        gedlibpy.restart_env()
-        gedlibpy.add_nx_graph(nx_1, "")
-        gedlibpy.add_nx_graph(nx_2, "")
-        gedlibpy.set_edit_cost(gedlibpy_edit_cost)
-        gedlibpy.init()
-        gedlibpy.set_method(gedlibpy_method, "")
-        gedlibpy.init_method()
-        gedlibpy.run_method(0, 1)
-        approx_ged = gedlibpy.get_upper_bound(0, 1)
-        mapping = gedlibpy.get_node_map(0, 1)
-        # parse the mapping string
-        approx_mapping_dict ={}
-        for (a, b) in mapping:
-            if a == 18446744073709551614 or b == 18446744073709551614:
-                continue
-            approx_mapping_dict[a] = b
-        # mapping_dict = {a: b if a!=18446744073709551614 and b!=18446744073709551614 else None for (a, b) in mapping}
-        # print(mapping_dict)
-        approx_time = timeout * 2  # in microseconds
-    except Exception as e:
-        print(f"GEDLIBpy failed to compute approximate GED for graphs {g_id1} and {g_id2} due to error: {e}")
-        traceback.print_exc()
+   
     try:
         command = ["Graph_Edit_Distance/ged", "-q", filepath1, "-d", filepath2, "-g"]
         process = subprocess.run(
@@ -610,7 +588,7 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_
         ged = None
         if ged_match:
             ged = int(ged_match.group(1))
-            # print(f"Computed exact GED {ged} for graphs {g_id1} and {g_id2}.")
+            print(f"Computed exact GED {ged} for graphs {g_id1} and {g_id2}.")
         else:
             raise Exception(
                 "GED value not found in output:"
@@ -653,23 +631,15 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_
             else None
         )
         if use_node_mapping:
-            return ged, mapping, time, approx_ged
+            return ged, mapping, time, 0
         else:
-            return ged, None, time, approx_ged
+            return ged, None, time, 0
         
 
 
 
     except subprocess.TimeoutExpired:
-        # print(f"Using approximate GED {approx_ged} for graphs {g_id1} and {g_id2} due to timeout.")
-
-        # inifite distance max int
-        # fallback to a approximation
-        ged = None
-        mapping_dict =approx_mapping_dict
-        time = approx_time
-        # raise Exception("Timeout expired")
-        return ged, mapping_dict, time, approx_ged
+        return None, None, timeout*2, None
 
         # global _ged_matrix
 def run_ged_calculation(args):
@@ -705,7 +675,10 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
     for i in range(n):
         _dataset_cache[i] = dataset[i]
         _ged_matrix[i,i] = 0
-        GED_node_map_dict[i,i] = {k:k for k in range(len(dataset[i].nodes()))}
+        if ENABLE_NODE_MAPPING:
+            GED_node_map_dict[i,i] = {k:k for k in range(len(dataset[i].nodes()))}
+        else:
+            GED_node_map_dict[i,i] = {}
         node_sizes[i] = len(dataset[i].nodes())
     # then we compute the upper triangle
     # we distribute the Jobs so that every Jobs needs to caclulate the same amount of GEDs
@@ -713,15 +686,43 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
     
     for i in range(n):
         for j in range(i+1, n):
-            tasks.append( (i,j) )
+            task_args = (
+                i, j, dataset_name, 
+                node_sizes[i], node_sizes[j], 
+                dataset[i], dataset[j], 
+                timeout
+                )
+            tasks.append(task_args)
     # start parallel processing
     # for every entry in task the GED needs to be calculated
+    # build a Normal GedLIbpy Calculator as backup Approx values
+    gedlipy_calculator: GED_Calculator = build_GED_calculator(dataset=dataset, dataset_name=dataset_name, GED_calc_methods=[("BRANCH", "upper")])
+    approx_ged_matrix = gedlipy_calculator.get_complete_matrix(method="BRANCH")
+    approx_mappings = gedlipy_calculator.node_map["BRANCH"]
+    # save the calculator
+    gedlipy_calculator.save_calculator(dataset_name)
+    # approx_mapping_dicts = [[{} for _ in range(n)] for _ in range(n)]
+    # for i in range(n):
+    #     for j in range(i,n):
+    #         mapping = approx_mappings[i][j]
+    #         approx_mapping_dict = {}
+    #         for (a, b) in mapping:
+    #             if a == 18446744073709551614 or b == 18446744073709551614:
+    #                 continue
+    #             approx_mapping_dict[a] = b
+    #         approx_mapping_dicts[i][j] = approx_mapping_dict
+    #         reverse_mapping = {v: k for k, v in approx_mapping_dict.items()}
+    #         approx_mapping_dicts[j][i] = reverse_mapping
+    # approx_mappings = approx_mapping_dicts
     print(f"Starting calculation of exact GED distance matrix with {n_jobs} parallel jobs...")
     # execute in parallel and collect results
+
+
+
     try:
         results = Parallel(n_jobs=n_jobs)(
-            delayed(run_ged_calculation)(i, j, dataset_name, node_size_i=node_sizes[i], node_size_j=node_sizes[j], nx_1=dataset[i], nx_2=dataset[j], timeout=timeout)
-            for (i, j) in tasks
+            delayed(run_ged_calculation)(task_args)
+            for task_args in tasks
         )
     except Exception as e:
         print(f"Error during parallel GED calculation: {e}")
@@ -729,25 +730,33 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
     # write results into the distance matrix (symmetric)
     approximation_counter = 0
     deviation_sum = 0.0
-    for (i, j), (ged,mapping_dict,time, approx_ged, error) in zip(tasks, results):
+    # with progress bar
+    for (i, j, ged, mapping_dict, time, approx_ged, error) in tqdm.tqdm(results, desc="Processing GED results", total=len(results)):
         if error is not None:
             print(f"Error calculating GED between graphs {i} and {j}: {error}")
             raise error
         else:
             if ged is None:
-                ged = approx_ged
+                ged = approx_ged_matrix[i, j]
                 approximation_counter += 1
             else:
                 # calculate the devation between approx and exact
-                deviation_sum += abs(ged - approx_ged)  
+                deviation_sum += abs(ged - approx_ged_matrix[i, j])
 
         _ged_matrix[i, j] = ged
         _ged_matrix[j, i] = ged
+        if mapping_dict is None:
+            mapping = approx_mappings[i][j]
+            approx_mapping_dict = {}
+            for (a, b) in mapping:
+                if a == 18446744073709551614 or b == 18446744073709551614:
+                    continue
+                approx_mapping_dict[a] = b           
+            mapping_dict = approx_mapping_dict
         GED_node_map_dict[i, j] = mapping_dict
         # reverse mapping
         reverse_mapping = {v: k for k, v in mapping_dict.items()}
         GED_node_map_dict[j, i] = reverse_mapping
-
     # process results
     print("Finished calculating exact GED distance matrix.")
     print(_ged_matrix)

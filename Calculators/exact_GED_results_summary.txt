@@ -10,3 +10,9 @@ COX2_MD_0_0: Approximations=0, Relative Deviation=0.0000
 Letter-high_0_0: Approximations=0, Relative Deviation=0.0000
 MUTAG_0_0: Approximations=10840, Relative Deviation=5.4550
 Letter-high_0_0: Approximations=0, Relative Deviation=4.3959
+MUTAG_0_0: Approximations=5545, Relative Deviation=5.5790
+MUTAG_0_0: Approximations=5487, Relative Deviation=5.5350
+Letter-high_0_0: Approximations=0, Relative Deviation=4.3952
+MUTAG_0_0: Approximations=10712, Relative Deviation=5.4250
+KKI_0_0: Approximations=1859, Relative Deviation=2.2824
+IMDB-MULTI_0_0: Approximations=158611, Relative Deviation=7.5191

@@ -54,12 +54,12 @@ def get_grakel_graphs_from_nx(graph_list, node_label_tag="label", edge_label_tag
         if any(label is not None for label in edge_labels_set2) or any(label is not None for label in edge_labels_set3):
             edge_label_tag = edge_label_tag
         else:
-            edge_label_tag = "0"
+            edge_label_tag = None
     node_labels_set = {test_graph.nodes[node].get(node_label_tag, None) for node in test_graph.nodes()}
     if any(label is not None for label in node_labels_set) or any(label is not None for label in {test_graph2.nodes[node].get(node_label_tag, None) for node in test_graph2.nodes()}) or any(label is not None for label in {test_graph3.nodes[node].get(node_label_tag, None) for node in test_graph3.nodes()}):
         node_label_tag = node_label_tag
     else:
-        node_label_tag = "0"
+        node_label_tag = None
     # detect if the graphs have edge labels
  
     #     edge_label_tag = None

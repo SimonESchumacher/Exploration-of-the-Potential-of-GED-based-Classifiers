@@ -4,8 +4,8 @@ import os
 sys.path.append(os.getcwd())
 from Dataset import Dataset
 from Calculators.GED_Calculator import build_Heuristic_calculator, build_exact_ged_calculator, build_exact_ged_calculator_anti_leak, build_exact_ged_calculator_buffered
-TIMEOUT= 2.5
-N_JOBS=64
+TIMEOUT= 1
+N_JOBS=32
 def convert_Dataset_to_exact_GED_format(dataset:Dataset,use_node_labels=True,use_edge_labels=True):
     dataset_name = dataset.get_name()
     label_info = f"{int(use_node_labels)}_{int(use_edge_labels)}"
