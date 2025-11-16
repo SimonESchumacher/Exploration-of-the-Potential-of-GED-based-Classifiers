@@ -730,6 +730,8 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
     # write results into the distance matrix (symmetric)
     approximation_counter = 0
     deviation_sum = 0.0
+    times = 0
+    num_times =0
     # with progress bar
     for (i, j, ged, mapping_dict, time, approx_ged, error) in tqdm.tqdm(results, desc="Processing GED results", total=len(results)):
         if error is not None:
@@ -742,6 +744,8 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
             else:
                 # calculate the devation between approx and exact
                 deviation_sum += abs(ged - approx_ged_matrix[i, j])
+        times += time if time is not None else 0
+        num_times += 1 if time is not None else 0
 
         _ged_matrix[i, j] = ged
         _ged_matrix[j, i] = ged
@@ -765,6 +769,8 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
     print(f"Average deviation between approximate and exact GED: {rel_deviation:.4f}")
     # create GED_Calculator_object
     ged_calculator = exact_GED_Calculator(dataset_name=dataset_name)
+    average_time = times / num_times if num_times > 0 else 0
+    print(f"Average time per GED computation: {average_time} microseconds")
     return ged_calculator, approximation_counter, rel_deviation
 
 def load_exact_GED_calculator(dataset_name: str) -> exact_GED_Calculator:
