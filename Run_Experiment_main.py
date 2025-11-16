@@ -44,20 +44,20 @@ N_JOBS=16
 
 # Testing Level, indecating stages from only testing for fucntionality, to wanting a full result
 # 1 only Speed Test
-# 2 a test trail, with only 1 trail 
-# 2 test trail, but with full trials
+# 2 a test trail, with only 1 trail
+# 3 test trail, but with full trials
 # 4 Full Run with all tuning results saved
 testing_level= 4 # Number from 1 to 4
 NUM_TRIALS, TEST_TRIAL, ONLY_ESTIMATE, GET_ALL_TUNING_RESULTS = set_Mode(testing_level)
 
 # DATASET
-DATASET_NAME="IMDB-MULTI" if TESTING_MODE != "MULTI" else "MULTI"  # e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
-DATASET_ARRAY=["MUTAG", "PTC_MR", "KKI","BZR_MD","MSRC_9","IMDB-MULTI"]
-TUNING_METRIC="accuracy"  # e.g. "accuracy", "f1_macro", "roc_auc"
-DATASET_EDGE_LABELS=None
-DATASET_NODE_LABELS=None
+DATASET_NAME="MUTAG" if TESTING_MODE != "MULTI" else "MULTI"  # e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
+DATASET_ARRAY=["MUTAG", "PTC_FR", "KKI","BZR_MD","MSRC_9","IMDB-MULTI"]
+TUNING_METRIC="f1_macro"  # e.g. "accuracy", "f1_macro", "roc_auc"
+DATASET_EDGE_LABELS="label"
+DATASET_NODE_LABELS="label"
 DATASET_NODE_ATTRIBUTES=None  # e.g. ["x","y"]
-DATASET_EDGE_ATTRIBUTES=None  # e.g. ["weight"]
+DATASET_EDGE_ATTRIBUTES=None  # e.g. ["weight"]bb
 
 
 # Not Meant to be changed
@@ -66,7 +66,7 @@ SEARCH_METHOD="random"  # "grid" or "random"
 GED_BOUND="Exact"   # outdated
 HEURISTIC_BOUND="Vertex" 
 now = pd.Timestamp.now().strftime("%d_%m_%Y_%H_%M")
-EXPERIMENT_NAME=f"{now}_{DATASET_NAME}_{int(DATASET_NODE_LABELS!=None)}_{int(DATASET_EDGE_LABELS!=None)}_{TESTING_MODE}" # Day_Month_Year_Hour_Minute_TESTING_MODE
+EXPERIMENT_NAME=f"{now}_{DATASET_NAME}_{TUNING_METRIC}_{int(DATASET_NODE_LABELS!=None)}_{int(DATASET_EDGE_LABELS!=None)}_{TESTING_MODE}" # Day_Month_Year_Hour_Minute_TESTING_MODE
 
 
 def get_Dataset(ged_calculator):
@@ -81,9 +81,9 @@ def get_single_classifier(ged_calculator):
     # return [ZERO_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=7, aggregation_method="sum",dataset_name=DATASET.name,selection_method="k-CPS")
     # return [Random_walk_edit_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
     # random_walk_calculator = RandomWalkCalculator(ged_calculator=ged_calculator, llambda_samples=[0.005,0.01,0.03,0.05,0.1,0.2,0.45,0.89], dataset=DATASET,ged_method=GED_BOUND)
-    random_walk_calculator = build_Randomwalk_GED_calculator(ged_calculator=ged_calculator)
-    return [Random_Walk_edit_accelerated(calculator_id=calculator_id, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced', random_walk_calculator_id=random_walk_calculator.get_identifier_name())]
-    # return[ Trivial_GED_SVC(calculator_id=calculator_id,ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1',llambda=100)]
+    # random_walk_calculator = build_Randomwalk_GED_calculator(ged_calculator=ged_calculator)
+    # return [Random_Walk_edit_accelerated(calculator_id=calculator_id, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced', random_walk_calculator_id=random_walk_calculator.get_identifier_name())]
+    return[ Trivial_GED_SVC(calculator_id=calculator_id,ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1',llambda=100)]
     # return [ Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=1, selection_method="TPS", selection_split="all",dataset_name=DATASET.name)]
     # return [RandomWalk_SVC(normalize_kernel=True, rw_kernel_type="exponential", p_steps=1,C=1.0, kernel_type="precomputed")]
     # return Feature_KNN(vector_feature_list=["VertexHistogram","density","Prototype-Distance"], dataset_name=DATASET.name, prototype_size=5, selection_split="all", selection_method="TPS", metric="minkowski", calculator_id=calculator_id, ged_bound=GED_BOUND, n_neighbors=5, weights='uniform', algorithm='auto')
@@ -99,24 +99,26 @@ def nonGEd_classifiers(ged_calculator: Base_Calculator):
     return [
         Random_Classifier(),
         Blind_Classifier(),
-        WeisfeilerLehman_SVC(n_iter=5,C=1.0, normalize_kernel=True), 
+        WeisfeilerLehman_SVC(n_iter=5,C=1.0, normalize_kernel=True),
+        VertexHistogram_SVC(kernel_type='precomputed'),
+        EdgeHistogram_SVC(kernel_type='precomputed'), 
         CombinedHistogram_SVC(kernel_type='precomputed'),
         # RandomWalk_SVC(normalize_kernel=True, rw_kernel_type="geometric", p_steps=3,C=1.0, kernel_type="precomputed"),
         ]
 def ged_classifiers(ged_calculator: Base_Calculator):
-    # random_walk_calculator = try_load_else_build_rw_calculator(ged_calculator=ged_calculator)
-    # random_walk_calculator_id = random_walk_calculator.get_identifier_name()
+    random_walk_calculator = try_load_else_build_rw_calculator(ged_calculator=ged_calculator)
+    random_walk_calculator_id = random_walk_calculator.get_identifier_name()
     calculator_id = set_global_ged_calculator_All(ged_calculator)
     return [
         GED_KNN(calculator_id=calculator_id, ged_bound=GED_BOUND, n_neighbors=10, weights='distance', algorithm='auto'),
         Trivial_GED_SVC(calculator_id=calculator_id, ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1',llambda=1.0),
         DIFFUSION_GED_SVC(C=1.0, llambda=1.0, calculator_id=calculator_id, ged_bound=GED_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
-        # Random_Walk_edit_accelerated(calculator_id=calculator_id, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1,random_walk_calculator_id=random_walk_calculator_id, C=1.0,kernel_type="precomputed", class_weight='balanced')
+        Random_Walk_edit_accelerated(calculator_id=calculator_id, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1,random_walk_calculator_id=random_walk_calculator_id, C=1.0,kernel_type="precomputed", class_weight='balanced')
         ]
 def reference_classifiers(ged_calculator: Base_Calculator):
     calculator_id = set_global_ged_calculator_All(ged_calculator)
     return [
-        GED_KNN(calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, n_neighbors=7, weights='uniform', algorithm='auto'),
+        # GED_KNN(calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, n_neighbors=7, weights='uniform', algorithm='auto'),
         # Trivial_GED_SVC(calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1',llambda=1.0),
         # Diffusion_GED_new(C=1.0, llambda=1.0, calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
         ]
@@ -181,6 +183,7 @@ if __name__ == "__main__":
         Test_df, total_duration_reference = run_classifier_group(reference_classifiers,  calculator_type=HEURISTIC_CALCULATOR_NAME, testDF=Test_df)
         total_duration = total_duration_nonGED + total_duration_GED + total_duration_reference
     elif TESTING_MODE == "MULTI":
+        total_duration = 0
         for ds in DATASET_ARRAY:
             DATASET_NAME=ds
             Test_df["Dataset"] = ds
@@ -188,8 +191,8 @@ if __name__ == "__main__":
 
             Test_df, total_duration_GED = run_classifier_group(ged_classifiers,  calculator_type=CALCULATOR_NAME,testDF=Test_df)
 
-            Test_df, total_duration_reference = run_classifier_group(reference_classifiers,  calculator_type=HEURISTIC_CALCULATOR_NAME, testDF=Test_df)
-            total_duration = total_duration_nonGED + total_duration_GED + total_duration_reference
+            # Test_df, total_duration_reference = run_classifier_group(reference_classifiers,  calculator_type=HEURISTIC_CALCULATOR_NAME, testDF=Test_df)
+            total_duration += total_duration_nonGED + total_duration_GED
     else:
         raise ValueError(f"Invalid TESTING_MODE: {TESTING_MODE}. Use 'SINGLE' or 'ALL'.")
     

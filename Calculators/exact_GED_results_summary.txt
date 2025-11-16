@@ -16,3 +16,9 @@ Letter-high_0_0: Approximations=0, Relative Deviation=4.3952
 MUTAG_0_0: Approximations=10712, Relative Deviation=5.4250
 KKI_0_0: Approximations=1859, Relative Deviation=2.2824
 IMDB-MULTI_0_0: Approximations=158611, Relative Deviation=7.5191
+BZR_MD_1_1: Approximations=14355, Relative Deviation=17.9262
+KKI_1_1: Approximations=1407, Relative Deviation=15.4068
+BZR_MD_0_0: Approximations=0, Relative Deviation=0.0000
+KKI_0_0: Approximations=1915, Relative Deviation=15.4220
+MUTAG_1_1: Approximations=294, Relative Deviation=16.2604
+MUTAG_1_1: Approximations=302, Relative Deviation=16.2594

@@ -16,7 +16,7 @@ from Models.SupportVectorMachine_Classifier import SupportVectorMachine
 DEBUG = False # Set to False to disable debug prints
 
 class VertexHistogram_SVC(SupportVectorMachine):
-    model_specific_iterations = 30
+    model_specific_iterations = 25
     def __init__(self, attributes=None, **kwargs):
         kernel = VertexHistogram(sparse=True)
         super().__init__( kernelfunction=kernel, kernel_name="VertexHistogram", attributes=attributes, **kwargs)
@@ -25,7 +25,7 @@ class VertexHistogram_SVC(SupportVectorMachine):
     
 
 class EdgeHistogram_SVC(SupportVectorMachine):
-    model_specific_iterations = 30
+    model_specific_iterations = 25
     def __init__(self,attributes=None,**kwargs):
         kernel = EdgeHistogram(sparse=True)
         super().__init__( kernelfunction=kernel, kernel_name="EdgeHistogram", attributes=attributes, **kwargs)

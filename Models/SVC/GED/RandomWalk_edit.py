@@ -89,7 +89,7 @@ def set_global_random_walk_calculator(calculator):
     global _random_walk_calculator
     _random_walk_calculator = calculator
 class Random_Walk_edit_accelerated(Random_walk_edit_SVC):
-    model_specific_iterations = 40
+    model_specific_iterations = 10
     
     def __init__(self,
                 decay_lambda,

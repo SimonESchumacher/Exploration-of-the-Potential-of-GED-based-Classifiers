@@ -15,7 +15,7 @@ from scipy.stats import randint, uniform, loguniform
 DEBUG = False  # Set to True for debug prints
 
 class Trivial_GED_SVC(Base_GED_SVC):
-    model_specific_iterations = 100  # Base number of iterations for this model
+    model_specific_iterations = 100 # Base number of iterations for this model
     """
     Support Vector Machine with Graph Edit Distance Kernel
     """

@@ -15,7 +15,7 @@ from Models.Graph_Classifier import GraphClassifier
 from scipy.stats import randint, uniform, loguniform
 from typing import Dict, Any, List
 DEBUG = False # Set to False to disable debug prints
-PROBABILITY_ESTIMATES = True  # Enable probability estimates for SVC
+PROBABILITY_ESTIMATES = False  # Enable probability estimates for SVC
 class SupportVectorMachine(GraphClassifier):
     model_specific_iterations = 50
     # Support Vector Machine Classifier for Graphs
@@ -108,8 +108,12 @@ class SupportVectorMachine(GraphClassifier):
             raise e
         X = self.transform(X)
         try:
-            y_pred = self.classifier.predict_proba(X)
-            y_pred = self.classes_[np.argmax(y_pred, axis=1)]
+            if self.probability:
+                y_pred = self.classifier.predict_proba(X)
+                y_pred = self.classes_[np.argmax(y_pred, axis=1)]
+            else:
+                y_pred = self.classifier.predict(X)
+            
         except Exception as e:
             print(f"Error during prediction: {e}")
             traceback.print_exc()
@@ -147,7 +151,10 @@ class SupportVectorMachine(GraphClassifier):
             for i, pred in enumerate(predictions):
                 class_index = np.where(self.classes_ == pred)[0][0]
                 probabilities[i, class_index] = 1.0
-            return predictions, probabilities
+            if self.classes_.shape[0] == 2:
+                return predictions, probabilities[:,0]
+            else:
+                return predictions, probabilities
     def __str__(self):
         return (f"SVC_{self.kernel_name}(kernel_type={self.kernel_type}, C={self.C}, "
                 f"random_state={self.random_state})")

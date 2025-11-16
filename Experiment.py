@@ -531,14 +531,14 @@ class experiment:
         test_Dict["model_name"] = self.model_name
         test_Dict["Calculator_name"] = self.model.get_calculator().get_Name() if self.model.get_calculator() else "None"
         try:
-            estimated_test_duration =self.estimate_nested_cv_time(cv=outer_cv,num_trials=num_trials,search_method=search_method)
+            estimated_test_duration,duration1train =self.estimate_nested_cv_time(cv=outer_cv,num_trials=num_trials,search_method=search_method)
         except Exception as e:
             print(f"Error occurred while running speed test: {e}")
             traceback.print_exc()
             test_Dict["Error source"] = "Speed Test"
             test_Dict["Error"] = str(e)
             return test_Dict
-        test_Dict["train_test_duration"] = str(estimated_test_duration)
+        test_Dict["train_test_duration"] = str(duration1train)
         if should_print:
             print(f"Estimated test duration: {estimated_test_duration}")
        
@@ -660,7 +660,7 @@ class experiment:
         total_combinations = cv * cv * tested_configs_num * num_trials
         estimated_test_duration = duration1train * total_combinations
         print(f" {self.model_name}: {duration1train} x {total_combinations}  = Estimated nested CV duration: {estimated_test_duration}")
-        return estimated_test_duration
+        return estimated_test_duration, duration1train
       
 
 

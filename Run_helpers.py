@@ -65,7 +65,7 @@ def set_Mode(mode_level: int):
         Only_estimate = False
         Get_All_tuning_results = True
     elif mode_level == 5:
-        num_trials = 7
+        num_trials = 5
         Test_TRAIL = False
         Only_estimate = False
         Get_All_tuning_results = True
