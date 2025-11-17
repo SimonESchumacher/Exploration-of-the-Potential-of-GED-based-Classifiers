@@ -588,7 +588,7 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_
         ged = None
         if ged_match:
             ged = int(ged_match.group(1))
-            print(f"Computed exact GED {ged} for graphs {g_id1} and {g_id2}.")
+            # print(f"Computed exact GED {ged} for graphs {g_id1} and {g_id2}.")
         else:
             raise Exception(
                 "GED value not found in output:"
@@ -630,6 +630,7 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_
             if total_time_match
             else None
         )
+        # print(f"Computed exact GED {ged} for graphs {g_id1} and {g_id2} in {time} microseconds.")
         if use_node_mapping:
             return ged, mapping, time, 0
         else:
@@ -762,8 +763,8 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
         reverse_mapping = {v: k for k, v in mapping_dict.items()}
         GED_node_map_dict[j, i] = reverse_mapping
     # process results
-    print("Finished calculating exact GED distance matrix.")
-    print(_ged_matrix)
+    # print("Finished calculating exact GED distance matrix.")
+    # print(_ged_matrix)
     print(f"Number of approximations used due to timeouts: {approximation_counter} out of {len(tasks)}")
     rel_deviation = deviation_sum / (len(tasks) - approximation_counter) if len(tasks) > 0 else 0.0
     print(f"Average deviation between approximate and exact GED: {rel_deviation:.4f}")
@@ -771,6 +772,7 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
     ged_calculator = exact_GED_Calculator(dataset_name=dataset_name)
     average_time = times / num_times if num_times > 0 else 0
     print(f"Average time per GED computation: {average_time} microseconds")
+    print(f"total time for GED computations: {times/1e6} seconds")
     return ged_calculator, approximation_counter, rel_deviation
 
 def load_exact_GED_calculator(dataset_name: str) -> exact_GED_Calculator:
