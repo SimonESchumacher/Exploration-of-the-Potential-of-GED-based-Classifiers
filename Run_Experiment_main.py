@@ -37,7 +37,7 @@ import pandas as pd
 
 
 # to set the mode:
-TESTING_MODE= "ALL" # "SINGLE" or "ALL", "MULTI"
+TESTING_MODE= "SPEEDTEST" # "SINGLE" or "ALL", "MULTI", "SPEEDTEST"
 CALCULATOR_NAME= "Exact_GED"
 HEURISTIC_CALCULATOR_NAME="Heuristic_Calculator"
 N_JOBS=16
@@ -51,7 +51,7 @@ testing_level= 4 # Number from 1 to 4
 NUM_TRIALS, TEST_TRIAL, ONLY_ESTIMATE, GET_ALL_TUNING_RESULTS = set_Mode(testing_level)
 
 # DATASET
-DATASET_NAME="MUTAG" if TESTING_MODE != "MULTI" else "MULTI"  # e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
+DATASET_NAME="PTC_FR" if TESTING_MODE != "MULTI" else "MULTI"  # e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
 DATASET_ARRAY=["MUTAG", "PTC_FR", "KKI","BZR_MD","MSRC_9","IMDB-MULTI"]
 TUNING_METRIC="f1_macro"  # e.g. "accuracy", "f1_macro", "roc_auc"
 DATASET_EDGE_LABELS="label"
@@ -110,9 +110,9 @@ def ged_classifiers(ged_calculator: Base_Calculator):
     random_walk_calculator_id = random_walk_calculator.get_identifier_name()
     calculator_id = set_global_ged_calculator_All(ged_calculator)
     return [
-        GED_KNN(calculator_id=calculator_id, ged_bound=GED_BOUND, n_neighbors=10, weights='distance', algorithm='auto'),
-        Trivial_GED_SVC(calculator_id=calculator_id, ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1',llambda=1.0),
-        DIFFUSION_GED_SVC(C=1.0, llambda=1.0, calculator_id=calculator_id, ged_bound=GED_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
+        GED_KNN(calculator_id=calculator_id, ged_bound=GED_BOUND, n_neighbors=5, weights='distance', algorithm='auto'),
+        Trivial_GED_SVC(calculator_id=calculator_id, ged_bound=GED_BOUND, C=0.5,kernel_type="precomputed", class_weight='balanced',similarity_function='k4',llambda=0.1),
+        DIFFUSION_GED_SVC(C=1.0, llambda=0.1, calculator_id=calculator_id, ged_bound=GED_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
         Random_Walk_edit_accelerated(calculator_id=calculator_id, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1,random_walk_calculator_id=random_walk_calculator_id, C=1.0,kernel_type="precomputed", class_weight='balanced')
         ]
 def reference_classifiers(ged_calculator: Base_Calculator):
@@ -142,6 +142,22 @@ def run_classifier(classifier: GraphClassifier,expi: experiment,cv:int,testDF: p
     del classifier
     del expi
     return testDF
+def run_speed_test(get_classifiers_funct: callable, calculator_type:str, iterations:int,testDF: pd.DataFrame):
+    DATASET, ged_calculator = get_Dataset(calculator_type)
+
+    print(f"Running speed test for {calculator_type} on {DATASET_NAME} dataset.")
+    classifier_list: list[GraphClassifier] = get_classifiers_funct(ged_calculator)
+    get_expi = lambda classifier: experiment(f"{EXPERIMENT_NAME}_{classifier.get_name}",DATASET,dataset_name=DATASET_NAME,
+                    model=classifier,model_name=classifier.get_name,ged_calculator=None)
+
+    for classifier in classifier_list:
+        expi = get_expi(classifier)
+        new_row = expi.run_large_speed_test(iterations=iterations)
+        new_row["Model"] = classifier.get_name
+        new_row["Dataset"] = DATASET_NAME
+        testDF = pd.concat([testDF, pd.DataFrame([new_row])], ignore_index=True)
+    return testDF
+
 
 def run_classifier_group(get_classifiers_funct: callable, calculator_type:str,
                         testDF: pd.DataFrame):
@@ -182,6 +198,11 @@ if __name__ == "__main__":
 
         Test_df, total_duration_reference = run_classifier_group(reference_classifiers,  calculator_type=HEURISTIC_CALCULATOR_NAME, testDF=Test_df)
         total_duration = total_duration_nonGED + total_duration_GED + total_duration_reference
+    elif TESTING_MODE == "SPEEDTEST":
+        Test_df = run_speed_test(nonGEd_classifiers, calculator_type=None, iterations=10,testDF=Test_df)
+        Test_df = run_speed_test(ged_classifiers, calculator_type=CALCULATOR_NAME, iterations=10,testDF=Test_df)
+        
+        total_duration = 0
     elif TESTING_MODE == "MULTI":
         total_duration = 0
         for ds in DATASET_ARRAY:

@@ -18,6 +18,9 @@ import multiprocessing
 from Models.Graph_Classifier import GraphClassifier
 # import classweights
 from sklearn.utils.class_weight import compute_class_weight
+from Models.KNN.GEDLIB_KNN import GED_KNN, abstract_GED_KNN
+from Models.SVC import Base_GED_SVC
+from Models.SupportVectorMachine_Classifier import SupportVectorMachine
 from config_loader import get_conifg_param
 
 RANDOM_STATE = get_conifg_param('Experiment', 'random_state', type='int') # default 42
@@ -325,7 +328,47 @@ class experiment:
         # Save results
         training_duration = pd.Timestamp.now() - start_time
         return training_duration
-
+    def test_model_runtime(self, iterations=5):
+        random_gen = random.Random(RANDOM_STATE)
+        train_durations = 0
+        test_durations = 0
+        num_support_Vectors = 0
+        for i in range(iterations):
+            random_state = random_gen.randint(0, 1000)
+            start_time = pd.Timestamp.now()
+            G_train, G_test, y_train, y_test = self.dataset.train_test_split(test_size=TEST_SIZE, random_state=random_state)
+            self.inner_model_fit(G_train, y_train)
+            trained_model = self.model
+            trained_time = pd.Timestamp.now()
+            train_duration = trained_time - start_time
+            # test if the trained model is an SVC
+            if isinstance(trained_model, SupportVectorMachine):
+                num_support_Vectors = len(trained_model.classifier.support_)
+            else: 
+                num_support_Vectors= len(G_train)
+                # if so, set the number of support vectors
+            if trained_model is None:
+                print("Model training failed. Exiting experiment.")
+                return None
+            self.inner_model_predict(G_test)
+            test_time = pd.Timestamp.now()
+            test_duration = test_time - trained_time
+            # Save results
+            train_durations += train_duration.total_seconds()
+            test_durations += test_duration.total_seconds()
+            num_support_Vectors += num_support_Vectors
+        training_duration = train_durations / iterations
+        testing_duration = test_durations / iterations
+        avg_num_support_Vectors = num_support_Vectors / iterations
+        return training_duration, testing_duration, avg_num_support_Vectors
+    def run_large_speed_test(self, iterations=5):
+        test_df = {}
+        # test if the model is a GED SVM or a GED KNN
+        training_duration, testing_duration, avg_num_support_Vectors = self.test_model_runtime(iterations=iterations)
+        test_df["Large_speed_test_training_duration"] = training_duration
+        test_df["Large_speed_test_testing_duration"] = testing_duration
+        test_df["Large_speed_test_avg_num_support_vectors"] = avg_num_support_Vectors
+        return test_df
 
     def overfitting_simple_run(self,X_train, X_test, y_train, y_test,test_DF):
         fit_start_time = datetime.now()
