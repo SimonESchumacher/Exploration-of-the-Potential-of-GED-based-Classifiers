@@ -22,3 +22,8 @@ BZR_MD_0_0: Approximations=0, Relative Deviation=0.0000
 KKI_0_0: Approximations=1915, Relative Deviation=15.4220
 MUTAG_1_1: Approximations=294, Relative Deviation=16.2604
 MUTAG_1_1: Approximations=302, Relative Deviation=16.2594
+MUTAG_1_1: Approximations=1, Relative Deviation=16.3894
+MUTAG_1_1: Approximations=0, Relative Deviation=16.3899
+MUTAG_1_1: Approximations=1, Relative Deviation=16.3894
+PTC_FR_1_1: Approximations=740, Relative Deviation=9.1201
+KKI_1_1: Approximations=696, Relative Deviation=18.0495
