@@ -773,7 +773,7 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
     average_time = times / num_times if num_times > 0 else 0
     print(f"Average time per GED computation: {average_time} microseconds")
     print(f"total time for GED computations: {times/1e6} seconds")
-    return ged_calculator, approximation_counter, rel_deviation
+    return ged_calculator, approximation_counter, rel_deviation, average_time
 
 def load_exact_GED_calculator(dataset_name: str) -> exact_GED_Calculator:
     filename = f"Exact_GED_{dataset_name}.joblib"
