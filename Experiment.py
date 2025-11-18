@@ -361,8 +361,9 @@ class experiment:
         testing_duration = test_durations / iterations
         avg_num_support_Vectors = num_support_Vectors / iterations
         return training_duration, testing_duration, avg_num_support_Vectors
-    def run_large_speed_test(self, iterations=5):
-        test_df = {}
+    def run_large_speed_test(self, iterations=5,test_df=None):
+        if test_df is None:
+            test_df = {}
         # test if the model is a GED SVM or a GED KNN
         training_duration, testing_duration, avg_num_support_Vectors = self.test_model_runtime(iterations=iterations)
         test_df["Large_speed_test_training_duration"] = training_duration
@@ -545,17 +546,33 @@ class experiment:
         print(f"starting inner tuning fold {fold_index}")
         tuner.fit(X_train,y_train)
         print(f"completed inner tuning fold {fold_index}")
-        best_model = tuner.best_estimator_
-        best_params = tuner.best_params_
-        best_score = tuner.best_score_
-        self.model = best_model
+        return_dict = dict()
+
+        return_dict["best_model"] = tuner.best_estimator_
+        return_dict["best_params"] = tuner.best_params_
+        return_dict["best_score"] = tuner.best_score_
+        self.model = return_dict["best_model"]
         results_dict = tuner.cv_results_
 
         accuracy,f1,precision,recall,roc_auc,classification_report_str = self.score_best_model(Y_test,y_test)
+        return_dict["accuracy"] = accuracy
+        return_dict["f1"] = f1
+        return_dict["precision"] = precision
+        return_dict["recall"] = recall
+        return_dict["roc_auc"] = roc_auc
+        return_dict["classification_report"] = classification_report_str
+        try:
+            large_speed_test_results = self.run_large_speed_test(iterations=3, test_df=return_dict)
+        except Exception as e:
+            print(f"Error occurred while running large speed test: {e}")
+            traceback.print_exc()
+            return_dict["Error source"] = "Large Speed Test"
+            return_dict["Error"] = str(e)
+            return return_dict
         # scores = self.extensive_model_score(best_params,X_train,Y_test,y_train,y_test,classes=self.model.classes_)
 
         # return best_model,best_params,scores, results_dict
-        return best_model, best_params, best_score, accuracy,f1,precision,recall,roc_auc,classification_report_str, results_dict
+        return return_dict, results_dict
 
     
 
@@ -584,7 +601,9 @@ class experiment:
         test_Dict["train_test_duration"] = str(duration1train)
         if should_print:
             print(f"Estimated test duration: {estimated_test_duration}")
-       
+        
+        # run the extense speed test
+        
 
 
 
@@ -593,6 +612,9 @@ class experiment:
         roc_auc_scores = []
         precision_scores = []
         recall_scores = []
+        support_vector_counts = []
+        training_durations = []
+        testing_durations = []
         time_Start = pd.Timestamp.now()
         results_df = pd.DataFrame()
         # build a progress bar which tracks the progress of both loops.
@@ -631,16 +653,16 @@ class experiment:
         #     results_df = pd.concat([results_df, pd.DataFrame([results_dict])], ignore_index=True)
         #     all_scores_list = pd.concat([all_scores_list, pd.DataFrame([scores])], ignore_index=True)
         
-        for fold_index, (best_model, best_params, best_score, accuracy_train,f1_train,precision_train,recall_train,roc_auc_train,classification_report_train, results_dict) in enumerate(all_folds_results):
+        for fold_index, (return_dict, results_dict) in enumerate(all_folds_results):
             if fold_index ==0:
-                test_Dict["best_params"] = str(best_params)
-                test_Dict["best_score"] = best_score
-                test_Dict["classification_report_train"] = classification_report_train
-            accuracy_scores.append(accuracy_train)
-            f1_scores.append(f1_train)
-            roc_auc_scores.append(roc_auc_train)
-            precision_scores.append(precision_train)
-            recall_scores.append(recall_train)
+                test_Dict["best_params"] = str(return_dict["best_params"])
+                test_Dict["best_score"] = return_dict["best_score"]
+                test_Dict["classification_report_train"] = return_dict["classification_report"]
+            accuracy_scores.append(return_dict["accuracy"])
+            f1_scores.append(return_dict["f1"])
+            roc_auc_scores.append(return_dict["roc_auc"])
+            precision_scores.append(return_dict["precision"])
+            recall_scores.append(return_dict["recall"])
 
             # Append the results_dict to the results_df
             results_dict['fold_index'] = fold_index
@@ -681,6 +703,9 @@ class experiment:
         else:
             raise ValueError(f"Unknown error acknowledgment method: {erroracknowledgment}. Use 'std', 'confidence interval', or 'none'.")
         test_Dict["nested_total_duration"] = str(total_duration)
+        test_Dict["nested_training_durations"] = np.mean(training_durations)
+        test_Dict["nested_testing_durations"] = np.mean(testing_durations)
+        test_Dict["nested_avg_support_vectors"] = np.mean(support_vector_counts)
         if get_all_results:
             results_dir = os.path.join("configs", "results", "Hyperparameter_tuning_results")
             results_path = os.path.join(results_dir, f"HP_{pd.Timestamp.now().strftime('%Y%m%d')}_{self.model_name}_{self.dataset_name}.xlsx")
