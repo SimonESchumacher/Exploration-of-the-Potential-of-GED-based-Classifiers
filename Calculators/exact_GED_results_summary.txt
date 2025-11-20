@@ -27,3 +27,4 @@ MUTAG_1_1: Approximations=0, Relative Deviation=16.3899
 MUTAG_1_1: Approximations=1, Relative Deviation=16.3894
 PTC_FR_1_1: Approximations=740, Relative Deviation=9.1201
 KKI_1_1: Approximations=696, Relative Deviation=18.0495
+MUTAG_0_0: Approximations=220, Relative Deviation=19.6647, Timeout=450, N_JOBS=20, Average Time=6786158.9742, Time=2025-11-18 12:06:11
