@@ -562,7 +562,8 @@ class experiment:
         return_dict["roc_auc"] = roc_auc
         return_dict["classification_report"] = classification_report_str
         try:
-            large_speed_test_results = self.run_large_speed_test(iterations=3, test_df=return_dict)
+
+            return_dict = self.run_large_speed_test(iterations=4, test_df=return_dict)
         except Exception as e:
             print(f"Error occurred while running large speed test: {e}")
             traceback.print_exc()
@@ -663,6 +664,10 @@ class experiment:
             roc_auc_scores.append(return_dict["roc_auc"])
             precision_scores.append(return_dict["precision"])
             recall_scores.append(return_dict["recall"])
+            training_durations.append(float(return_dict.get("Large_speed_test_training_duration", 0)))
+            testing_durations.append(float(return_dict.get("Large_speed_test_testing_duration", 0)))
+            support_vector_counts.append(float(return_dict.get("Large_speed_test_avg_num_support_vectors", 0)))
+            
 
             # Append the results_dict to the results_df
             results_dict['fold_index'] = fold_index
