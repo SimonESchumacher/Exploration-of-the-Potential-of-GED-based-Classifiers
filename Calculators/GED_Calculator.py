@@ -343,7 +343,10 @@ class Randomwalk_GED_Calculator:
             if self.adj_matrices_dict is None:
                 raise ValueError("Adjacency matrix dictionary is not set.")
             raise ValueError(f"Adjacency matrices for method {method} not available.")
-        return self.adj_matrices_dict[method][g1_index][g2_index]
+        try:
+            return self.adj_matrices_dict[method][g1_index][g2_index]
+        except IndexError:
+            raise IndexError(f"Graph indexes {g1_index}, {g2_index} out of bounds for adjacency matrices.")
     def get_limited_length_walk(self, g1_index, g2_index, llambda, max_length,method):
         if g1_index > g2_index:
             g1_index, g2_index = g2_index, g1_index
@@ -1008,7 +1011,8 @@ def reset_calculators_cache():
     global _ged_matrix
     global GED_node_map_dict
     _dataset_cache = None
-    _adj_matrices_dict_cache = {}
-    _precomputed_walk_traces = {}
+    _adj_matrices_dict_cache = None
+    _precomputed_walk_traces = None
     _ged_matrix = None
     GED_node_map_dict = None
+    

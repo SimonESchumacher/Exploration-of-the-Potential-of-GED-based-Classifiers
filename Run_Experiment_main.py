@@ -1,6 +1,6 @@
 # Run Experiment 
 # imports 
-from Calculators.GED_Calculator import build_GED_calculator, build_Heuristic_calculator, build_Randomwalk_GED_calculator, load_exact_GED_calculator, try_load_else_build_rw_calculator
+from Calculators.GED_Calculator import build_GED_calculator, build_Heuristic_calculator, build_Randomwalk_GED_calculator, load_exact_GED_calculator, reset_calculators_cache, try_load_else_build_rw_calculator
 from Calculators.Product_GRaphs import RandomWalkCalculator
 from Dataset import Dataset
 from Experiment import experiment
@@ -13,7 +13,7 @@ from Run_helpers import end_run, save_progress, set_Mode, set_global_ged_calcula
 # add the current directory to the system path
 sys.path.append(os.getcwd())
 from Models.KNN.feature_KNN import Feature_KNN
-from Models.SVC.GED.RandomWalk_edit import Random_walk_edit_SVC, Random_Walk_edit_accelerated
+from Models.SVC.GED.RandomWalk_edit import Random_walk_edit_SVC, Random_Walk_edit_accelerated, set_global_random_walk_calculator
 from Models.SVC.WeisfeilerLehman_SVC import WeisfeilerLehman_SVC
 from Models.SVC.random_walk import RandomWalk_SVC
 from Models.Graph_Classifier import GraphClassifier
@@ -37,7 +37,7 @@ import pandas as pd
 
 
 # to set the mode:
-TESTING_MODE= "SPEEDMULTI" # "SINGLE" or "ALL", "MULTI", "SPEEDTEST", "SPEEDMULTI"
+TESTING_MODE= "MULTI" # "SINGLE" or "ALL", "MULTI", "SPEEDTEST", "SPEEDMULTI"
 CALCULATOR_NAME= "Exact_GED"
 HEURISTIC_CALCULATOR_NAME="Heuristic_Calculator"
 N_JOBS=15
@@ -107,6 +107,7 @@ def nonGEd_classifiers(ged_calculator: Base_Calculator):
         # RandomWalk_SVC(normalize_kernel=True, rw_kernel_type="geometric", p_steps=3,C=1.0, kernel_type="precomputed"),
         ]
 def ged_classifiers(ged_calculator: Base_Calculator):
+    set_global_random_walk_calculator(None)
     random_walk_calculator = try_load_else_build_rw_calculator(ged_calculator=ged_calculator)
     random_walk_calculator_id = random_walk_calculator.get_identifier_name()
     calculator_id = set_global_ged_calculator_All(ged_calculator)
@@ -175,15 +176,15 @@ def run_classifier_group(get_classifiers_funct: callable, calculator_type:str,
         total_duration = pd.Timedelta(0)
         for classifier in classifier_list:
             expi = get_expi(classifier)
-            estimated_time = expi.estimate_nested_cv_time(cv=cv,num_trials=NUM_TRIALS,search_method=SEARCH_METHOD)
+            estimated_time, _ = expi.estimate_nested_cv_time(cv=cv,num_trials=NUM_TRIALS,search_method=SEARCH_METHOD)
             total_duration += estimated_time
         print(f"Estimated total duration for group {get_classifiers_funct.__name__} classifiers: {total_duration}")
-        return None,total_duration
+        return testDF,total_duration
     else:
         for classifier in classifier_list:
             expi = get_expi(classifier)
             testDF = run_classifier(classifier, expi, cv, testDF)
-    return testDF,0
+    return testDF, pd.Timedelta(0)
 
 if __name__ == "__main__":
     start_time = pd.Timestamp.now()
@@ -205,14 +206,14 @@ if __name__ == "__main__":
         
         total_duration = 0
     elif TESTING_MODE == "MULTI":
-        total_duration = 0
+        total_duration = pd.Timedelta(0)
         for ds in DATASET_ARRAY:
             DATASET_NAME=ds
             Test_df["Dataset"] = ds
             Test_df, total_duration_nonGED = run_classifier_group(nonGEd_classifiers,  calculator_type=None, testDF=Test_df,dataset_name=ds)
 
             Test_df, total_duration_GED = run_classifier_group(ged_classifiers,  calculator_type=CALCULATOR_NAME,testDF=Test_df,dataset_name=ds)
-
+            reset_calculators_cache()
             # Test_df, total_duration_reference = run_classifier_group(reference_classifiers,  calculator_type=HEURISTIC_CALCULATOR_NAME, testDF=Test_df)
             total_duration += total_duration_nonGED + total_duration_GED
     elif TESTING_MODE == "SPEEDMULTI":
