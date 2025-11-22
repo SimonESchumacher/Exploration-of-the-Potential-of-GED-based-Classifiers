@@ -54,8 +54,8 @@ NUM_TRIALS, TEST_TRIAL, ONLY_ESTIMATE, GET_ALL_TUNING_RESULTS = set_Mode(testing
 DATASET_NAME="IMDB-MULTI" if TESTING_MODE != "MULTI" else "MULTI"  # e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
 DATASET_ARRAY=["MUTAG","PTC_FR","KKI","BZR_MD","MSRC_9","IMDB-MULTI"]
 TUNING_METRIC="f1_macro"  # e.g. "accuracy", "f1_macro", "roc_auc"
-DATASET_EDGE_LABELS="label"
-DATASET_NODE_LABELS="label"
+DATASET_EDGE_LABELS=None
+DATASET_NODE_LABELS=None
 DATASET_NODE_ATTRIBUTES=None  # e.g. ["x","y"]
 DATASET_EDGE_ATTRIBUTES=None  # e.g. ["weight"]
 
@@ -108,6 +108,7 @@ def nonGEd_classifiers(ged_calculator: Base_Calculator):
         ]
 def ged_classifiers(ged_calculator: Base_Calculator):
     set_global_random_walk_calculator(None)
+    set_global_ged_calculator_All(None)
     random_walk_calculator = try_load_else_build_rw_calculator(ged_calculator=ged_calculator)
     random_walk_calculator_id = random_walk_calculator.get_identifier_name()
     calculator_id = set_global_ged_calculator_All(ged_calculator)

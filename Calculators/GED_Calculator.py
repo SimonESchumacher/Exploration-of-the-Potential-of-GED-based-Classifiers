@@ -591,7 +591,8 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_
         ged = None
         if ged_match:
             ged = int(ged_match.group(1))
-            # print(f"Computed exact GED {ged} for graphs {g_id1} and {g_id2}.")
+            if (g_id1 + g_id2)% 500 ==0: 
+                print(f"Computed exact GED {ged} for graphs {g_id1} and {g_id2}.")
         else:
             raise Exception(
                 "GED value not found in output:"
