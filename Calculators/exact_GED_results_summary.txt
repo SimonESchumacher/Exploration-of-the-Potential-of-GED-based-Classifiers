@@ -28,3 +28,6 @@ MUTAG_1_1: Approximations=1, Relative Deviation=16.3894
 PTC_FR_1_1: Approximations=740, Relative Deviation=9.1201
 KKI_1_1: Approximations=696, Relative Deviation=18.0495
 MUTAG_0_0: Approximations=220, Relative Deviation=19.6647, Timeout=450, N_JOBS=20, Average Time=6786158.9742, Time=2025-11-18 12:06:11
+PTC_FR_0_0: Approximations=1498, Relative Deviation=11.2319, Timeout=300, N_JOBS=32, Average Time=3648807.6167, Time=2025-11-21 15:58:30
+KKI_0_0: Approximations=1346, Relative Deviation=17.7832, Timeout=300, N_JOBS=32, Average Time=10221766.3647, Time=2025-11-21 19:49:38
+BZR_MD_0_0: Approximations=0, Relative Deviation=0.0000, Timeout=300, N_JOBS=32, Average Time=914.5287, Time=2025-11-21 19:54:29

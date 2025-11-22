@@ -1001,3 +1001,14 @@ def build_exact_ged_calculator_buffered(dataset=None, dataset_name=None, n_jobs=
     ged_calculator = exact_GED_Calculator(dataset_name=dataset_name)
     return ged_calculator, approximation_counter, rel_deviation
     
+def reset_calculators_cache():
+    global _dataset_cache
+    global _adj_matrices_dict_cache
+    global _precomputed_walk_traces
+    global _ged_matrix
+    global GED_node_map_dict
+    _dataset_cache = None
+    _adj_matrices_dict_cache = {}
+    _precomputed_walk_traces = {}
+    _ged_matrix = None
+    GED_node_map_dict = None
