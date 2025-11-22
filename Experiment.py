@@ -713,7 +713,8 @@ class experiment:
         test_Dict["nested_avg_support_vectors"] = np.mean(support_vector_counts)
         if get_all_results:
             results_dir = os.path.join("configs", "results", "Hyperparameter_tuning_results")
-            results_path = os.path.join(results_dir, f"HP_{pd.Timestamp.now().strftime('%Y%m%d')}_{self.model_name}_{self.dataset_name}.xlsx")
+            uses_labels = 0 if self.dataset.Node_label_name is None else 1
+            results_path = os.path.join(results_dir, f"HP_{pd.Timestamp.now().strftime('%Y%m%d')}_{self.model_name}_{self.dataset_name}_{uses_labels}_.xlsx")
             os.makedirs(results_dir, exist_ok=True)
             results_df.to_excel(results_path, index=False)
         return test_Dict
