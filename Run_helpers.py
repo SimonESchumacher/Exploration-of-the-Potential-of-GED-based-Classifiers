@@ -26,6 +26,8 @@ def save_progress(testDF: pd.DataFrame, experiment_name: str):
 def set_global_ged_calculator_All(calculator: Base_Calculator):
     set_global_ged_calculator(calculator)
     set_global_ged_calculator_KNN(calculator)
+    if calculator is None:
+        return "None"
     return calculator.get_identifier_name()
 
 

@@ -31,3 +31,9 @@ MUTAG_0_0: Approximations=220, Relative Deviation=19.6647, Timeout=450, N_JOBS=2
 PTC_FR_0_0: Approximations=1498, Relative Deviation=11.2319, Timeout=300, N_JOBS=32, Average Time=3648807.6167, Time=2025-11-21 15:58:30
 KKI_0_0: Approximations=1346, Relative Deviation=17.7832, Timeout=300, N_JOBS=32, Average Time=10221766.3647, Time=2025-11-21 19:49:38
 BZR_MD_0_0: Approximations=0, Relative Deviation=0.0000, Timeout=300, N_JOBS=32, Average Time=914.5287, Time=2025-11-21 19:54:29
+IMDB-MULTI_0_0: Approximations=74200, Relative Deviation=7.4026, Timeout=30, N_JOBS=80, Average Time=480352.3643, Time=2025-11-23 09:04:39
+MSRC_9 time >6_000 seconds
+KKI_1_1: Approximations=788, Relative Deviation=17.6092, Timeout=450, N_JOBS=80, Average Time=16225000.3239, Time=2025-11-25 13:27:42
+KKI_0_0: Approximations=1268, Relative Deviation=18.1808, Timeout=450, N_JOBS=80, Average Time=21178468.0979, Time=2025-11-25 15:39:38
+BZR_MD_0_0: Approximations=0, Relative Deviation=0.0000, Timeout=450, N_JOBS=80, Average Time=487.3778, Time=2025-11-25 15:42:04
+BZR_MD_0_0: Approximations=0, Relative Deviation=0.0000, Timeout=450, N_JOBS=80, Average Time=444.7390, Time=2025-11-28 12:43:47
