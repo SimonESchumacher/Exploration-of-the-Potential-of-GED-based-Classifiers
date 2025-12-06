@@ -22,8 +22,9 @@ def build_restricted_product_graph(g1: nx.Graph, g2: nx.Graph, node_matches : li
         else:
             node1_id = node1 + lowest_node_id_g1
             node2_id = node2 + lowest_node_id_g2
-            # label = (g1.nodes[node1_id].get('label', None), g2.nodes[node2_id].get('label', None))
-            restricted_graph.add_node((node1_id, node2_id,))
+            label = (g1.nodes[node1_id].get('label', None), g2.nodes[node2_id].get('label', None))
+            
+            restricted_graph.add_node((node1_id, node2_id,), label=label)
     # rather inefficient O(n^2) approach,
     # possible better to iterate over the edges of g1, and check if the corresponding edge exists in g2
     # map the node id of g1 to the node id of g2
@@ -34,7 +35,7 @@ def build_restricted_product_graph(g1: nx.Graph, g2: nx.Graph, node_matches : li
         v2 = g1_node_map.get(v1, None)
         if u2 is not None and v2 is not None and g2.has_edge(u2, v2):
             label = g1.edges[(u1, v1)].get('label', None)
-            restricted_graph.add_edge((u1, u2), (v1, v2))
+            restricted_graph.add_edge((u1, u2), (v1, v2), label=label)
             # print(f"Added edge between ({u1}, {u2}) and ({v1}, {v2}) with label {label}")
         
         
