@@ -15,7 +15,7 @@ from Models.Graph_Classifier import GraphClassifier
 from scipy.stats import randint, uniform, loguniform
 from typing import Dict, Any, List
 DEBUG = False # Set to False to disable debug prints
-PROBABILITY_ESTIMATES = False  # Enable probability estimates for SVC
+PROBABILITY_ESTIMATES = True  # Enable probability estimates for SVC
 class SupportVectorMachine(GraphClassifier):
     model_specific_iterations = 50
     # Support Vector Machine Classifier for Graphs
@@ -30,7 +30,8 @@ class SupportVectorMachine(GraphClassifier):
         self.class_weight = class_weight
         self.random_state = random_state
         self.probability = PROBABILITY_ESTIMATES  # Enable probability estimates
-        classifier = SVC(kernel=self.kernel_type, C=self.C, random_state=self.random_state,class_weight=class_weight, probability=self.probability,tol=1e-2,cache_size=1000)
+        max_iter = kwargs.get('max_iter', -1)
+        classifier = SVC(kernel=self.kernel_type, C=self.C, random_state=self.random_state, class_weight=class_weight, probability=self.probability, tol=1e-2, cache_size=1000, max_iter=max_iter)
         default_attributes = {
             "Kernel_type": self.kernel_type,
             "Kernel": self.kernel_name,

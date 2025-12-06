@@ -30,6 +30,7 @@ class DIFFUSION_GED_SVC(Base_GED_SVC):
             "t_iterations": self.t_iterations,
             "diffusion_function": self.diffusion_function
         })
+        kwargs.update({'max_iter':1_000_000})
         super().__init__(attributes=attributes, name=self.name, **kwargs)
 
     # definition can't be changed here, because the Kernel class requires it
@@ -106,6 +107,7 @@ class DIFFUSION_GED_SVC(Base_GED_SVC):
     
 class Diffusion_GED_new(DIFFUSION_GED_SVC):
 
+
     def fit_transform(self, X, y=None):
         X=[int(X[i].name) for i in range(len(X))]
         self._X_fit = X
@@ -133,9 +135,7 @@ class Diffusion_GED_new(DIFFUSION_GED_SVC):
             for k in range(1, self.t_iterations + 1):
                 term = self.B @ term  # matrix power
                 K += (self.llambda ** k) * term
-
-            return K
-        
+        # normalize K
         return K
     
     def transform(self, X):
@@ -183,6 +183,7 @@ class Diffusion_GED_new(DIFFUSION_GED_SVC):
                     v_train, v_g = w_train, w_g
             # --- Step 4: save results ---
             K_test[p, :] = s_train
+        # normalize K_test
 
         return K_test
 

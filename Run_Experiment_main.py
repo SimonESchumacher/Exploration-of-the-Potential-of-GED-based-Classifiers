@@ -37,10 +37,10 @@ import pandas as pd
 
 
 # to set the mode:
-TESTING_MODE= "MULTI" # "SINGLE" or "ALL", "MULTI", "SPEEDTEST", "SPEEDMULTI"
+TESTING_MODE= "MULTI" # "SINGLE" or "SINGLEMULTI"or "ALL", "MULTI", "SPEEDTEST", "SPEEDMULTI"
 CALCULATOR_NAME= "Exact_GED"
 HEURISTIC_CALCULATOR_NAME="Heuristic_Calculator"
-N_JOBS=15
+N_JOBS=25
 
 # Testing Level, indecating stages from only testing for fucntionality, to wanting a full result
 # 1 only Speed Test
@@ -49,24 +49,25 @@ N_JOBS=15
 # 4 Full Run with all tuning results saved
 testing_level= 4 # Number from 1 to 4
 NUM_TRIALS, TEST_TRIAL, ONLY_ESTIMATE, GET_ALL_TUNING_RESULTS = set_Mode(testing_level)
-
+NUM_TRIALS =5
 # DATASET
-DATASET_NAME="IMDB-MULTI" if TESTING_MODE != "MULTI" else "MULTI"  # e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
-DATASET_ARRAY=["MUTAG","PTC_FR","KKI","BZR_MD","MSRC_9","IMDB-MULTI"]
+DATASET_NAME="MSRC_9" if TESTING_MODE not in ["MULTI", "SPEEDMULTI","SINGLEMULTI"] else TESTING_MODE # e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
+DATASET_ARRAY=["KKI","MUTAG","MSRC_9","PTC_FR","BZR_MD"]
 TUNING_METRIC="f1_macro"  # e.g. "accuracy", "f1_macro", "roc_auc"
-DATASET_EDGE_LABELS="label"
-DATASET_NODE_LABELS="label"
+DATASET_EDGE_LABELS=None  # e.g. "label" or None
+DATASET_NODE_LABELS=None
 DATASET_NODE_ATTRIBUTES=None  # e.g. ["x","y"]
 DATASET_EDGE_ATTRIBUTES=None  # e.g. ["weight"]
 
 
 # Not Meant to be changed
+
 SPLIT= 0.2
 SEARCH_METHOD="random"  # "grid" or "random"
 GED_BOUND="Exact"   # outdated
 HEURISTIC_BOUND="Vertex" 
 now = pd.Timestamp.now().strftime("%d_%m_%Y_%H_%M")
-EXPERIMENT_NAME=f"{now}_{DATASET_NAME}_{TUNING_METRIC}_{int(DATASET_NODE_LABELS!=None)}_{int(DATASET_EDGE_LABELS!=None)}_{TESTING_MODE}" # Day_Month_Year_Hour_Minute_TESTING_MODE
+EXPERIMENT_NAME=f"{now}_{DATASET_NAME}_{int(DATASET_NODE_LABELS!=None)}_{int(DATASET_EDGE_LABELS!=None)}_{TESTING_MODE}" # Day_Month_Year_Hour_Minute_TESTING_MODE
 
 
 def get_Dataset(ged_calculator,name=DATASET_NAME):
@@ -76,8 +77,14 @@ def get_Dataset(ged_calculator,name=DATASET_NAME):
     return DATASET, DATASET.get_calculator()
 
 def get_single_classifier(ged_calculator):
-    calculator_id = set_global_ged_calculator_All(ged_calculator)
-
+    set_global_random_walk_calculator(None)
+    set_global_ged_calculator_All(ged_calculator)
+    random_walk_calculator = try_load_else_build_rw_calculator(ged_calculator=ged_calculator)
+    try:
+        random_walk_calculator_id = random_walk_calculator.get_identifier_name()
+        calculator_id = set_global_ged_calculator_All(ged_calculator)
+    except Exception as e:
+        print(f"Error occurred while getting identifiers: {e}")
     # return [ZERO_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=7, aggregation_method="sum",dataset_name=DATASET.name,selection_method="k-CPS")
     # return [Random_walk_edit_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1, C=1.0,kernel_type="precomputed", class_weight='balanced')
     # random_walk_calculator = RandomWalkCalculator(ged_calculator=ged_calculator, llambda_samples=[0.005,0.01,0.03,0.05,0.1,0.2,0.45,0.89], dataset=DATASET,ged_method=GED_BOUND)
@@ -87,7 +94,7 @@ def get_single_classifier(ged_calculator):
     # return [ Simple_Prototype_GED_SVC(ged_calculator=ged_calculator, ged_bound="Mean-Distance", C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=1, selection_method="TPS", selection_split="all",dataset_name=DATASET.name)]
     # return [RandomWalk_SVC(normalize_kernel=True, rw_kernel_type="exponential", p_steps=1,C=1.0, kernel_type="precomputed")]
     # return Feature_KNN(vector_feature_list=["VertexHistogram","density","Prototype-Distance"], dataset_name=DATASET.name, prototype_size=5, selection_split="all", selection_method="TPS", metric="minkowski", calculator_id=calculator_id, ged_bound=GED_BOUND, n_neighbors=5, weights='uniform', algorithm='auto')
-    # return [Diffusion_GED_new(C=0.1, llambda=0.5, calculator_id=calculator_id, ged_bound=GED_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5)]
+    return [Diffusion_GED_new(C=0.1, llambda=0.5, calculator_id=calculator_id, ged_bound=GED_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5)]
     # return HybridPrototype_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="poly", class_weight='balanced',prototype_size=5, selection_method="TPS", selection_split="all",dataset_name=DATASET.name, vector_feature_list=["density"], node_label_tag="label", edge_label_tag="label")
     # return [GED_KNN(calculator_id=calculator_id, ged_bound=GED_BOUND, n_neighbors=7, weights='uniform', algorithm='auto')]
     # return [CombinedHistogram_SVC(kernel_type="rbf", C=1.0, class_weight='balanced')]
@@ -98,16 +105,17 @@ def get_single_classifier(ged_calculator):
 
 def nonGEd_classifiers(ged_calculator: Base_Calculator):
     return [
-        Random_Classifier(),
-        Blind_Classifier(),
+        # Random_Classifier(),
+        # Blind_Classifier(),
         WeisfeilerLehman_SVC(n_iter=5,C=1.0, normalize_kernel=True),
         VertexHistogram_SVC(kernel_type='precomputed'),
-        EdgeHistogram_SVC(kernel_type='precomputed'), 
-        CombinedHistogram_SVC(kernel_type='precomputed'),
+        # EdgeHistogram_SVC(kernel_type='precomputed'), 
+        # CombinedHistogram_SVC(kernel_type='precomputed'),
         # RandomWalk_SVC(normalize_kernel=True, rw_kernel_type="geometric", p_steps=3,C=1.0, kernel_type="precomputed"),
         ]
 def ged_classifiers(ged_calculator: Base_Calculator):
     set_global_random_walk_calculator(None)
+    set_global_ged_calculator_All(None)
     random_walk_calculator = try_load_else_build_rw_calculator(ged_calculator=ged_calculator)
     random_walk_calculator_id = random_walk_calculator.get_identifier_name()
     calculator_id = set_global_ged_calculator_All(ged_calculator)
@@ -192,7 +200,14 @@ if __name__ == "__main__":
     print(f"Starting experiment {EXPERIMENT_NAME} on dataset {DATASET_NAME}) at {start_time}")
     if TESTING_MODE == "SINGLE":
         Test_df, total_duration = run_classifier_group(get_single_classifier,calculator_type=CALCULATOR_NAME,testDF=Test_df)
-    
+    elif TESTING_MODE == "SINGLEMULTI":
+        for ds in DATASET_ARRAY:
+            DATASET_NAME=ds
+            print(DATASET_NAME)
+            set_global_random_walk_calculator(None)
+            Test_df["Dataset"] = ds
+            Test_df, total_duration = run_classifier_group(get_single_classifier,calculator_type=CALCULATOR_NAME,testDF=Test_df,dataset_name=ds)
+            reset_calculators_cache()
     elif TESTING_MODE == "ALL":
         Test_df, total_duration_nonGED = run_classifier_group(nonGEd_classifiers,  calculator_type=None, testDF=Test_df)
 
@@ -223,6 +238,8 @@ if __name__ == "__main__":
             Test_df["Dataset"] = ds
             Test_df = run_speed_test(nonGEd_classifiers, calculator_type=None, iterations=10,testDF=Test_df,dataset_name=ds)
             Test_df = run_speed_test(ged_classifiers, calculator_type=CALCULATOR_NAME, iterations=10,testDF=Test_df,dataset_name=ds)
+            reset_calculators_cache()
+
     else:
         raise ValueError(f"Invalid TESTING_MODE: {TESTING_MODE}. Use 'SINGLE' or 'ALL'.")
     

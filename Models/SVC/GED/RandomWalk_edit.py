@@ -10,7 +10,7 @@ from scipy.stats import randint, uniform, loguniform
 from typing import Dict, Any, List 
 
 class Random_walk_edit_SVC(Base_GED_SVC):
-    model_specific_iterations = 40
+    model_specific_iterations = 10
     """
     Support Vector Machine with Graph Edit Distance Kernel
     """

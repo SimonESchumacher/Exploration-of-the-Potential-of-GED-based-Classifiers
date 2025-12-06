@@ -540,7 +540,7 @@ class experiment:
         elif search_method == "random":
             param_grid = self.model.get_random_param_space()
             iterations = self.model.random_search_iterations() if not test_trail else 1
-            tuner = RandomizedSearchCV(estimator=self.model, param_distributions=param_grid, n_iter=iterations, scoring=scoring[0], cv=inner_cv, verbose=verbose, n_jobs=n_jobs,error_score="raise",refit=scoring[0])
+            tuner = RandomizedSearchCV(estimator=self.model, param_distributions=param_grid, n_iter=iterations, scoring=scoring[0], cv=inner_cv, verbose=verbose, n_jobs=n_jobs,error_score="raise",refit=scoring[0],return_train_score=True)
         else:
             raise ValueError(f"Unknown search method: {search_method}. Use 'grid' or 'random'.")
         print(f"starting inner tuning fold {fold_index}")
@@ -570,10 +570,10 @@ class experiment:
             return_dict["Error source"] = "Large Speed Test"
             return_dict["Error"] = str(e)
             return return_dict
-        # scores = self.extensive_model_score(best_params,X_train,Y_test,y_train,y_test,classes=self.model.classes_)
+        scores = self.extensive_model_score(tuner.best_params_,X_train,Y_test,y_train,y_test,classes=self.model.classes_)
 
         # return best_model,best_params,scores, results_dict
-        return return_dict, results_dict
+        return return_dict, results_dict, scores
 
     
 
@@ -672,7 +672,8 @@ class experiment:
             # Append the results_dict to the results_df
             results_dict['fold_index'] = fold_index
             results_df = pd.concat([results_df, pd.DataFrame(results_dict)], ignore_index=True)
-
+            all_scores_list["fold_index"] = fold_index
+            all_scores_list = pd.concat([all_scores_list, pd.DataFrame([return_dict])], ignore_index=True)
 
 
         time_End = pd.Timestamp.now()
@@ -716,6 +717,11 @@ class experiment:
             uses_labels = 0 if self.dataset.Node_label_name is None else 1
             results_path = os.path.join(results_dir, f"HP_{pd.Timestamp.now().strftime('%Y%m%d')}_{self.model_name}_{self.dataset_name}_{uses_labels}_.xlsx")
             os.makedirs(results_dir, exist_ok=True)
+            # check if the file exists, if so, append a number to the filename
+            file_index = 1
+            while os.path.exists(results_path):
+                results_path = os.path.join(results_dir, f"HP_{pd.Timestamp.now().strftime('%Y%m%d')}-{file_index}_{self.model_name}_{self.dataset_name}_{uses_labels}_.xlsx")
+                file_index += 1
             results_df.to_excel(results_path, index=False)
         return test_Dict
         

@@ -187,7 +187,7 @@ class Heuristic_Calculator(abstract_Calculator):
     
 
 
-def build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("BIPARTITE","upper")], dataset=None, labels=None,dataset_name=None, **kwargs) -> GED_Calculator:
+def build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("IPFP","upper")], dataset=None, labels=None,dataset_name=None, **kwargs) -> GED_Calculator:
     if dataset is None:
         raise ValueError("Dataset and labels must be provided to build GED_Calculator.")
     with tqdm.tqdm(total=((len(dataset)*(len(dataset)+1)/2)+2)*len(GED_calc_methods)) as pbar:
@@ -515,6 +515,8 @@ def try_load_else_build_rw_calculator(ged_calculator, max_walk_length=7):
     dataset_name = ged_calculator.get_identifier_name()[len("Exact_GED_"):]
     try:
         rw_calculator = load_Randomwalk_GED_calculator(dataset_name)
+        if rw_calculator is None:
+            raise ValueError("Loaded Randomwalk_GED_Calculator is None.")
         print(f"Loaded precomputed Randomwalk_GED_Calculator for dataset {dataset_name}.")
     except (FileNotFoundError, ValueError) as e:
         print(f"Precomputed Randomwalk_GED_Calculator for dataset {dataset_name} not found or failed to load ({e}). Building new one...")
@@ -591,7 +593,7 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_
         ged = None
         if ged_match:
             ged = int(ged_match.group(1))
-            # print(f"Computed exact GED {ged} for graphs {g_id1} and {g_id2}.")
+            
         else:
             raise Exception(
                 "GED value not found in output:"
@@ -633,7 +635,8 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_
             if total_time_match
             else None
         )
-        # print(f"Computed exact GED {ged} for graphs {g_id1} and {g_id2} in {time} microseconds.")
+        
+        print(f"Computed exact GED {ged} for graphs {g_id1} and {g_id2} in {time} microseconds.")
         if use_node_mapping:
             return ged, mapping, time, 0
         else:
@@ -643,7 +646,8 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_
 
 
     except subprocess.TimeoutExpired:
-        return None, None, timeout*2, None
+        print(f"Timeout expired for graphs {g_id1} and {g_id2} in {timeout} seconds.")
+        return None, None, None, None
 
         # global _ged_matrix
 def run_ged_calculation(args):
