@@ -102,8 +102,8 @@ class Random_Walk_edit_accelerated(Random_walk_edit_SVC):
         self.name="Random-Walk-Edit-Accelerated"
         self.random_walk_calculator_id = random_walk_calculator_id
         global _random_walk_calculator
-        if _random_walk_calculator is None:
-            print("Warning: _random_walk_calculator is None. We are rebuilding")
+        if _random_walk_calculator is None or _random_walk_calculator.get_identifier_name() != random_walk_calculator_id:
+            print("Warning: _random_walk_calculator is None or has a different ID. We are rebuilding")
             _random_walk_calculator = load_Randomwalk_calculator_from_id(random_walk_calculator_id)
         else:
             self.random_walk_calculator = _random_walk_calculator

@@ -33,7 +33,7 @@ class abstract_GED_KNN(KNN):
         """
         self.calculator_id = calculator_id
         global _ged_calculator
-        if _ged_calculator is None:
+        if _ged_calculator is None or _ged_calculator.get_identifier_name() != calculator_id:
             _ged_calculator = load_calculator_from_id(calculator_id)
         self.ged_calculator = _ged_calculator
         self.ged_bound = ged_bound

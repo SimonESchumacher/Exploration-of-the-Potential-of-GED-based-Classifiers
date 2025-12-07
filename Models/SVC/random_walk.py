@@ -21,7 +21,7 @@ from scipy.stats import randint, uniform, loguniform
 DEBUG = False 
 
 class RandomWalk_SVC(SupportVectorMachine):
-    model_specific_iterations = 10  # Base number of iterations for this model
+    model_specific_iterations = 3  # Base number of iterations for this model
 
     def __init__(self, normalize_kernel,rw_kernel_type,p_steps,C=1.0,  kernel_type="precomputed",decay_lambda: float = 0.1, attributes: dict = dict(), **kwargs):
         self.normalize_kernel = normalize_kernel
