@@ -570,10 +570,10 @@ class experiment:
             return_dict["Error source"] = "Large Speed Test"
             return_dict["Error"] = str(e)
             return return_dict
-        scores = self.extensive_model_score(tuner.best_params_,X_train,Y_test,y_train,y_test,classes=self.model.classes_)
+        # scores = self.extensive_model_score(tuner.best_params_,X_train,Y_test,y_train,y_test,classes=self.model.classes_)
 
         # return best_model,best_params,scores, results_dict
-        return return_dict, results_dict, scores
+        return return_dict, results_dict
 
     
 
@@ -589,6 +589,7 @@ class experiment:
            print("\n--------------------------------------------------------------------")
            print(f"Running extensive test for model:\n {self.model_name}")
         estimated_test_duration = None
+        test_Dict["Dataset_name"] = self.dataset_name + " (U)" if self.dataset.Node_label_name is None else self.dataset_name
         test_Dict["model_name"] = self.model_name
         test_Dict["Calculator_name"] = self.model.get_calculator().get_Name() if self.model.get_calculator() else "None"
         try:
@@ -712,6 +713,8 @@ class experiment:
         test_Dict["nested_training_durations"] = np.mean(training_durations)
         test_Dict["nested_testing_durations"] = np.mean(testing_durations)
         test_Dict["nested_avg_support_vectors"] = np.mean(support_vector_counts)
+        test_Dict["timestamp"] = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+        test_Dict["tuning_metirc"] = tuning_metric
         if get_all_results:
             results_dir = os.path.join("configs", "results", "Hyperparameter_tuning_results")
             uses_labels = 0 if self.dataset.Node_label_name is None else 1

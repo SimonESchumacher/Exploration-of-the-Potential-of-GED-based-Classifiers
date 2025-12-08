@@ -1,3 +1,5 @@
+<<<<<<< HEAD
+=======
 MUTAG_1_1: Approximations=43, Relative Deviation=4.2152
 MUTAG_0_0: Approximations=1757, Relative Deviation=5.6952
 BZR_0_0: Approximations=81775, Relative Deviation=22.4286
@@ -37,3 +39,5 @@ KKI_1_1: Approximations=788, Relative Deviation=17.6092, Timeout=450, N_JOBS=80,
 KKI_0_0: Approximations=1268, Relative Deviation=18.1808, Timeout=450, N_JOBS=80, Average Time=21178468.0979, Time=2025-11-25 15:39:38
 BZR_MD_0_0: Approximations=0, Relative Deviation=0.0000, Timeout=450, N_JOBS=80, Average Time=487.3778, Time=2025-11-25 15:42:04
 BZR_MD_0_0: Approximations=0, Relative Deviation=0.0000, Timeout=450, N_JOBS=80, Average Time=444.7390, Time=2025-11-28 12:43:47
+BZR_MD_0_0: Approximations=0, Relative Deviation=0.0000, Timeout=100, N_JOBS=20, Average Time=1034.6912, Time=2025-12-07 15:52:40
+>>>>>>> 309f8edf22d52072320e01610b694395641d26b0
