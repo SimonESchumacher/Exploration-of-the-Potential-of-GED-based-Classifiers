@@ -14,6 +14,9 @@ from config_loader import get_conifg_param
 
 DEBUG = get_conifg_param('SVC', 'debuging_prints')  # Set to False to disable debug prints
 PROBABILITY_ESTIMATES = get_conifg_param('SVC', 'probability_estimates')  # Enable probability estimates for SVC
+FITTING_TOLERANCE = get_conifg_param('SVC', 'fitting_tolerance', type='float')  # Tolerance for SVC fitting
+CHACHE_SIZE = get_conifg_param('SVC', 'cache_size', type='int')  # Cache size for SVC
+DEFAULT_SVC_RANDOM_STATE = get_conifg_param('SVC', 'default_random_state', type='int')  # Default random state for SVC
 class SupportVectorMachine(GraphClassifier):
     model_specific_iterations = get_conifg_param("Hyperparameter_fields", "tuning_iterations", type="int")
     # Support Vector Machine Classifier for Graphs
@@ -29,7 +32,7 @@ class SupportVectorMachine(GraphClassifier):
         self.random_state = random_state
         self.probability = PROBABILITY_ESTIMATES  # Enable probability estimates
         max_iter = kwargs.get('max_iter', get_conifg_param('SVC', 'max_iter', type='int'))
-        classifier = SVC(kernel=self.kernel_type, C=self.C, random_state=self.random_state, class_weight=class_weight, probability=self.probability, tol=1e-2, cache_size=1000, max_iter=max_iter)
+        classifier = SVC(kernel=self.kernel_type, C=self.C, random_state=self.random_state, class_weight=class_weight, probability=self.probability, tol=FITTING_TOLERANCE, cache_size=CHACHE_SIZE, max_iter=max_iter)
         default_attributes = {
             "Kernel_type": self.kernel_type,
             "Kernel": self.kernel_name,
@@ -77,8 +80,7 @@ class SupportVectorMachine(GraphClassifier):
         """
         Fits the SVC model to the graph data.
         """
-        # random_number = np.random.randint(0, 10000)
-        # print(f"Start fit {random_number}")
+
         if DEBUG:
             print("Fitting SVC model...")
         self.prepare_fit(X, y)

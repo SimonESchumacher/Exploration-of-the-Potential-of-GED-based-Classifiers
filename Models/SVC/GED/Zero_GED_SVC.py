@@ -11,7 +11,6 @@ sys.path.append(os.getcwd())
 from grakel.kernels import Kernel
 from Calculators.Base_Calculator import Base_Calculator
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
-from Custom_Kernels.GEDLIB_kernel import GEDKernel
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
 from Calculators.Prototype_Selction import Prototype_Selector, Select_Prototypes, buffered_prototype_selection

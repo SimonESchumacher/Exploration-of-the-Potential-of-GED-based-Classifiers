@@ -5,15 +5,11 @@
 
 import sys
 import os
-
 import numpy as np
 import tqdm
 
-from Calculators.GED_Calculator import GED_Calculator, load_calculator_from_id
+from Calculators.GED_Calculator import  load_calculator_from_id
 sys.path.append(os.getcwd())
-from grakel.kernels import Kernel
-from Calculators.Base_Calculator import Base_Calculator
-
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
 from config_loader import get_conifg_param
 

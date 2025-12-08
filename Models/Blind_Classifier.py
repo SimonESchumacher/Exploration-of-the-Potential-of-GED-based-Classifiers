@@ -14,7 +14,7 @@ DEBUG = False  # Set to True for debug prints
 from Models.Graph_Classifier import GraphClassifier
 
 class Blind_Classifier(GraphClassifier):
-    tuning_iterations = 1
+    model_specific_iterations = 1
     def __init__(self,random_state=42,attributes=dict(),**kwargs):
         self.random_state = random_state
         classifier = Perceptron(random_state=random_state)

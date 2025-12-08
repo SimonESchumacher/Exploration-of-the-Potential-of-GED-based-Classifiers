@@ -5,7 +5,6 @@ import numpy as np
 sys.path.append(os.getcwd())
 
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
-from Custom_Kernels.GEDLIB_kernel import GEDKernel
 from Calculators.Base_Calculator import Base_Calculator
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from scipy.stats import randint, uniform, loguniform

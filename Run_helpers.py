@@ -1,5 +1,4 @@
 # file for main Run helper Functions
-
 # Imports
 import os
 import pandas as pd
@@ -8,12 +7,13 @@ import multiprocessing
 from Models.KNN.GEDLIB_KNN import set_global_ged_calculator_KNN
 from Models.SVC.Base_GED_SVC import set_global_ged_calculator
 last_save_time = pd.Timestamp.now()
-
+from config_loader import get_conifg_param
+INTERMEDIATE_SAVE_INTERVAL = get_conifg_param("Run_Experiment_main", "INTERMEDIATE_SAVE_INTERVAL")  # seconds, how often to save the intermediate results
 
 def save_progress(testDF: pd.DataFrame, experiment_name: str):
     global last_save_time
     current_time = pd.Timestamp.now()
-    if (current_time - last_save_time).seconds >= 5:  # Save every 5 seconds
+    if (current_time - last_save_time).seconds >= INTERMEDIATE_SAVE_INTERVAL:  # Save every 5 seconds
         results_dir = os.path.join("results","intermediate")
         os.makedirs(results_dir, exist_ok=True)
         results_path = os.path.join(results_dir, f"{experiment_name}_results.xlsx")

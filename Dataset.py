@@ -13,6 +13,7 @@ from Calculators.Base_Calculator import Base_Calculator
 from Calculators.GED_Calculator import load_GED_calculator, load_Heuristic_calculator, load_exact_GED_calculator
 from config_loader import get_conifg_param
 from Calculators.GED_Calculator import exact_GED_Calculator
+from tqdm import tqdm  # Import tqdm for progress bar
 
 LOCAL_DATA_PATH = get_conifg_param('Dataset', 'local_data_path', type='str') # Path to the local data directory
 # DOWNLOAD_SOURCE = 'TUD'
@@ -25,11 +26,6 @@ RANDOM_STATE = get_conifg_param('Dataset', 'random_state', type='int') # Default
 TEST_SIZE = get_conifg_param('Dataset', 'test_size', type='float') # Default test size for train-test split
 DATASTE_LOG_FILE = get_conifg_param('Dataset', 'datasets_log', type='str') # Path to the dataset log file
 
-USE_NODE_LABELS = get_conifg_param('Dataset', 'use_node_labels', type='bool') # Whether to use node labels
-USE_EDGE_LABELS = get_conifg_param('Dataset', 'use_edge_labels', type='bool') # Whether to use edge labels
-USE_NODE_ATTRIBUTES = get_conifg_param('Dataset', 'use_node_attributes', type='bool') # Whether to use node attributes
-USE_EDGE_ATTRIBUTES = get_conifg_param('Dataset', 'use_edge_attributes', type='bool') # Whether to use edge attributes
-from tqdm import tqdm  # Import tqdm for progress bar
 
 
 def load_dataset_files(data_dir, dataset_name,use_node_labels="label", use_edge_labels="label", use_node_attributes:str=None, use_edge_attributes:str=None):
@@ -59,7 +55,7 @@ def load_dataset_files(data_dir, dataset_name,use_node_labels="label", use_edge_
 
     # Try to load node labels if available
     node_labels = None
-    if USE_NODE_LABELS and use_node_labels is not None:
+    if use_node_labels is not None:
         # if use_node_labels is a boolean of value True, we assume labels are in the format "label"
         if use_node_labels is True:
             use_node_labels = "label"
@@ -73,7 +69,7 @@ def load_dataset_files(data_dir, dataset_name,use_node_labels="label", use_edge_
 
     # Try to load edge labels if available
     edge_labels = None
-    if USE_EDGE_LABELS and use_edge_labels is not None:
+    if use_edge_labels is not None:
         if use_edge_labels is True:
             use_edge_labels = "label"
         edge_labels_file = os.path.join(data_dir, f"{dataset_name}_edge_labels.txt")
@@ -87,7 +83,7 @@ def load_dataset_files(data_dir, dataset_name,use_node_labels="label", use_edge_
 
     # Try to load node attributes if available
     node_attributes = None
-    if USE_NODE_ATTRIBUTES and use_node_attributes is not None:
+    if use_node_attributes is not None:
         node_attributes_file = os.path.join(data_dir, f"{dataset_name}_node_attributes.txt")
         if os.path.exists(node_attributes_file):
             with open(node_attributes_file, 'r') as f:
@@ -98,7 +94,7 @@ def load_dataset_files(data_dir, dataset_name,use_node_labels="label", use_edge_
 
     # Try to load edge attributes if available
     edge_attributes = None
-    if USE_EDGE_ATTRIBUTES and use_edge_attributes is not None:
+    if use_edge_attributes is not None:
         edge_attributes_file = os.path.join(data_dir, f"{dataset_name}_edge_attributes.txt")
         if os.path.exists(edge_attributes_file):
             with open(edge_attributes_file, 'r') as f:
@@ -128,28 +124,27 @@ def _build_single_graph(
         # Add nodes with optional labels and attributes
         for node_idx_global in nodes_in_graph:
             node_data = {}
-            if USE_NODE_LABELS and node_labels:
+            if node_labels:
                 node_data["label"] = str(node_labels.get(node_idx_global, None))
-            if USE_NODE_ATTRIBUTES and node_attributes and use_node_attributes:
+            if node_attributes and use_node_attributes:
                 node_data[use_node_attributes] = str(node_attributes.get(node_idx_global, None))
             G.add_node(node_idx_global, **node_data)
         
         # Add edges within the current graph with optional labels and attributes
-        if USE_EDGE_LABELS or USE_EDGE_ATTRIBUTES:
-            for u, v in edges:
-                if u in nodes_in_graph and v in nodes_in_graph:
-                    edge_data = {}
-                    if edge_labels:
-                        edge_data["label"] = str(edge_labels.get((u, v), None))
-                    if edge_attributes and use_edge_attributes:
-                        # Find the index of the edge (u, v) in the original edges list
-                        try:
-                            edge_idx = edges.index((u, v))
-                            edge_data[use_edge_attributes] = str(edge_attributes.get(edge_idx, None))
-                        except ValueError:
-                            # Handle cases where the edge might not be in the list
-                            pass
-                    G.add_edge(u, v, **edge_data)
+        for u, v in edges:
+            if u in nodes_in_graph and v in nodes_in_graph:
+                edge_data = {}
+                if edge_labels:
+                    edge_data["label"] = str(edge_labels.get((u, v), None))
+                if edge_attributes and use_edge_attributes:
+                    # Find the index of the edge (u, v) in the original edges list
+                    try:
+                        edge_idx = edges.index((u, v))
+                        edge_data[use_edge_attributes] = str(edge_attributes.get(edge_idx, None))
+                    except ValueError:
+                        # Handle cases where the edge might not be in the list
+                        pass
+                G.add_edge(u, v, **edge_data)
 
     return G
 
