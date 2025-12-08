@@ -11,6 +11,9 @@ presaved_data/
 .vscode/settings.json
 venv/
 configs/results/
+The-GED-classifier-bakeoff.code-workspace
+.vscode/
+.ipynb_checkpoints/
 results/
 Miniconda3-latest-Linux-x86_64.sh
 Miniconda3-latest-Linux-x86_64.sh.1
