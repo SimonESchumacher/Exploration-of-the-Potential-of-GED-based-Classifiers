@@ -1,0 +1,3 @@
+[submodule "gedlibpy"]
+	path = gedlibpy
+	url = https://github.com/Ryurin/gedlibpy.git
