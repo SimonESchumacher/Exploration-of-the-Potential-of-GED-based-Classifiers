@@ -13,6 +13,7 @@ import subprocess
 from joblib import Parallel, delayed
 ENABLE_NODE_MAPPING = True
 PRINT_GED_DEBUG_INFO = False
+MENTIONED_MAPPING_FAIL = False
 GED_distance_matrix_dict_cache = {}
 GED_node_map_dict_cache = {}
 _dataset_cache = None
@@ -612,13 +613,22 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_
                     mapping[q] = g
             # print(mapping)
         else:
-            raise Exception(
-                "Mapping not found in output:"
-                + "\nSTDOUT:\n "
-                + output
-                + "\nSTDERR:\n "
-                + err_output
-            )
+            if use_node_mapping:
+                if not MENTIONED_MAPPING_FAIL:
+                    print("WARNING:")
+                    print("There was no mapping found in the output of the ged binary.")
+                    print("likely, the wrong version is being used.")
+                    print("The mapping is required for enabling the Randomwalk GED calculation.")
+                    print(
+                        f"Mapping not found in output for graphs {g_id1} and {g_id2}."
+                        + "\nSTDOUT:\n "
+                        + output
+                        + "\nSTDERR:\n "
+                        + err_output
+                    )
+                    print("Continuing without mapping... might produce errors for later")
+                    print("Not Showing this warning again...")
+                    MENTIONED_MAPPING_FAIL = True
 
         # ===
         # Extract total time. For some unknown reason, time is not always

@@ -1,7 +1,6 @@
 # Ignore embedded git repositories
 GMatch4py/
 gedlib/
-gedlibpy/
 __pycache__/
 models/__pycache__/
 Models/__pycache__/
