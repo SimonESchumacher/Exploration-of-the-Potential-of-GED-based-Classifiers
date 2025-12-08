@@ -10,7 +10,6 @@ __pycache__
 presaved_data/
 .vscode/settings.json
 venv/
-requirements.txt
 configs/results/
 results/
 Miniconda3-latest-Linux-x86_64.sh
