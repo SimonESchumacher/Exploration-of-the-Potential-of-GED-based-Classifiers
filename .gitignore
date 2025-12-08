@@ -13,6 +13,7 @@ presaved_data/
 venv/
 requirements.txt
 configs/results/
+results/
 Miniconda3-latest-Linux-x86_64.sh
 Miniconda3-latest-Linux-x86_64.sh.1
 Datasets/ged/
