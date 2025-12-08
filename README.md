@@ -58,7 +58,41 @@ it as aditionally recomended to use a virtual envirnment
 
 
 ### 3. GEDLIBPY Setup
-[GEDLIBPY_PLACEHOLDER]
+
+This project uses **GEDLIBPY** (Python bindings for the GEDLIB library) for approximate Graph Edit Distance computations. GEDLIBPY is based on the original repository: [https://github.com/Ryurin/gedlibpy](https://github.com/Ryurin/gedlibpy).
+
+#### 3.1 Using the Included Version
+The repository includes a version of GEDLIBPY. To ensure compatibility with your system, you may need to recompile it:
+
+```bash
+# Navigate to the GEDLIBPY directory
+cd path/to/gedlibpy/directory
+
+# Recompile the Python bindings
+python setup.py build_ext --inplace
+
+# Test the compilation
+python test.py
+```
 
 ### 4. Exact GED Computation Setup
-[EXACT_GED_PLACEHOLDER]
+For exact Graph Edit Distance computations, this project uses a modified version of the Graph Edit Distance tool.
+
+#### 4.1 Original and Modified Repositories
+Original repository: https://github.com/LijunChang/Graph_Edit_Distance
+
+Modified fork (used in this project): https://github.com/simon-forb/Graph_Edit_Distance
+
+The modified version includes additional functionality for extended GED computations.
+
+#### 4.2 Compiling from Source
+If the precompiled binary is incompatible with your system, compile from source:
+
+```bash
+# Navigate to the Graph Edit Distance directory
+cd Graph_Edit_Distance
+
+# Clean any previous builds and compile
+make clean
+make
+```
