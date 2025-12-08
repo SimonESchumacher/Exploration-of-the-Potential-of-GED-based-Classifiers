@@ -3,10 +3,12 @@ import numpy as np
 from Graph_Tools import get_grakel_graphs_from_nx, graph_from_networkx, convert_nx_to_grakel_graph
 from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
 from grakel.kernels import VertexHistogram, EdgeHistogram, WeisfeilerLehman
-
+from scipy.stats import randint, uniform, loguniform
+from config_loader import get_conifg_param
+DEBUG = get_conifg_param('GED_models', 'debuging_prints', type='bool')
 
 class HybridPrototype_GED_SVC(Simple_Prototype_GED_SVC):
-    model_specific_iterations = 80  # Base number of iterations for this model
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'iteration_depth', type='int')
     def __init__(self,
                 vector_feature_list: list,
                 node_label_tag: str,

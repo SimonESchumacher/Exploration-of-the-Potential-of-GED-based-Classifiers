@@ -11,9 +11,13 @@ from scipy.linalg import inv
 import networkx as nx
 import subprocess
 from joblib import Parallel, delayed
-ENABLE_NODE_MAPPING = True
-PRINT_GED_DEBUG_INFO = False
+from config_loader import get_conifg_param
+ENABLE_NODE_MAPPING = get_conifg_param('GED_Calculator', 'enable_node_mapping', type='bool')
+PRINT_GED_DEBUG_INFO = get_conifg_param('GED_Calculator', 'debuging_prints', type='bool')
 MENTIONED_MAPPING_FAIL = False
+APROXIMATION_METHOD = get_conifg_param('GED_Calculator', 'approximation_method', type='str')
+APROXIMATION_BOUND = get_conifg_param('GED_Calculator', 'approximation_bound', type='str')
+GEDLIB_EDIT_COST = get_conifg_param('GED_Calculator', 'gedlib_edit_cost', type='str')
 GED_distance_matrix_dict_cache = {}
 GED_node_map_dict_cache = {}
 _dataset_cache = None
@@ -185,7 +189,7 @@ class Heuristic_Calculator(abstract_Calculator):
     
 
 
-def build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("IPFP","upper")], dataset=None, labels=None,dataset_name=None, **kwargs) -> GED_Calculator:
+def build_GED_calculator(GED_edit_cost=GEDLIB_EDIT_COST, GED_calc_methods=[(APROXIMATION_METHOD,APROXIMATION_BOUND)], dataset=None, labels=None,dataset_name=None, **kwargs) -> GED_Calculator:
     if dataset is None:
         raise ValueError("Dataset and labels must be provided to build GED_Calculator.")
     with tqdm.tqdm(total=((len(dataset)*(len(dataset)+1)/2)+2)*len(GED_calc_methods)) as pbar:
@@ -210,7 +214,7 @@ def build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("IPFP","up
                 for i in range(n):
                     for j in range(i, n):
                         gedlibpy.run_method(i, j)
-                        if bound == "upper":
+                        if bound == APROXIMATION_BOUND:
                             distance = gedlibpy.get_upper_bound(i, j)
                         else:
                             distance = gedlibpy.get_lower_bound(i, j)
@@ -227,7 +231,7 @@ def build_GED_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=[("IPFP","up
     _dataset_cache = dataset
     return GED_Calculator(dataset_name=dataset_name)
 
-def build_Heuristic_calculator(GED_edit_cost="CONSTANT", GED_calc_methods=["Vertex","Edge"], dataset=None, labels=None, **kwargs) -> Heuristic_Calculator:
+def build_Heuristic_calculator(GED_edit_cost=GEDLIB_EDIT_COST, GED_calc_methods=["Vertex","Edge"], dataset=None, labels=None, **kwargs) -> Heuristic_Calculator:
     if dataset is None or labels is None:
         raise ValueError("Dataset and labels must be provided to build Heuristic_Calculator.")
     def run_method(graph1, graph2, method):
@@ -712,26 +716,12 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
     # start parallel processing
     # for every entry in task the GED needs to be calculated
     # build a Normal GedLIbpy Calculator as backup Approx values
-    gedlipy_calculator: GED_Calculator = build_GED_calculator(dataset=dataset, dataset_name=dataset_name, GED_calc_methods=[("BRANCH", "upper")])
-    approx_ged_matrix = gedlipy_calculator.get_complete_matrix(method="BRANCH")
-    approx_mappings = gedlipy_calculator.node_map["BRANCH"]
+    gedlipy_calculator: GED_Calculator = build_GED_calculator(dataset=dataset, dataset_name=dataset_name, GED_calc_methods=[(APROXIMATION_METHOD, APROXIMATION_BOUND)])
+    approx_ged_matrix = gedlipy_calculator.get_complete_matrix(method=APROXIMATION_METHOD)
+    approx_mappings = gedlipy_calculator.node_map[APROXIMATION_METHOD]
     # save the calculator
     gedlipy_calculator.save_calculator(dataset_name)
-    # approx_mapping_dicts = [[{} for _ in range(n)] for _ in range(n)]
-    # for i in range(n):
-    #     for j in range(i,n):
-    #         mapping = approx_mappings[i][j]
-    #         approx_mapping_dict = {}
-    #         for (a, b) in mapping:
-    #             if a == 18446744073709551614 or b == 18446744073709551614:
-    #                 continue
-    #             approx_mapping_dict[a] = b
-    #         approx_mapping_dicts[i][j] = approx_mapping_dict
-    #         reverse_mapping = {v: k for k, v in approx_mapping_dict.items()}
-    #         approx_mapping_dicts[j][i] = reverse_mapping
-    # approx_mappings = approx_mapping_dicts
     print(f"Starting calculation of exact GED distance matrix with {n_jobs} parallel jobs...")
-    # execute in parallel and collect results
 
 
 
@@ -748,7 +738,6 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
     deviation_sum = 0.0
     times = 0
     num_times =0
-    # with progress bar
     for (i, j, ged, mapping_dict, time, approx_ged, error) in tqdm.tqdm(results, desc="Processing GED results", total=len(results)):
         if error is not None:
             print(f"Error calculating GED between graphs {i} and {j}: {error}")
@@ -778,15 +767,15 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
         reverse_mapping = {v: k for k, v in mapping_dict.items()}
         GED_node_map_dict[j, i] = reverse_mapping
     # process results
-    # print("Finished calculating exact GED distance matrix.")
-    # print(_ged_matrix)
     print(f"Number of approximations used due to timeouts: {approximation_counter} out of {len(tasks)}")
     rel_deviation = deviation_sum / (len(tasks) - approximation_counter) if len(tasks) > 0 else 0.0
     print(f"Average deviation between approximate and exact GED: {rel_deviation:.4f}")
     # create GED_Calculator_object
     ged_calculator = exact_GED_Calculator(dataset_name=dataset_name)
     average_time = times / num_times if num_times > 0 else 0
-    print(f"Average time per GED computation: {average_time} microseconds")
+    print(f"Average time per GED computation: {average_time} microseconds ({average_time/1e6} seconds)")
+    print(f"Total number of GED computations: {len(tasks)}")
+
     print(f"total time for GED computations: {times/1e6} seconds")
     return ged_calculator, approximation_counter, rel_deviation, average_time
 

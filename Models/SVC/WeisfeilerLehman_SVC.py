@@ -16,11 +16,13 @@ sys.path.append(os.getcwd())
 from scipy.stats import randint
 from Models.Graph_Classifier import GraphClassifier
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
-DEBUG = False # Set to False to disable debug prints
+from config_loader import get_conifg_param
+
+DEBUG = get_conifg_param('baseline_SVC', 'debuging_prints')  # Set to False to disable debug prints
 # import GraphClassifier as gc
 # Class of the SVC_WeisfeilerLehman is an extension of the SVC class
 class WeisfeilerLehman_SVC(SupportVectorMachine):
-    model_specific_iterations = 50  # Base number of iterations for this model
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')  # Base number of iterations for this model
     def __init__(self, n_iter=5, C=1.0,normalize_kernel=True, random_state=None,base_kernel=(VertexHistogram,{ 'sparse': True }),kernel_type="precomputed",attributes:dict=dict(),**kwargs):
         self.n_iter = n_iter
         self.normalize_kernel = normalize_kernel
@@ -36,7 +38,8 @@ class WeisfeilerLehman_SVC(SupportVectorMachine):
             C=C,
             random_state=random_state,
             kernelfunction=self.kernel,
-            kernel_name=f"WeisfeilerLehman_{self.n_iter}",
+            kernel_name="WL-ST",
+            
             attributes=attributes,
             **kwargs
         )
@@ -127,16 +130,18 @@ class WeisfeilerLehman_SVC(SupportVectorMachine):
         param_grid = SupportVectorMachine.get_param_grid()
         param_grid.update({
             'n_iter': [1,2,3,4, 5, 7]
-            #, 'normalize_kernel': [True, False] # Not really needed
         })
         return param_grid
     @classmethod
     def get_random_param_space(cls):
         param_space = SupportVectorMachine.get_random_param_space()
         param_space.update({
-            'n_iter': randint(1, 7),
-            #, 'normalize_kernel': [True, False] # Not really needed
+            'n_iter': randint(get_conifg_param('Hyperparameter_fields', 'wl_depth_min', type='int'),
+                               get_conifg_param('Hyperparameter_fields', 'wl_depth_max', type='int')),
         })
+        include_kernel_normalization_options = get_conifg_param('Hyperparameter_fields', 'include_kernel_normalization_options', type='bool')
+        if include_kernel_normalization_options:
+            param_space['normalize_kernel'] = [True, False]
         return param_space
        
     

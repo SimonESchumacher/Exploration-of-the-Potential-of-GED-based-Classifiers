@@ -1,45 +1,37 @@
 # Experiment
 # Imports
-from concurrent.futures import ProcessPoolExecutor, as_completed
 import random
 from time import time
 import joblib
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score, roc_auc_score, precision_score, recall_score
+from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV 
+from sklearn.utils.class_weight import compute_class_weight
 import numpy as np
 import os
 import pandas as pd
-from tqdm import tqdm  # For progress bar
 import traceback
 from datetime import datetime
-from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV 
 from scipy import stats
-import multiprocessing
-from Models.Graph_Classifier import GraphClassifier
-# import classweights
-from sklearn.utils.class_weight import compute_class_weight
-from Models.KNN.GEDLIB_KNN import GED_KNN, abstract_GED_KNN
-from Models.SVC import Base_GED_SVC
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
 from config_loader import get_conifg_param
-
-RANDOM_STATE = get_conifg_param('Experiment', 'random_state', type='int') # default 42
-RANDOM_STATE = random.randint(0, 1000)
-TEST_SIZE = get_conifg_param('Experiment', 'test_size', type='float') # default 0.2
-RESULTS_FILE = get_conifg_param('Experiment', 'results_filepath', type='str') # default "experiment_log.xlsx"
-DIAGNOSTIC_FILE =get_conifg_param('Experiment', 'disgnostics_filepath', type='str') 
+module="Experiment"
+RANDOM_STATE = get_conifg_param(module, 'random_state', type='int') # default 42
+TEST_SIZE = get_conifg_param(module, 'test_size', type='float') # default 0.2
+RESULTS_FILE = get_conifg_param(module, 'results_filepath', type='str') # default "experiment_log.xlsx"
+DIAGNOSTIC_FILE =get_conifg_param(module, 'disgnostics_filepath', type='str') 
 # DATASET_NAMES = ["MUTAG", "PROTEINS_full", "COLLAB", "IMDB-BINARY", "IMDB-MULTI"]
-DEBUG = get_conifg_param(module="Experiment",parametername="DEBUG",type="bool")# Set to False to disable debug prints
+DEBUG = get_conifg_param(module, 'DEBUG', type='bool')# Set to False to disable debug prints
 # load config file with the models, with teir specifcations
 # load the config file
-REPORT_SETTING=get_conifg_param(module="Experiment",parametername="report_setting",type='str') # for f1_score, precision, recall
+REPORT_SETTING=get_conifg_param(module, 'report_setting', type='str') # for f1_score, precision, recall
 
-ERRORINTERVAL_SETTING = get_conifg_param(module="Experiment",parametername="errorinterval_setting",type='str') # "std" or "confidence interval"
-SAVE_MODELS = get_conifg_param(module="Experiment",parametername="save_models",type='bool') # default True
-SAVE_LOGS = get_conifg_param(module="Experiment",parametername="save_logs",type='bool') # default True
+ERRORINTERVAL_SETTING = get_conifg_param(module, 'errorinterval_setting', type='str') # "std" or "confidence interval"
+SAVE_MODELS = get_conifg_param(module, 'save_models', type='bool') # default True
+SAVE_LOGS = get_conifg_param(module, 'save_logs', type='bool') # default True
 
-DATASET_HYPERPARAM = get_conifg_param(module="Experiment",parametername="dataset_hyperparams",type='bool') # default False
-CALCULATOR_HYPERPARAM = get_conifg_param(module="Experiment",parametername="calculator_hyperparams",type='bool') # default False
+DATASET_HYPERPARAM = get_conifg_param(module, 'dataset_hyperparams', type='bool') # default False
+CALCULATOR_HYPERPARAM = get_conifg_param(module, 'calculator_hyperparams', type='bool') # default False
 class experiment:
 
 

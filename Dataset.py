@@ -298,21 +298,6 @@ def calculate_dataset_attributes(data: tuple, source: str, domain: str = None, N
                 if DEBUG:
                     print(f"Dataset '{Name}' already exists in the log file. Skipping save.")
     return dataset_characteristics
-def extract_simple_graph_features(data): 
-    _,graph_list, targets = data  
-    # Extract simple features
-    features = []
-    for G in graph_list:
-        num_nodes = G.number_of_nodes()
-        num_edges = G.number_of_edges()
-        
-        # Avoid division by zero if graph has no nodes or edges
-        avg_degree = np.mean([d for n, d in G.degree()]) if num_nodes > 0 else 0
-        
-        # Add more features as desired
-        # e.g., density = nx.density(G) if num_nodes > 1 else 0
-        
-        return np.array(features)
 
 
 class Dataset:

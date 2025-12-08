@@ -15,20 +15,21 @@ from grakel.kernels import Kernel
 from Calculators.Base_Calculator import Base_Calculator
 
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
-from Custom_Kernels.GEDLIB_kernel import GEDKernel
-DEBUG = False  # Set to True for debug prints
+from config_loader import get_conifg_param
+
+DEBUG = get_conifg_param('SVC', 'debuging_prints')  # Set to False to disable debug prints
 _ged_calculator = None
 def set_global_ged_calculator(calculator):
     global _ged_calculator
     _ged_calculator = calculator
 
 class Base_GED_SVC(SupportVectorMachine):
-    model_specific_iterations = 50
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     def __init__(self,
             ged_bound,
-            calculator_id,  
-            attributes:dict=dict(),
-            name="Base_GED_SVC",
+            calculator_id,
+            attributes: dict = dict(),
+            name="GED_SVC",
                 **kwargs):
         global _ged_calculator
         if _ged_calculator is None or calculator_id != _ged_calculator.get_identifier_name():

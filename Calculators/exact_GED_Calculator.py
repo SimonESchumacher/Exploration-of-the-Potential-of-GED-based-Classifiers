@@ -5,12 +5,13 @@ sys.path.append(os.getcwd())
 from Dataset import Dataset
 from Calculators.GED_Calculator import build_Heuristic_calculator, build_exact_ged_calculator
 import multiprocessing
-
+from config_loader import get_conifg_param
+module="exact_GED_Calculator"
 # Timeout for each GED computation in seconds
-TIMEOUT= 100
+TIMEOUT= get_conifg_param(module, 'timeout', type='int')
 # number of parallel jobs or "auto" for all available cores
-N_JOBS=8
-labeld_dataset=True # false for label removal
+N_JOBS= get_conifg_param(module, 'n_jobs')
+labeld_dataset= get_conifg_param(module, 'labeld_datasets', type='bool')
 datasets = [  # more Datasets can be added, the need to be in TUD format in the Datasets/TUD/folder.
     "MUTAG",
     "PTC_FR",
@@ -72,7 +73,7 @@ def convert_Dataset_to_exact_GED_format(dataset:Dataset,use_node_labels=True,use
         except IOError as e:
             print(f"\nError writing to file '{graph_path}': {e}")
 
-if N_JOBS == "auto":
+if N_JOBS == "AUTO":
     N_JOBS = multiprocessing.cpu_count()
     print(f"Setting N_JOBS to available CPU count: {N_JOBS}")
 dataset_names = []

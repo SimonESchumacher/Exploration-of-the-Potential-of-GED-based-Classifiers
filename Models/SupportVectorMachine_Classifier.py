@@ -1,23 +1,21 @@
 # Kernels
 import pandas as pd
 from sklearn.svm import SVC
-from sklearn.utils.validation import check_X_y, check_array
 import numpy as np
 # library to save Model:
-import joblib
 import sys
 import os
 import traceback
-import abc
 sys.path.append(os.getcwd())
-from Graph_Tools import  get_grakel_graphs_from_nx, convert_nx_to_grakel_graph
+from Graph_Tools import  get_grakel_graphs_from_nx
 from Models.Graph_Classifier import GraphClassifier
-from scipy.stats import randint, uniform, loguniform
-from typing import Dict, Any, List
-DEBUG = False # Set to False to disable debug prints
-PROBABILITY_ESTIMATES = True  # Enable probability estimates for SVC
+from scipy.stats import loguniform
+from config_loader import get_conifg_param
+
+DEBUG = get_conifg_param('SVC', 'debuging_prints')  # Set to False to disable debug prints
+PROBABILITY_ESTIMATES = get_conifg_param('SVC', 'probability_estimates')  # Enable probability estimates for SVC
 class SupportVectorMachine(GraphClassifier):
-    model_specific_iterations = 50
+    model_specific_iterations = get_conifg_param("Hyperparameter_fields", "tuning_iterations", type="int")
     # Support Vector Machine Classifier for Graphs
     # with different Kernels
     def __init__(self, kernel_type="precomputed", C=1.0, random_state=None,kernelfunction=None,kernel_name="unspecified",class_weight=None,classes=[0,1],attributes=None, **kwargs):
@@ -30,7 +28,7 @@ class SupportVectorMachine(GraphClassifier):
         self.class_weight = class_weight
         self.random_state = random_state
         self.probability = PROBABILITY_ESTIMATES  # Enable probability estimates
-        max_iter = kwargs.get('max_iter', 10_000_000)
+        max_iter = kwargs.get('max_iter', get_conifg_param('SVC', 'max_iter', type='int'))
         classifier = SVC(kernel=self.kernel_type, C=self.C, random_state=self.random_state, class_weight=class_weight, probability=self.probability, tol=1e-2, cache_size=1000, max_iter=max_iter)
         default_attributes = {
             "Kernel_type": self.kernel_type,
@@ -43,9 +41,11 @@ class SupportVectorMachine(GraphClassifier):
             attributes = default_attributes
         else:
             attributes.update(default_attributes)
+        if kernel_name == "unspecified":
+            kernel_name = "SVC"
         super().__init__(
             classifier=classifier,
-            model_name=f"SVC_{self.kernel_name}_{self.kernel_type}",
+            model_name=self.kernel_name,
             modelattributes=attributes,
             **kwargs
         )
@@ -86,7 +86,7 @@ class SupportVectorMachine(GraphClassifier):
         start_time = pd.Timestamp.now()
         self.classifier.fit(X, y)
         duration = (pd.Timestamp.now() - start_time).total_seconds()
-        if duration > 5:
+        if duration > get_conifg_param('SVC', 'fit_warning_threshold', type='int'):
             print(f"Warning: SVC fitting took {duration} seconds, which is longer than expected.")
             print(self.get_params())
             # print(f"Fitting details: X shape: {X.shape}, y length: {len(y)}")
@@ -177,7 +177,7 @@ class SupportVectorMachine(GraphClassifier):
     def get_random_param_space(cls):
         param_space = GraphClassifier.get_random_param_space()
         param_space.update({
-            'C': loguniform(a=0.0005, b=10),
+            'C': loguniform(a=get_conifg_param('Hyperparameter_fields', 'lower_C'), b=get_conifg_param('Hyperparameter_fields', 'upper_C')),
             # 'kernel_type': ['poly', 'linear', 'rbf', 'sigmoid'],
             'kernel_type': ['precomputed'],
             'class_weight': [None, 'balanced'],

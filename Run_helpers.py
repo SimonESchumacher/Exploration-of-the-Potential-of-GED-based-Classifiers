@@ -3,9 +3,7 @@
 # Imports
 import os
 import pandas as pd
-import traceback
 from Calculators.Base_Calculator import Base_Calculator
-from Dataset import Dataset
 import multiprocessing
 from Models.KNN.GEDLIB_KNN import set_global_ged_calculator_KNN
 from Models.SVC.Base_GED_SVC import set_global_ged_calculator
@@ -34,7 +32,7 @@ def set_global_ged_calculator_All(calculator: Base_Calculator):
 
 def end_run(testDF: pd.DataFrame, start_time: pd.Timestamp, EXPERIMENT_NAME: str):
     results_dir = os.path.join("results")
-    results_path = os.path.join(results_dir, f"{EXPERIMENT_NAME}_results.xlsx")
+    results_path = os.path.join(results_dir, f"{EXPERIMENT_NAME}.xlsx")
     testDF.to_excel(results_path, index=False)
     end_time = pd.Timestamp.now()
     print(f"Experiment ended at {end_time}")

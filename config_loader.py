@@ -20,7 +20,7 @@ def get_conifg_param(module=None,parametername=None,type=None):
         module = 'GLOBAL'   
     else:
         if CONFIG.has_option(module, parametername):
-            if type is None or type == 'str':
+            if type == 'str':
                 return CONFIG.get(module, parametername)
             elif type == 'int':
                 return CONFIG.getint(module, parametername)
@@ -28,6 +28,23 @@ def get_conifg_param(module=None,parametername=None,type=None):
                 return CONFIG.getfloat(module, parametername)
             elif type == 'bool':
                 return CONFIG.getboolean(module, parametername)
+            elif type is None:
+                parm= CONFIG.get(module, parametername)
+                # find out the type of parm
+                if parm.lower() in ['true', 'false']:
+                    return CONFIG.getboolean(module, parametername)
+                elif parm.isdigit():
+                    return CONFIG.getint(module, parametername)
+                elif parm.replace('.', '', 1).isdigit():
+                    return CONFIG.getfloat(module, parametername)
+                elif parm == "None":
+                    return None
+                elif parm == "NaN":
+                    return float('nan')
+                elif parm == "Infinity":
+                    return float('inf')
+                else:
+                    return parm
             else:
                 print(f"Unknown type '{type}' for parameter '{parametername}' in module '{module}'. Returning as string.")
                 return CONFIG.get(module, parametername)
@@ -36,3 +53,4 @@ def get_conifg_param(module=None,parametername=None,type=None):
                 raise ValueError(f"the Module '{module}' does not have the parameter '{parametername}'")
             else:
                 raise ValueError(f"the Module '{module}' does not exist in the config file")
+            

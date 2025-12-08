@@ -26,6 +26,8 @@ from Calculators.Base_Calculator import Base_Calculator
 from Models.SVC.GED.GED_Diffu_SVC import DIFFUSION_GED_SVC
 from Models.SVC.GED.Zero_GED_SVC import ZERO_GED_SVC
 from Models.KNN.GEDLIB_KNN import GED_KNN
+from config_loader import get_conifg_param
+module="Run_Experiment_main"
 
 # User Configurable Parameters
 
@@ -36,25 +38,24 @@ from Models.KNN.GEDLIB_KNN import GED_KNN
 # 2 a test trail, with only 1 trail
 # 3 test trail, but with full trials
 # 4 Full Run with all tuning results saved
-testing_level= 4
 Datasets_to_run = ["PTC_FR","MUTAG"]  # singel string or list of dataset names e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
-MODELS_TO_RUN= "ALL" # ALL or a specific model
-Nodes_and_edges = "labels" # eg "labels", "attributes" or None for both attributes currently not functional
-TUNING_METRIC="f1_macro"  # e.g. "accuracy", "f1_macro", "roc_auc"
-N_JOBS= "AUTO" # Auto or specified number of jobs for parallel processing
-SPLIT= 0.2
-EXPERIMENT_NAME="AUTO" # if AUTO it will be set automatically, with a desicrptive name for result files. aditionnaly the name can be set manually here.
-
+testing_level= get_conifg_param(module, 'testing_level', type='int') # 0-4
+MODELS_TO_RUN= get_conifg_param(module, 'models_to_run', type='str') # ALL for all models, or "String of a specific model or list of models e.g. ["Random_Walk_edit_accelerated", "VertexHistogram_SVC"]
+Nodes_and_edges = get_conifg_param(module, 'nodes_and_edges') # eg "labels", "attributes" or None for both
+TUNING_METRIC= get_conifg_param(module, 'tuning_metric', type='str') # e.g. "accuracy", "f1_macro", "roc_auc"
+N_JOBS= get_conifg_param(module, 'n_jobs') # Auto or specified number of jobs for parallel processing
+SPLIT= get_conifg_param(module, 'split', type='float') # e.g. 0.1 for 10 fold CV
+EXPERIMENT_NAME=get_conifg_param(module, 'experiment_name',type=str) # if AUTO it will be set automatically, with a desicrptive name for result files. aditionnally the name can be set manually here.
 
 
 
 
 # Not meant to be changed by user
-CALCULATOR_NAME= "Exact_GED"
-HEURISTIC_CALCULATOR_NAME="Heuristic_Calculator"
-SEARCH_METHOD="random"  # "grid" or "random"
-GED_BOUND="Exact"   
-HEURISTIC_BOUND="Vertex"     
+CALCULATOR_NAME= get_conifg_param(module, 'CALCULATOR_NAME', type='str') # Exact_GED
+HEURISTIC_CALCULATOR_NAME= get_conifg_param(module, 'HEURISTIC_CALCULATOR_NAME', type='str') # Heuristic_Calculator
+SEARCH_METHOD= get_conifg_param(module, 'SEARCH_METHOD', type='str') # random
+GED_BOUND= get_conifg_param(module, 'GED_BOUND', type='str') # Exact
+HEURISTIC_BOUND= get_conifg_param(module, 'HEURISTIC_BOUND', type='str') # Vertex
 
 
 # Configure Run

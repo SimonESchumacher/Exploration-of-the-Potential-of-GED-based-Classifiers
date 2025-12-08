@@ -17,11 +17,11 @@ from scipy.stats import randint
 from Models.Graph_Classifier import GraphClassifier
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
 from scipy.stats import randint, uniform, loguniform
-
-DEBUG = False 
+from config_loader import get_conifg_param
+DEBUG = get_conifg_param('baseline_SVC', 'debuging_prints')  # Set to False to disable debug prints
 
 class RandomWalk_SVC(SupportVectorMachine):
-    model_specific_iterations = 3  # Base number of iterations for this model
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')  # Base number of iterations for this model
 
     def __init__(self, normalize_kernel,rw_kernel_type,p_steps,C=1.0,  kernel_type="precomputed",decay_lambda: float = 0.1, attributes: dict = dict(), **kwargs):
         self.normalize_kernel = normalize_kernel
@@ -129,7 +129,6 @@ class RandomWalk_SVC(SupportVectorMachine):
             "normalize_kernel": [True, False],
             "rw_kernel_type": ["geometric", "exponential"],
             "p_steps": [-1, 3, 5, 7],
-            #, 'normalize_kernel': [True, False] # Not really needed
         })
         return param_grid
     @classmethod
@@ -138,8 +137,13 @@ class RandomWalk_SVC(SupportVectorMachine):
         param_space.update({
             "normalize_kernel": [True, False],
             "rw_kernel_type": ["geometric", "exponential"],
-            "decay_lambda": loguniform(0.005, 0.95),
-            "p_steps": [-1, 1, 2, 3, 4, 5, 6]
-            #, 'normalize_kernel': [True, False] # Not really needed
+            "decay_lambda": loguniform(get_conifg_param('Hyperparameter_fields', 'lambdas_min', type='float'),
+                                        get_conifg_param('Hyperparameter_fields', 'lambdas_max', type='float')),
+            "p_steps": list(range(get_conifg_param('Hyperparameter_fields', 'random_walk_min_steps', type='int'),
+                                  get_conifg_param('Hyperparameter_fields', 'random_walk_max_steps', type='int')+1)
+                                  ) + [-1]  # -1 indicates infinite steps
         })
+        include_kernel_normalization_options = get_conifg_param('Hyperparameter_fields', 'include_kernel_normalization_options', type='bool')
+        if include_kernel_normalization_options:
+            param_space['normalize_kernel'] = [True, False]
         return param_space

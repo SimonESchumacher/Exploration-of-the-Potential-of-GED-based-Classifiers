@@ -17,10 +17,11 @@ from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
 from Calculators.Prototype_Selction import Prototype_Selector, Select_Prototypes, buffered_prototype_selection
 from scipy.stats import randint, uniform, loguniform
 from typing import Dict, Any, List 
-DEBUG = False  # Set to True for debug prints
+from config_loader import get_conifg_param
+DEBUG = get_conifg_param('GED_models', 'debuging_prints', type='bool')
 
 class ZERO_GED_SVC(Base_GED_SVC):
-    model_specific_iterations = 50  # Base number of iterations for this model
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     def __init__(self,
                     aggregation_method,
                     prototype_size,
