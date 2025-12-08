@@ -1,5 +1,8 @@
 from sklearn.base import clone
-
+# add the root directory to the sys.path
+import sys
+import os
+sys.path.append(os.getcwd())
 from Models.SVC.random_walk import RandomWalk_SVC
 from Dataset import Dataset
 ged_calculator = "Exact_GED"
