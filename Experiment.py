@@ -708,7 +708,7 @@ class experiment:
         test_Dict["timestamp"] = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
         test_Dict["tuning_metirc"] = tuning_metric
         if get_all_results:
-            results_dir = os.path.join("configs", "results", "Hyperparameter_tuning_results")
+            results_dir = os.path.join("results", "Hyperparameter_tuning_results")
             uses_labels = 0 if self.dataset.Node_label_name is None else 1
             results_path = os.path.join(results_dir, f"HP_{pd.Timestamp.now().strftime('%Y%m%d')}_{self.model_name}_{self.dataset_name}_{uses_labels}_.xlsx")
             os.makedirs(results_dir, exist_ok=True)

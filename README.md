@@ -96,3 +96,145 @@ cd Graph_Edit_Distance
 make clean
 make
 ```
+
+## **📂 Project Structure**
+```
+├── README.md # This documentation file
+├── requirements.txt # Python dependencies
+├── config_loader.py # Configuration file parser
+├── Experiment.py # Main experiment class
+├── Dataset.py # Dataset loading and preprocessing
+├── Graph_Tools.py # Graph utilities and helper functions
+├── io_Manager.py # Input/output management
+├── Run_Experiment_main.py # Main experiment runner
+├── Run_helpers.py # Helper functions for experiments
+├── Timeout_handler.py # Timeout handling utilities
+├── init.py # Package initialization
+├── Exploration of GED-based Classifiers Simon Schumacher.pdf # Thesis document
+├── The-GED-classifier-bakeoff.code-workspace # IDE workspace file
+│
+├── Calculators/ # Graph Edit Distance calculators
+│   ├── Base_Calculator.py # Abstract base calculator class
+│   ├── GED_Calculator.py # Main GED calculator interface
+│   ├── exact_GED_Calculator.py # Exact GED computation using external tool
+│   ├── GEDLIB_Calculator.py # GEDLIB-based approximate GED
+│   ├── Random_walk_edit_Calculator.py # Random walk based GED approximation
+│   ├── Dummy_Calculator.py # Placeholder/dummy calculator for testing
+│   ├── Product_Graphs.py # Product graph representations
+│   ├── Prototype_Selection.py # Prototype selection algorithms
+│   ├── exact_GED_results_summary.txt # Summary of exact GED results
+│   └── init.py
+│
+├── Models/ # Machine learning classifiers
+│   ├── Graph_Classifier.py # Base graph classifier class
+│   ├── KNN_Classifier.py # k-Nearest Neighbors classifier
+│   ├── SupportVectorMachine_Classifier.py # SVM classifier base
+│   ├── Blind_Classifier.py # Baseline random classifier
+│   ├── Random_Classifier.py # Random prediction classifier
+│   ├── init.py
+│   │
+│   ├── KNN/ # KNN implementations
+│   │   ├── feature_KNN.py # Feature-based KNN
+│   │   └── GEDLIB_KNN.py # GEDLIB-based KNN
+│   │
+│   └── SVC/ # Support Vector Classifier implementations
+│       ├── Base_GED_SVC.py # Base GED-based SVC
+│       ├── Baseline_SVC.py # Baseline SVC implementation
+│       ├── WeisfeilerLehman_SVC.py # Weisfeiler-Lehman kernel SVC
+│       ├── random_walk.py # Random walk kernel SVC
+│       └── init.py
+│
+├── Custom_Kernels/ # Custom kernel implementations
+│   ├── GEDLIB_kernel.py # GEDLIB-based kernel functions
+│   └── init.py
+│
+├── Datasets/ # Graph datasets
+│   ├── TUD/ # TUDataset format collections
+│   │   ├── MUTAG/ # Mutagenicity dataset
+│   │   ├── BZR/ # Benzodiazepine receptor dataset
+│   │   ├── BZR_MD/ # BZR with additional metadata
+│   │   ├── COX2_MD/ # Cyclooxygenase-2 dataset
+│   │   ├── ENZYMES/ # Enzyme protein structures
+│   │   ├── IMDB-BINARY/ # IMDB movie collaboration network
+│   │   ├── IMDB-MULTI/ # Multi-class IMDB dataset
+│   │   ├── KKI/ # KKI medical imaging dataset
+│   │   ├── Letter-high/ # Letter recognition dataset
+│   │   ├── MSRC_9/ # Microsoft Research Cambridge dataset
+│   │   ├── PTC_FR/ # Predictive toxicology challenge
+│   │   └── ... (other TUDatasets)
+│   │
+│   ├── ged/ # Preprocessed datasets for GED computation
+│   │   ├── MUTAG_0_0/ # MUTAG with label normalization scheme 0_0
+│   │   ├── MUTAG_1_1/ # MUTAG with label normalization scheme 1_1
+│   │   ├── BZR_0_0/ # BZR with label normalization scheme 0_0
+│   │   ├── BZR_1_1/ # BZR with label normalization scheme 1_1
+│   │   └── ... (other preprocessed datasets)
+│   │
+│   └── Test_graphs/ # Test graph files for debugging
+│       ├── G.txt
+│       ├── G2.txt
+│       ├── Ge1.txt
+│       └── Ge2.txt
+├── gedlipy Repo foked for approximate GEDs
+├── Graph_Edit_Distance/ # Exact GED computation tool (C++)
+│   ├── ged # Precompiled binary (Ubuntu 20.04 compatible)
+│   ├── Application.cpp/.h # Main application logic
+│   ├── Graph.h # Graph data structure
+│   ├── Timer.h # Timing utilities
+│   ├── Utility.h # Utility functions
+│   ├── main.cpp # Entry point
+│   ├── makefile # Build configuration
+│   ├── popl.hpp # Command-line argument parser
+│   ├── LICENSE.md # License information
+│   ├── README.md # Original documentation
+│   ├── config.yml # Configuration for documentation
+│   │
+│   └── datasets/ # Example datasets for testing
+│         ├── AIDS.txt
+│         ├── AIDS_query100.txt
+│         ├── graph_g.txt
+│         └── graph_q.txt
+│
+├── configs/ # Experiment configurations
+|    └──── Config.ini # Main configuration file (INI format)
+│
+├── presaved_data/ # Precomputed GED matrices and calculators
+│    ├── Exact_GED_.joblib # Precomputed exact GED matrices
+│    ├── GED_Calculator_.joblib # Saved calculator states
+│    ├── Heuristic_Calculator_.joblib # Heuristic calculator states
+│    └── Randomwalk_GED_Calculator_*.joblib # Random walk calculator states
+│
+├── results/ # Current experiment results
+│    ├── *Some_Result.xlsx # Result files in Excel format
+|    ├── Hyperparameter_tuning_results/ # Hyperparameter tuning outputs
+|    |     └── HP_Some_hypertuning_data.xlsx
+│    └── intermediate/ # Intermediate computation files
+│          └── Some_Result_inter.xlsx
+├── Graphics_builders/ # Visualization tools and figures
+│    ├── SVM_visualizations.ipynb # Jupyter notebook for SVM visualizations
+│    ├── Kernel_Matrix.ipynb # Kernel matrix visualization
+│    ├── visulaize_graphs.ipynb # Graph visualization tools
+│    ├── *.pdf # Generated figures and diagrams
+│    └── *.ipynb # Jupyter notebooks for analysis
+│
+├── tests/ # Unit and integration tests
+│    ├── test_clone.py # Cloning functionality tests
+│    ├── test_exact_GED.ipynb # Exact GED computation tests
+│    └── Calculator_path_test.ipynb # Calculator path testing
+│
+└── bin/ # Binary directory (empty/utility)
+```
+
+### Key Directories Explained:
+
+1. **`Calculators/`** - Implements different Graph Edit Distance computation methods
+Here the GEDs Are precomputed.
+2. **`Models/`** - Contains machine learning classifiers using GED-based kernels
+3. **`Datasets/`** - Stores graph datasets in TUDataset format and preprocessed versions
+4. **`Graph_Edit_Distance/`** - C++ tool for exact GED computation with precompiled binary
+5. **`configs/`** - Configuration files for experiments
+    - the main file of intrest here is configs.ini
+6. **`presaved_data/`** - Cache of precomputed GED matrices to speed up experiments
+    - Saved GED Distance matrices, for the models to use
+7. **`Graphics_builders/`** - Tools for visualizing results and algorithms
+8. **`tests/`** - Test suite for validation

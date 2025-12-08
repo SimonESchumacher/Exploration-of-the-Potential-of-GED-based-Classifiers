@@ -1,0 +1,1 @@
+MUTAG_1_1: Approximations=1, Relative Deviation=4.1828, Timeout=300, N_JOBS=8, Average Time=145055.3504, Time=2025-12-09 00:36:38
