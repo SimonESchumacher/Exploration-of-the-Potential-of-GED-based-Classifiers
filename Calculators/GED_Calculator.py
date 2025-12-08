@@ -1,8 +1,4 @@
-import gc
-import json
 import math
-import multiprocessing
-import os
 import re
 import traceback
 import joblib
@@ -16,6 +12,7 @@ import networkx as nx
 import subprocess
 from joblib import Parallel, delayed
 ENABLE_NODE_MAPPING = True
+PRINT_GED_DEBUG_INFO = False
 GED_distance_matrix_dict_cache = {}
 GED_node_map_dict_cache = {}
 _dataset_cache = None
@@ -635,8 +632,8 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_
             if total_time_match
             else None
         )
-        
-        print(f"Computed exact GED {ged} for graphs {g_id1} and {g_id2} in {time} microseconds.")
+        if PRINT_GED_DEBUG_INFO:
+            print(f"Computed exact GED {ged} for graphs {g_id1} and {g_id2} in {time} microseconds.")
         if use_node_mapping:
             return ged, mapping, time, 0
         else:
@@ -646,7 +643,8 @@ def calculate_ged_between_two_graphs(dataset_name,g_id1, g_id2,node_size_i,node_
 
 
     except subprocess.TimeoutExpired:
-        print(f"Timeout expired for graphs {g_id1} and {g_id2} in {timeout} seconds.")
+        if PRINT_GED_DEBUG_INFO:
+            print(f"Timeout expired for graphs {g_id1} and {g_id2} in {timeout} seconds.")
         return None, None, None, None
 
         # global _ged_matrix
@@ -795,218 +793,6 @@ def load_exact_GED_calculator(dataset_name: str) -> exact_GED_Calculator:
     GED_node_map_dict = exact_ged_calculator.node_map_dict
     _dataset_cache = exact_ged_calculator.dataset
     return exact_ged_calculator
-
-def build_exact_ged_calculator_anti_leak(dataset=None, dataset_name=None, n_jobs=1, timeout=10, **kwargs) -> exact_GED_Calculator:
-    # we assume the Dataset is already loadded, but also we have the files of the Graphs in the directories.
-    n = len(dataset)
-    # we distribute the Jobs, sot that every Jobs needs to caclulate the same amount of GEDs
-    global _ged_matrix
-    global GED_node_map_dict
-    global _dataset_cache
-    _ged_matrix = np.zeros((n,n), dtype=np.int32)
-    GED_node_map_dict = np.empty((n,n), dtype=object)
-    node_sizes = [len(g.nodes()) for g in dataset]
-    # first we compute the diagonal
-    _dataset_cache = [None for _ in range(n)]
-    for i in range(n):
-        _dataset_cache[i] = dataset[i]
-        _ged_matrix[i,i] = 0
-        GED_node_map_dict[i,i] = {k:k for k in range(len(dataset[i].nodes()))}
-        node_sizes[i] = len(dataset[i].nodes())
-    # then we compute the upper triangle
-    # we distribute the Jobs so that every Jobs needs to caclulate the same amount of GEDs
-
-    mapping_dir = "presaved_data/node_mappings"
-    os.makedirs(mapping_dir, exist_ok=True)
-
-    tasks = [] # will be n/2 tasks
-    
-    for i in range(n):
-        for j in range(i+1, n):
-            task_args = (
-            i, j, dataset_name, 
-            node_sizes[i], node_sizes[j], 
-            dataset[i], dataset[j], 
-            timeout
-            )
-            tasks.append(task_args)
-    # start parallel processing
-    # for every entry in task the GED needs to be calculated
-    print(f"Starting calculation of exact GED distance matrix with {n_jobs} parallel jobs...")
-    # execute in parallel and collect results
-    approximation_counter = 0
-    deviation_sum = 0.0
-    try:
-        with multiprocessing.Pool(processes=n_jobs) as pool:
-            results_iterator = pool.imap_unordered(run_ged_calculation, tasks)
-            # write results into the distance matrix (symmetric)
-            for result in results_iterator:
-                (i, j, ged, mapping_dict, time, approx_ged, error) = result
-                if error:
-                    print(f"Error in task (i={i}, j={j}): {error}")
-                    continue # Skip this result
-                    
-                if ged is None:
-                    ged = approx_ged
-                    approximation_counter += 1
-                else:
-                    deviation_sum += abs(ged - approx_ged)
-
-                _ged_matrix[i, j] = ged
-                _ged_matrix[j, i] = ged
-                if mapping_dict:
-                    # Save the mapping to a file
-                    map_filepath = os.path.join(mapping_dir, f"map_{i}_{j}.json")
-                    try:
-                            with open(map_filepath, 'w') as f:
-                                json.dump(mapping_dict, f)
-                    except Exception as e:
-                            print(f"Failed to save mapping for ({i}, {j}): {e}")
-
-                    # Store the *file path* in the dict, not the data
-                    GED_node_map_dict[i, j] = map_filepath
-                
-                    # Handle reverse mapping if needed, e.g., by storing another file
-                    # or just noting the relationship.
-                    reverse_map_filepath = os.path.join(mapping_dir, f"map_{j}_{i}.json")
-                    reverse_mapping = {v: k for k, v in mapping_dict.items()}
-                    try:
-                        with open(reverse_map_filepath, 'w') as f:
-                            json.dump(reverse_mapping, f)
-                    except Exception as e:
-                        print(f"Failed to save reverse mapping for ({j}, {i}): {e}")
-
-                    GED_node_map_dict[j, i] = reverse_map_filepath
-    except Exception as e:
-        print(f"Error during parallel GED calculation: {e}")
-        traceback.print_exc()
-    for i, maps_list in enumerate(GED_node_map_dict):
-        for j, dict_file in enumerate(maps_list):
-            try:
-                with open(dict_file, 'r') as f:
-                    mapping_dict = json.load(f)
-                GED_node_map_dict[i, j] = mapping_dict
-            except Exception as e:
-                print(f"Failed to load mapping for ({i}, {j}): {e}")
-    print("Finished calculating exact GED distance matrix.")
-    print(_ged_matrix)
-    print(f"Number of approximations used due to timeouts: {approximation_counter} out of {len(tasks)}")
-    rel_deviation = deviation_sum / (len(tasks) - approximation_counter) if len(tasks) > 0 else 0.0
-    print(f"Average deviation between approximate and exact GED: {rel_deviation:.4f}")
-    # create GED_Calculator_object
-    ged_calculator = exact_GED_Calculator(dataset_name=dataset_name)
-    return ged_calculator, approximation_counter, rel_deviation
-
-
-def build_exact_ged_calculator_buffered(dataset=None, dataset_name=None, n_jobs=1, timeout=10, batch_size=10000, **kwargs) -> exact_GED_Calculator:
-    def get_batches(my_list, g_batch_size):
-        """Helper function to break a list into chunks."""
-        for i in range(0, len(my_list), g_batch_size):
-            yield my_list[i:i + g_batch_size]
-    n = len(dataset)
-    # we distribute the Jobs, sot that every Jobs needs to caclulate the same amount of GEDs
-    global _ged_matrix
-    global GED_node_map_dict
-    global _dataset_cache
-    _ged_matrix = np.zeros((n,n), dtype=np.int32)
-    GED_node_map_dict = np.empty((n,n), dtype=object)
-    node_sizes = [len(g.nodes()) for g in dataset]
-    # first we compute the diagonal
-    _dataset_cache = [None for _ in range(n)]
-    for i in range(n):
-        _dataset_cache[i] = dataset[i]
-        _ged_matrix[i,i] = 0
-        GED_node_map_dict[i,i] = {k:k for k in range(len(dataset[i].nodes()))}
-        node_sizes[i] = len(dataset[i].nodes())
-    # then we compute the upper triangle
-    # we distribute the Jobs so that every Jobs needs to caclulate the same amount of GEDs
-    # save the node mappings to disk to avoid memory leak
-    mapping_dir = f"presaved_data/node_mappings/{dataset_name}.joblib"
-    try:
-        # save with joblib
-        joblib.dump(GED_node_map_dict, mapping_dir)
-    except Exception as e:
-        print(f"Failed to save initial node map dict: {e}")
-        raise e
-    tasks = [] # will be n/2 tasks
-    for i in range(n):
-        for j in range(i+1, n):
-            task_args = (
-            i, j, dataset_name, 
-            node_sizes[i], node_sizes[j], 
-            dataset[i], dataset[j], 
-            timeout
-            )
-            tasks.append(task_args)
-
-    # Define a batch size. Start with 1000 or 10000.
-    # This is a tuning parameter.
-    
-    task_batches = list(get_batches(tasks, batch_size))
-
-    print(f"Starting calculation... Total tasks: {len(tasks)}, Batches: {len(task_batches)}")
-
-    approximation_counter = 0
-    deviation_sum = 0.0
-
-    for batch_num, task_batch in enumerate(task_batches):
-        print(f"Processing batch {batch_num + 1} / {len(task_batches)} (size {len(task_batch)})...")
-        try:
-            results_batch = Parallel(n_jobs=n_jobs)(
-                delayed(run_ged_calculation)(
-                    task_args
-                )
-                for (task_args) in task_batch
-            )
-            
-            # Process this batch of results
-            #load the existing mappings from disk
-            # load with joblib
-            try:
-                tmp_node_map_dict = joblib.load(mapping_dir)
-            except Exception as e:
-                print(f"Failed to load existing node map dict: {e}")
-                raise e
-            for (i, j, ged, mapping_dict, time, approx_ged, error) in  (results_batch):
-                # ... (your same logic for processing 'ged' and 'approx_ged') ...
-                if ged is None:
-                    ged = approx_ged
-                    approximation_counter += 1
-                else:
-                    deviation_sum += abs(ged - approx_ged)
-                _ged_matrix[i, j] = ged
-                _ged_matrix[j, i] = ged
-                tmp_node_map_dict[i, j] = mapping_dict
-                # reverse mapping
-                reverse_mapping = {v: k for k, v in mapping_dict.items()}
-                tmp_node_map_dict[j, i] = reverse_mapping
-                # !!! YOU MUST STILL SAVE MAPPINGS TO DISK HERE !!!
-                # If you don't, _node_map_dict will still grow and kill your process.
-                # _node_map_dict[i, j] = save_to_disk_and_return_path(mapping_dict)
-                # ...
-
-            # Clear the memory from this batch
-            try:
-                # save with joblib
-                joblib.dump(tmp_node_map_dict, mapping_dir)
-            except Exception as e:
-                print(f"Failed to save updated node map dict: {e}")
-                raise e
-            del tmp_node_map_dict
-            del results_batch
-            gc.collect()
-
-        except Exception as e:
-            print(f"Error during parallel GED calculation on batch {batch_num + 1}: {e}")
-            raise e
-        print("Finished calculating exact GED distance matrix.")
-    print(_ged_matrix)
-    print(f"Number of approximations used due to timeouts: {approximation_counter} out of {len(tasks)}")
-    rel_deviation = deviation_sum / (len(tasks) - approximation_counter) if len(tasks) > 0 else 0.0
-    print(f"Average deviation between approximate and exact GED: {rel_deviation:.4f}")
-    # create GED_Calculator_object
-    ged_calculator = exact_GED_Calculator(dataset_name=dataset_name)
-    return ged_calculator, approximation_counter, rel_deviation
     
 def reset_calculators_cache():
     global _dataset_cache

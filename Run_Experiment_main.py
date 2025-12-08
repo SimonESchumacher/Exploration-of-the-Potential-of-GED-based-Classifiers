@@ -37,7 +37,7 @@ from Models.KNN.GEDLIB_KNN import GED_KNN
 # 3 test trail, but with full trials
 # 4 Full Run with all tuning results saved
 testing_level= 4
-Datasets_to_run = "PTC_FR"  # singel string or list of dataset names e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
+Datasets_to_run = ["PTC_FR","MUTAG"]  # singel string or list of dataset names e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
 MODELS_TO_RUN= "ALL" # ALL or a specific model
 Nodes_and_edges = "labels" # eg "labels", "attributes" or None for both attributes currently not functional
 TUNING_METRIC="f1_macro"  # e.g. "accuracy", "f1_macro", "roc_auc"
