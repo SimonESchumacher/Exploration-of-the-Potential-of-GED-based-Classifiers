@@ -4,15 +4,16 @@ import traceback
 import joblib
 from sklearn.neighbors import KNeighborsClassifier
 import numpy as np
-from scipy.stats import randint, uniform
-from typing import Dict, Any, List
+from scipy.stats import randint
+from typing import Dict, Any
+from config_loader import get_conifg_param
 
 # imports from custom modules
 import sys
 import os
 sys.path.append(os.getcwd())
 from Models.Graph_Classifier import GraphClassifier
-DEBUG = False # Set to False to disable debug prints
+DEBUG = get_conifg_param('KNN', 'debuging_prints')  # Set to False to disable debug prints
 
 class KNN(GraphClassifier):
     def __init__(self, n_neighbors=1, weights='uniform', leaf_size=30,
@@ -41,7 +42,7 @@ class KNN(GraphClassifier):
             attributes["n_neighbors"] = self.n_neighbors
             attributes["weights"] = self.weights
             attributes["metric"] = self.metric_name
-        model_name = kwargs.pop("name", f"({n_neighbors})-NN_Classifier_{self.metric_name}")
+        model_name = kwargs.pop("name", "KNN")
         super().__init__(
             classifier=classifier,
             model_name=model_name,
@@ -181,7 +182,8 @@ class KNN(GraphClassifier):
     def get_random_param_space(cls) -> Dict[str, Any]:
         param_space = super().get_random_param_space()
         param_space.update({
-            'n_neighbors': randint(1, 7),
+            'n_neighbors': randint(get_conifg_param('Hyperparameter_fields', 'min_neighbors', type='int'),
+                                    get_conifg_param('Hyperparameter_fields', 'max_neighbors', type='int')),
             'weights': ['uniform', 'distance'],
             'leaf_size': randint(10, 50)
             # 'metric': ['precomputed', 'euclidean']

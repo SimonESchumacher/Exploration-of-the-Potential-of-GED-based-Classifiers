@@ -8,14 +8,13 @@ sys.path.append(os.getcwd())
 from grakel.kernels import Kernel
 from Calculators.Base_Calculator import Base_Calculator
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
-from Custom_Kernels.GEDLIB_kernel import GEDKernel
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from scipy.stats import randint, uniform, loguniform
-
-DEBUG = False  # Set to True for debug prints
+from config_loader import get_conifg_param
+DEBUG = get_conifg_param('GED_models', 'debuging_prints', type='bool')
 
 class Trivial_GED_SVC(Base_GED_SVC):
-    model_specific_iterations = 100 # Base number of iterations for this model
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations',type="int")
     """
     Support Vector Machine with Graph Edit Distance Kernel
     """
@@ -28,7 +27,7 @@ class Trivial_GED_SVC(Base_GED_SVC):
         self.llambda = llambda
         if self.similarity_function not in ["k1", "k2", "k3", "k4", "frac"]:
             raise ValueError(f"Unknown similarity function: {self.similarity_function}")
-        self.name="Trivial-GED"
+        self.name="Triv-GED"
         attributes.update({
             "similarity_function": self.similarity_function
         })
@@ -89,10 +88,10 @@ class Trivial_GED_SVC(Base_GED_SVC):
         # this is a problem, because the kernel has its own parameters
         param_grid.update({
             "similarity_function": ['k1', 'k2', 'k3', 'k4'],
-            "llambda": loguniform(0.01, 100)
+            "llambda": loguniform(get_conifg_param('Hyperparameter_fields', 'llambda_min'),
+                                   get_conifg_param('Hyperparameter_fields', 'llambda_max'))
         })
         return param_grid
-        # param_grid.update({
     
 # Kernels that this is designed for:
 # GEDKernel, Trivial_GED_Kernel

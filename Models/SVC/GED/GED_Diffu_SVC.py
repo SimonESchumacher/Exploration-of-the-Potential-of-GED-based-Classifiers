@@ -5,14 +5,14 @@ import numpy as np
 sys.path.append(os.getcwd())
 
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
-from Custom_Kernels.GEDLIB_kernel import GEDKernel
 from Calculators.Base_Calculator import Base_Calculator
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from scipy.stats import randint, uniform, loguniform
 from typing import Dict, Any, List 
-DEBUG = False
+from config_loader import get_conifg_param
+DEBUG = get_conifg_param('GED_models', 'debuging_prints', type='bool')
 class DIFFUSION_GED_SVC(Base_GED_SVC):
-    model_specific_iterations = 100  # Base number of iterations for this model
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     def __init__(self,
                 llambda:float,
                 t_iterations:int,
@@ -24,13 +24,12 @@ class DIFFUSION_GED_SVC(Base_GED_SVC):
         self.diffusion_function = diffusion_function
         if self.diffusion_function not in ["exp_diff_kernel", "von_Neumann_diff_kernel"]:
             raise ValueError(f"Unknown diffusion function: {self.diffusion_function}")
-        self.name="Diffusion-GED"
+        self.name="Diff-GED"
         attributes.update({
             "llambda": self.llambda,
             "t_iterations": self.t_iterations,
             "diffusion_function": self.diffusion_function
         })
-        kwargs.update({'max_iter':1_000_000})
         super().__init__(attributes=attributes, name=self.name, **kwargs)
 
     # definition can't be changed here, because the Kernel class requires it
@@ -99,15 +98,15 @@ class DIFFUSION_GED_SVC(Base_GED_SVC):
     def get_random_param_space(cls):
         param_space = Base_GED_SVC.get_random_param_space()
         param_space.update({
-            "llambda": loguniform(0.005, 0.95),
+            "llambda": loguniform(a=get_conifg_param('Hyperparameter_fields', 'lower_llambda'),
+                                   b=get_conifg_param('Hyperparameter_fields', 'upper_llambda')),
             "diffusion_function": ["exp_diff_kernel", "von_Neumann_diff_kernel"],
-            "t_iterations": randint(2, 6)
+            "t_iterations": randint(get_conifg_param('Hyperparameter_fields', 'iteration_depth_min'),
+                                     get_conifg_param('Hyperparameter_fields', 'iteration_depth_max'))
         })
         return param_space
     
 class Diffusion_GED_new(DIFFUSION_GED_SVC):
-
-
     def fit_transform(self, X, y=None):
         X=[int(X[i].name) for i in range(len(X))]
         self._X_fit = X

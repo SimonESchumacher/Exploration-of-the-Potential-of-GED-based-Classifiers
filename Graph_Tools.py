@@ -3,6 +3,8 @@ import grakel
 from grakel.graph import Graph # To convert NetworkX to GraKeL Graph objects
 import networkx as nx
 
+# This files main use is to convert NetworkX graphs to GraKeL Graph objects
+# and to provide a function to convert NetworkX graphs to GraKeL Graph objects
 def convert_nx_to_grakel_graph(nx_graph, use_edge_labels=True, use_node_labels=True, use_node_attributes=False, use_edge_attributes=False):
     """
     Converts a NetworkX Graph object to a grakel.Graph object

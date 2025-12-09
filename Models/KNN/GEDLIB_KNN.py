@@ -13,9 +13,10 @@ from Calculators.GED_Calculator import load_calculator_from_id
 from Models.Graph_Classifier import GraphClassifier
 from Models.KNN_Classifer import KNN
 from Calculators import Base_Calculator, Dummy_Calculator
+from config_loader import get_conifg_param
 # from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
 # from Calculators.Dummy_Calculator import Dummy_Calculator
-DEBUG = False  # Set to False to disable debug prints
+DEBUG = get_conifg_param('GED_models', 'debuging_prints', type='bool')
 _ged_calculator = None
 def set_global_ged_calculator_KNN(calculator):
     global _ged_calculator
@@ -52,7 +53,7 @@ class abstract_GED_KNN(KNN):
     
 
 class GED_KNN(abstract_GED_KNN):
-    model_specific_iterations = 100  # Base number of iterations for this model
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     def __init__(self,
                 ged_bound: str,
                 calculator_id:str,

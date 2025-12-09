@@ -5,12 +5,13 @@ from Calculators.GED_Calculator import load_Randomwalk_GED_calculator, load_Rand
 from Calculators.Product_GRaphs import RandomWalkCalculator, build_restricted_product_graph, limited_length_approx_random_walk_similarity, infinte_length_random_walk_similarity
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from io_Manager import IO_Manager
-DEBUG = False  # Set to True for debug prints
 from scipy.stats import randint, uniform, loguniform
 from typing import Dict, Any, List 
+from config_loader import get_conifg_param
+DEBUG = get_conifg_param('GED_models', 'debuging_prints', type='bool')
 
 class Random_walk_edit_SVC(Base_GED_SVC):
-    model_specific_iterations = 10
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     """
     Support Vector Machine with Graph Edit Distance Kernel
     """
@@ -20,7 +21,7 @@ class Random_walk_edit_SVC(Base_GED_SVC):
                 attributes:dict=dict(),
                 **kwargs):
         
-        self.name="Random-Walk-Edit"
+        self.name="RWE"
         self.decay_lambda = decay_lambda
         self.max_walk_length = max_walk_length
         # inner metrics 
@@ -81,7 +82,9 @@ class Random_walk_edit_SVC(Base_GED_SVC):
         param_space = Base_GED_SVC.get_random_param_space()
         param_space.update({
             "decay_lambda": loguniform(a=0.005, b=0.95),
-            "max_walk_length": [2,3,4, 5,6,-1]  # -1 indicates infinite length
+            "max_walk_length": list(range(get_conifg_param('Hyperparameter_fields', 'iteration_depth_min'),
+                                           get_conifg_param('Hyperparameter_fields', 'iteration_depth_max'))
+                                           ) + [-1]  # -1 indicates infinite length
         })
         return param_space
 _random_walk_calculator = None
@@ -89,7 +92,7 @@ def set_global_random_walk_calculator(calculator):
     global _random_walk_calculator
     _random_walk_calculator = calculator
 class Random_Walk_edit_accelerated(Random_walk_edit_SVC):
-    model_specific_iterations = 10
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations',type="int")
     
     def __init__(self,
                 decay_lambda,

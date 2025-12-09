@@ -10,36 +10,36 @@ import numpy as np
 sys.path.append(os.getcwd())
 
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
-
+from config_loader import get_conifg_param
 # get Started with more kernels
 # Example usage of WeisfeilerLehman kernel
-DEBUG = False # Set to False to disable debug prints
+DEBUG = get_conifg_param('baseline_SVC', 'debuging_prints')  # Set to False to disable debug prints
 
 class VertexHistogram_SVC(SupportVectorMachine):
-    model_specific_iterations = 25
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     def __init__(self, attributes=None, **kwargs):
         kernel = VertexHistogram(sparse=True)
-        super().__init__( kernelfunction=kernel, kernel_name="VertexHistogram", attributes=attributes, **kwargs)
+        super().__init__( kernelfunction=kernel, kernel_name="VH", attributes=attributes, **kwargs)
         if DEBUG:
             print(f"Initialized VertexHistogram_SVC in child class")
     
 
 class EdgeHistogram_SVC(SupportVectorMachine):
-    model_specific_iterations = 25
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     def __init__(self,attributes=None,**kwargs):
         kernel = EdgeHistogram(sparse=True)
-        super().__init__( kernelfunction=kernel, kernel_name="EdgeHistogram", attributes=attributes, **kwargs)
+        super().__init__( kernelfunction=kernel, kernel_name="EH", attributes=attributes, **kwargs)
         if DEBUG:
             print(f"Initialized EdgeHistogram_SVC in child class")
     
     
 class CombinedHistogram_SVC(SupportVectorMachine):
-    model_specific_iterations = 50
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
 
     def __init__(self, attributes=None,weights=[1,1], **kwargs):
         self.weights = weights
         kernel = Combined_Kernel(kernels=[EdgeHistogram(sparse=False), VertexHistogram(sparse=False)],weights=self.weights)
-        super().__init__( kernelfunction=kernel, kernel_name="CombinedHistogram", attributes=attributes, **kwargs)
+        super().__init__( kernelfunction=kernel, kernel_name="CH", attributes=attributes, **kwargs)
         if DEBUG:
             print(f"Initialized CombinedHistogram_SVC  in child class")
             print(f"Model Name: {self.get_name}")
@@ -61,7 +61,7 @@ class CombinedHistogram_SVC(SupportVectorMachine):
 
 # Kernels 
 class Combined_Kernel(Kernel):
-    model_specific_iterations = 50
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
 
     """Combined Kernel that Combines Kernels that and concatenates their feature Vectors.
     """
@@ -102,7 +102,7 @@ class Combined_Kernel(Kernel):
         return combined_transformation
     
 class NX_Histogram_SVC(SupportVectorMachine):
-    model_specific_iterations = 10
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     def __init__(self,Histogram_Type="node+1", attributes:dict=dict(),get_node_labels:callable=None,get_edge_labels:callable=None, **kwargs):
         self.Histogram_Type = Histogram_Type
         self.get_node_labels = get_node_labels
@@ -130,7 +130,7 @@ class NX_Histogram_SVC(SupportVectorMachine):
         attributes.update({
             "Histogram_Type": self.Histogram_Type
         })
-        super().__init__(kernelfunction=None,kernel_name=f"NX_{self.Histogram_Type}_Histogram",
+        super().__init__(kernelfunction=None,kernel_name="NxH",
                          attributes=attributes,**kwargs)
         
     def fit_transform(self, X, y=None):

@@ -14,13 +14,13 @@ sys.path.append(os.getcwd())
 from Models.Graph_Classifier import GraphClassifier
 from Models.KNN_Classifer import KNN
 from Calculators import Base_Calculator, Dummy_Calculator
-from Calculators.Vector_creator import VectorCreator
+from config_loader import get_conifg_param
 # from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
 # from Calculators.Dummy_Calculator import Dummy_Calculator
-DEBUG = False  # Set to False to disable debug prints
+DEBUG = get_conifg_param('GED_models', 'debuging_prints', type='bool')
 
 class Feature_KNN(abstract_GED_KNN):
-    model_specific_iterations = 80  # Base number of iterations for this model
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', '', type='int')
 
     def __init__(self,
                 vector_feature_list:list,
@@ -65,7 +65,7 @@ class Feature_KNN(abstract_GED_KNN):
             calculator_id=calculator_id,
             **kwargs
         )
-        self.vector_creator = VectorCreator(ged_calculator=self.ged_calculator)
+        self.vector_creator = None # Removed
         self.add_vector_extractors()
         if DEBUG:
             print(f"Initialized GED_KNNClassifier")

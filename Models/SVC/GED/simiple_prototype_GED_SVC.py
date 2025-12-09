@@ -11,13 +11,13 @@ sys.path.append(os.getcwd())
 from grakel.kernels import Kernel
 from Calculators.Base_Calculator import Base_Calculator
 from Models.SupportVectorMachine_Classifier import SupportVectorMachine
-from Custom_Kernels.GEDLIB_kernel import GEDKernel
 from Models.SVC.Base_GED_SVC import Base_GED_SVC
 from Calculators.Prototype_Selction import select_Prototype, Prototype_Selector,Select_Prototypes, buffered_prototype_selection
-DEBUG = False  # Set to True for debug prints
+from config_loader import get_conifg_param
+DEBUG = get_conifg_param('GED_models', 'debuging_prints', type='bool')
 
 class Simple_Prototype_GED_SVC(Base_GED_SVC):
-    model_specific_iterations = 60  # Base number of iterations for this model
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     def __init__(self,
                 prototype_size,
                 selection_split,
