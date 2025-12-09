@@ -114,7 +114,7 @@ def get_single_classifier(ged_calculator):
         return [rw_SVC(rw_kernel_type="exponential", p_steps=1,C=1.0, kernel_type="precomputed")]
     elif MODELS_TO_RUN == "WL-ST":
         return [WL_ST_SVC(n_iter=5,C=1.0)]
-    elif MODELS_TO_RUN == "WL-SP":
+    elif MODELS_TO_RUN == "WL-SP": # might be broken
         return [WL_SP_SVC(n_iter=5,C=1.0)]
     elif MODELS_TO_RUN == "GED-KNN":
         return [GED_KNN(calculator_id=calculator_id, ged_bound=GED_BOUND, n_neighbors=5, weights='distance', algorithm='auto')]
@@ -124,7 +124,7 @@ def get_single_classifier(ged_calculator):
         return [Triv_GED_SVC(calculator_id=calculator_id, ged_bound=GED_BOUND, C=0.5,kernel_type="precomputed", class_weight='balanced',similarity_function='k4',llambda=0.1)]
     elif MODELS_TO_RUN == "RWE":
         return [rwe_SVC_new(calculator_id=calculator_id, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1,random_walk_calculator_id=random_walk_calculator_id, C=1.0,kernel_type="precomputed", class_weight='balanced')]
-    elif MODELS_TO_RUN == "Zero-GED":
+    elif MODELS_TO_RUN == "Zero-GED":# only works for RPS
         # Probably Broken
         return [Zero_GED_SVC(calculator_id=calculator_id, ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=7, aggregation_method="sum",selection_method="RPS")]
     else:
@@ -139,7 +139,7 @@ def nonGEd_classifiers(ged_calculator: Base_Calculator):
         VH_SVC(),
         EH_SVC(),
         CH_SVC(C=1.0, class_weight='balanced'),
-        rw_SVC(normalize_kernel=True, rw_kernel_type="geometric", p_steps=3,C=1.0, kernel_type="precomputed"),
+        # rw_SVC(normalize_kernel=True, rw_kernel_type="geometric", p_steps=3,C=1.0, kernel_type="precomputed"),
         ]
 # Get all GED classifiers
 def ged_classifiers(ged_calculator: Base_Calculator):
@@ -196,7 +196,6 @@ def run_speed_test(get_classifiers_funct: callable, calculator_type:str, iterati
         expi = get_expi(classifier)
         new_row = expi.run_large_speed_test(iterations=iterations)
         new_row["Model"] = classifier.get_name
-        new_row["Dataset"] = DATASET_NAME
         new_row["tuning_metric"] = TUNING_METRIC
         testDF = pd.concat([testDF, pd.DataFrame([new_row])], ignore_index=True)
     return testDF
@@ -236,7 +235,6 @@ if __name__ == "__main__":
             DATASET_NAME=ds
             print(DATASET_NAME)
             set_global_random_walk_calculator(None)
-            Test_df["Dataset"] = ds
             Test_df, total_duration = run_classifier_group(get_single_classifier,calculator_type=CALCULATOR_NAME,testDF=Test_df,dataset_name=ds)
             reset_calculators_cache()
     elif TESTING_MODE == "ALL":

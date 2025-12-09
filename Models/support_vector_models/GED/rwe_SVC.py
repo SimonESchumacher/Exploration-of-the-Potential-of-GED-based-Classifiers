@@ -102,7 +102,8 @@ class rwe_SVC_new(rwe_SVC):
         self.random_walk_calculator_id = random_walk_calculator_id
         global _random_walk_calculator
         if _random_walk_calculator is None or _random_walk_calculator.get_identifier_name() != random_walk_calculator_id:
-            print("Warning: _random_walk_calculator is None or has a different ID. We are rebuilding")
+            if DEBUG:
+                print("Warning: _random_walk_calculator is None or has a different ID. We are rebuilding")
             _random_walk_calculator = load_Randomwalk_calculator_from_id(random_walk_calculator_id)
         else:
             self.random_walk_calculator = _random_walk_calculator

@@ -783,7 +783,8 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
 
 def load_exact_GED_calculator(dataset_name: str) -> exact_GED_Calculator:
     filename = f"Exact_GED_{dataset_name}.joblib"
-    print(f"Loading Exact_GED_Calculator for {dataset_name}...")
+    if PRINT_GED_DEBUG_INFO:
+        print(f"Loading Exact_GED_Calculator for {dataset_name}...")
     filepath = f"presaved_data/{filename}"
     exact_ged_calculator: exact_GED_Calculator = joblib.load(filepath)
     global _ged_matrix

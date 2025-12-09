@@ -30,7 +30,8 @@ class GED_SVC(support_vector_classifier):
                 **kwargs):
         global _ged_calculator
         if _ged_calculator is None or calculator_id != _ged_calculator.get_identifier_name():
-            print("Warning: _ged_calculator is None or does not match. We are rebuilding")
+            if DEBUG:
+                print("Warning: _ged_calculator is None or does not match. We are rebuilding")
             _ged_calculator = load_calculator_from_id(calculator_id)
         # get all the kwargs for the Kernel that start with "KERNEL_"
         self.calculator_id = calculator_id

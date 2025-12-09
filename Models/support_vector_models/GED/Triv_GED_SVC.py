@@ -84,8 +84,8 @@ class Triv_GED_SVC(GED_SVC):
         # this is a problem, because the kernel has its own parameters
         param_grid.update({
             "similarity_function": ['k1', 'k2', 'k3', 'k4'],
-            "llambda": loguniform(get_conifg_param('Hyperparameter_fields', 'llambda_min'),
-                                   get_conifg_param('Hyperparameter_fields', 'llambda_max'))
+            "llambda": loguniform(get_conifg_param('Hyperparameter_fields', 'lambdas_min'),
+                                   get_conifg_param('Hyperparameter_fields', 'lambdas_max'))
         })
         return param_grid
     
