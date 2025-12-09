@@ -25,7 +25,8 @@ DEBUG = get_conifg_param(module, 'DEBUG', type='bool')# Set to False to disable 
 # load config file with the models, with teir specifcations
 # load the config file
 REPORT_SETTING=get_conifg_param(module, 'report_setting', type='str') # for f1_score, precision, recall
-
+RETURN_TRAIN_SCORE_HP_TUNING = get_conifg_param(module, 'return_train_score_hp_tuning', type='bool') # default True
+ERROR_SCORE_HP_TUNING = get_conifg_param(module, 'error_score_hp_tuning', type='str') # default "raise", can be "raise" or "warn"
 ERRORINTERVAL_SETTING = get_conifg_param(module, 'errorinterval_setting', type='str') # "std" or "confidence interval"
 SAVE_MODELS = get_conifg_param(module, 'save_models', type='bool') # default True
 SAVE_LOGS = get_conifg_param(module, 'save_logs', type='bool') # default True
@@ -531,8 +532,8 @@ class experiment:
             tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=inner_cv, verbose=verbose, n_jobs=n_jobs,) 
         elif search_method == "random":
             param_grid = self.model.get_random_param_space()
-            iterations = self.model.random_search_iterations() if not test_trail else 1
-            tuner = RandomizedSearchCV(estimator=self.model, param_distributions=param_grid, n_iter=iterations, scoring=scoring[0], cv=inner_cv, verbose=verbose, n_jobs=n_jobs,error_score="raise",refit=scoring[0],return_train_score=True)
+            iterations = self.model.random_search_iterations() if not test_trail else get_conifg_param("Hyperparameter_fields", 'tuning_iterations', type='int')
+            tuner = RandomizedSearchCV(estimator=self.model, param_distributions=param_grid, n_iter=iterations, scoring=scoring[0], cv=inner_cv, verbose=verbose, n_jobs=n_jobs,error_score=ERROR_SCORE_HP_TUNING,refit=scoring[0],return_train_score=RETURN_TRAIN_SCORE_HP_TUNING)
         else:
             raise ValueError(f"Unknown search method: {search_method}. Use 'grid' or 'random'.")
         print(f"starting inner tuning fold {fold_index}")

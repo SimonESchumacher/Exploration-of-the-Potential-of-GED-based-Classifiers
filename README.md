@@ -238,3 +238,78 @@ Here the GEDs Are precomputed.
     - Saved GED Distance matrices, for the models to use
 7. **`Graphics_builders/`** - Tools for visualizing results and algorithms
 8. **`tests/`** - Test suite for validation
+
+## Using the Repository
+
+This repository provides a framework for benchmarking Graph Edit Distance (GED) based classifiers against baseline methods. The system computes pairwise GED values and uses them as distance metrics in various classifiers.
+
+### Quick Start Example
+
+To run an experiment with the MUTAG dataset:
+
+```bash
+# 1. Ensure the MUTAG dataset is in Datasets/TUD/MUTAG/
+# 2. Run the main experiment script
+python Run_Experiment_main.py
+```
+
+### Detailed Workflow
+#### Step 1: Dataset Preparation
+
+1. Place your dataset in the Datasets/TUD/ directory in TUDataset format:
+```
+Datasets/TUD/DATASET_NAME/
+├── DATASET_NAME_A.txt          # Graph adjacency lists
+├── DATASET_NAME_graph_indicator.txt  # Node-to-graph mapping
+├── DATASET_NAME_graph_labels.txt     # Graph class labels
+├── DATASET_NAME_node_labels.txt      # Node labels (if available)
+└── DATASET_NAME_edge_labels.txt      # Edge labels (if available)
+```
+#### 2. GED Precomputation
+Before running experiments with exact GED calculations, you must precompute the pairwise distance matrix:
+
+Edit exact_GED_Calculator.py:
+
+Set the `datasets_to_compute` list to include your dataset name
+
+Example: `datasets_to_compute = ['MUTAG', 'BZR']`
+
+Run the precomputation:
+
+```bash
+python Calculators/exact_GED_Calculator.py
+```
+The results are saved as `.joblib` files in `presaved_data/` (e.g., `Exact_GED_MUTAG_0_0.joblib`)
+
+#### 3.Configuration
+All experiment parameters are configured in `confgis/Config.ini`
+
+#### 4. Running Experimetns
+- Single dataset experiment:
+    - Set `Datasets_to_run = 'MUTAG'` in `Run_Experiment_main.py`
+    - Run: `python Run_Experiment_main.py`
+
+- Multiple dataset experiment:
+    - Set `Datasets_to_run = ['MUTAG', 'BZR', 'ENZYMES']` in `Run_Experiment_main.py`
+    - Run: `python Run_Experiment_main.py`
+
+
+#### Step 5: Understanding Results
+The system generates two types of output files:
+
+1. Final Results (`results/` directory):
+    - Excel files with with auto gernated name or spcifically specified
+    - Contains evaluation metrics (accuracy, precision, recall, F1-score)
+    - Includes computation times and model parameters
+
+2. Intermediate Results (`results/intermediate/` directory):
+    - Automatically saved during long-running experiments
+    - Prevents data loss if the experiment is interrupted
+    - same contetent as final results
+3. Hyperparameter Tuning Results (`configs/results/Hyperparameter_tuning_results/`):
+    - Detailed logs of hyperparameter search
+    - Performance for each parameter combination
+
+#### Sept 6 Methodlogy
+    - Find that in the Attached Bacelor Thesis `Exploration of GED-based Classifers Simon Schumacher.pdf`
+    - Chapter Experimental Design.
