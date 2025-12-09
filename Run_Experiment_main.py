@@ -38,7 +38,7 @@ module="Run_Experiment_main"
 # 2 a test trail, with only 1 trail
 # 3 test trail, but with full trials
 # 4 Full Run with all tuning results saved
-Datasets_to_run = ["PTC_FR","MUTAG"]  # singel string or list of dataset names e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
+Datasets_to_run = ["MUTAG","PTC_FR"]  # singel string or list of dataset names e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
 testing_level= get_conifg_param(module, 'testing_level', type='int') # 0-4
 MODELS_TO_RUN= get_conifg_param(module, 'models_to_run', type='str') # ALL for all models, or "String of a specific model or list of models e.g. ["Random_Walk_edit_accelerated", "VertexHistogram_SVC"]
 Nodes_and_edges = get_conifg_param(module, 'nodes_and_edges') # eg "labels", "attributes" or None for both

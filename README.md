@@ -41,7 +41,7 @@ The repository includes a version of GEDLIBPY. To ensure compatibility with your
 
 ```bash
 # Navigate to the GEDLIBPY directory
-cd path/to/gedlibpy/directory
+cd gedlibpy/
 
 # Recompile the Python bindings
 python setup.py build_ext --inplace
@@ -89,7 +89,7 @@ python Run_Experiment_main.py
 ### Detailed Workflow
 #### Step 1: Dataset Preparation
 
-1. Place your dataset in the Datasets/TUD/ directory in TUDataset format:
+1. Place your dataset in the `Datasets/TUD/` directory in TUDataset format:
 ```
 Datasets/TUD/DATASET_NAME/
 ├── DATASET_NAME_A.txt          # Graph adjacency lists
@@ -144,8 +144,9 @@ The system generates two types of output files:
     - Performance for each parameter combination
 
 #### Sept 6 Methodlogy
-    - Find that in the Attached Bacelor Thesis `Exploration of GED-based Classifers Simon Schumacher.pdf`
-    - Chapter Experimental Design.
+
+- Find that in the Attached Bacelor Thesis `Exploration of GED-based Classifers Simon Schumacher.pdf`
+- Chapter Experimental Design.
 
 
 
