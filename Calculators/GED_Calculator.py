@@ -542,6 +542,8 @@ class exact_GED_Calculator(GED_Calculator):
         self.isactive = True
         self.isclalculated = True
         self.save_calculator(dataset_name)
+        # a dict, that counts for every model, the numer of times a ged value was accsessed.
+        accesses_counts_dict = {}
         # Any specific initialization for exact GED can be added here
     def get_node_map(self, graph1_index, graph2_index, method):
         return self.node_map_dict[graph1_index][graph2_index]

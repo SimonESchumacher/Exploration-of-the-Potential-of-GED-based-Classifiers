@@ -1,18 +1,13 @@
-# Graph Classifier Model Interface
-
-# imports
 import joblib
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.multiclass import unique_labels
-from sklearn.utils.validation import check_array
+from sklearn.utils.validation import check_array, check_is_fitted
 import abc
-# import check_is_fitted from sklearn.utils.validation
-from sklearn.utils.validation import check_is_fitted
 DEBUG = False # Set to False to disable debug prints
 
 
 
-class GraphClassifier(BaseEstimator, ClassifierMixin, abc.ABC):
+class graph_classifier(BaseEstimator, ClassifierMixin, abc.ABC):
     """
     Abstract Base Class for Graph Classifiers compatible with scikit-learn.
     All concrete subclasses must implement the abstract methods defined here.

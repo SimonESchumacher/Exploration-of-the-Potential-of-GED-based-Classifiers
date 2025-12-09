@@ -1,23 +1,14 @@
 # this model, is supposed, to just give a random prediction
-
-# imports 
-
-from sklearn.utils.validation import check_array
-# import dummy classifier
 from sklearn.dummy import DummyClassifier
-# liabry to save Model:
-import joblib
-from sklearn.utils.validation import check_array
 import numpy as np
-import abc
 import sys
 import os
 import traceback
 sys.path.append(os.path.join(os.getcwd(), 'Models'))
 import random as rnd
-from Graph_Classifier import GraphClassifier
+from graph_classifier import graph_classifier
 DEBUG = False  # Set to True for debug prints
-class Random_Classifier(GraphClassifier):
+class random_classifier(graph_classifier):
     model_specific_iterations = 10
     def __init__(self, random_state=None,strategy='uniform',constant=None,attributes=None):
         self.random_state = random_state
@@ -130,7 +121,7 @@ class Random_Classifier(GraphClassifier):
         """
         Returns a dictionary of parameters for grid search.
         """
-        param_grid = GraphClassifier.get_param_grid()
+        param_grid = graph_classifier.get_param_grid()
         param_grid.update({
             'strategy': ['most_frequent', 'stratified', 'uniform']
             # ,'constant': [0, 1]  # Only relevant if strategy is 'constant'
@@ -141,7 +132,7 @@ class Random_Classifier(GraphClassifier):
         """
         Returns a dictionary of parameters for random search.
         """
-        param_space = GraphClassifier.get_random_param_space()
+        param_space = graph_classifier.get_random_param_space()
         param_space.update({
             'strategy': ['most_frequent', 'stratified', 'uniform']
             # ,'constant': [0, 1]  # Only relevant if strategy is 'constant'

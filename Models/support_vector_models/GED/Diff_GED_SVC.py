@@ -1,17 +1,16 @@
-# GED Diffusion Classifier
 import sys
 import os
 import numpy as np
 sys.path.append(os.getcwd())
-
-from Models.SupportVectorMachine_Classifier import SupportVectorMachine
-from Calculators.Base_Calculator import Base_Calculator
-from Models.SVC.Base_GED_SVC import Base_GED_SVC
-from scipy.stats import randint, uniform, loguniform
-from typing import Dict, Any, List 
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from scipy.stats import randint, loguniform
 from config_loader import get_conifg_param
+from Models.support_vector_models.GED_SVC import GED_SVC
 DEBUG = get_conifg_param('GED_models', 'debuging_prints', type='bool')
-class DIFFUSION_GED_SVC(Base_GED_SVC):
+USE_SCALER = get_conifg_param('GED_models', 'use_scaler', type='str')
+
+# Diffusion Graph Edit Distance Support Vector Classifier
+class Diff_GED_SVC(GED_SVC):
     model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     def __init__(self,
                 llambda:float,
@@ -34,7 +33,8 @@ class DIFFUSION_GED_SVC(Base_GED_SVC):
 
     # definition can't be changed here, because the Kernel class requires it
     def compare(self, g1, g2):
-        raise ValueError("Diffusion Kernel doesn not support direct comparison of two graphs. Use the _calculate_kernel_matrix method instead.")
+        pass
+        
     def _calculate_kernel_matrix(self, X_graphs,Y_graphs=None):
         # first get the distance Matrix D
         D = self.ged_calculator.get_complete_matrix(method=self.ged_bound,x_graphindexes=X_graphs,y_graphindexes=Y_graphs)
@@ -82,7 +82,7 @@ class DIFFUSION_GED_SVC(Base_GED_SVC):
 
     @classmethod
     def get_param_grid(cls):
-        param_grid = Base_GED_SVC.get_param_grid()
+        param_grid = GED_SVC.get_param_grid()
         param_grid.update({
             "llambda": [0.1, 0.5, 1.0],
             "diffusion_function": ["exp_diff_kernel", "von_Neumann_diff_kernel"],
@@ -96,17 +96,17 @@ class DIFFUSION_GED_SVC(Base_GED_SVC):
         return param_grid
     @classmethod
     def get_random_param_space(cls):
-        param_space = Base_GED_SVC.get_random_param_space()
+        param_space = GED_SVC.get_random_param_space()
         param_space.update({
-            "llambda": loguniform(a=get_conifg_param('Hyperparameter_fields', 'lower_llambda'),
-                                   b=get_conifg_param('Hyperparameter_fields', 'upper_llambda')),
+            "llambda": loguniform(a=get_conifg_param('Hyperparameter_fields', 'lambdas_min'),
+                                   b=get_conifg_param('Hyperparameter_fields', 'lambdas_max')),
             "diffusion_function": ["exp_diff_kernel", "von_Neumann_diff_kernel"],
             "t_iterations": randint(get_conifg_param('Hyperparameter_fields', 'iteration_depth_min'),
                                      get_conifg_param('Hyperparameter_fields', 'iteration_depth_max'))
         })
         return param_space
     
-class Diffusion_GED_new(DIFFUSION_GED_SVC):
+class Diff_GED_new(Diff_GED_SVC):
     def fit_transform(self, X, y=None):
         X=[int(X[i].name) for i in range(len(X))]
         self._X_fit = X
@@ -135,6 +135,14 @@ class Diffusion_GED_new(DIFFUSION_GED_SVC):
                 term = self.B @ term  # matrix power
                 K += (self.llambda ** k) * term
         # normalize K
+        if USE_SCALER =="minmax":
+            self.scaler = MinMaxScaler()
+            K = self.scaler.fit_transform(K)
+
+        elif USE_SCALER =="standard":
+            self.scaler = StandardScaler()
+            K = self.scaler.fit_transform(K)
+
         return K
     
     def transform(self, X):
@@ -183,6 +191,9 @@ class Diffusion_GED_new(DIFFUSION_GED_SVC):
             # --- Step 4: save results ---
             K_test[p, :] = s_train
         # normalize K_test
-
+        if USE_SCALER =="minmax":
+            K_test = self.scaler.transform(K_test)
+        elif USE_SCALER =="standard":
+            K_test = self.scaler.transform(K_test)
         return K_test
 

@@ -1,21 +1,16 @@
 from grakel.kernels import VertexHistogram, EdgeHistogram
 import sys
 import os
-# Combined Kernel
 from grakel.kernels import Kernel
-from grakel.graph import Graph
-from grakel.kernels import VertexHistogram, EdgeHistogram
 import numpy as np
-# imports from custom modules
 sys.path.append(os.getcwd())
-
-from Models.SupportVectorMachine_Classifier import SupportVectorMachine
+from Models.SVC import support_vector_classifier 
 from config_loader import get_conifg_param
 # get Started with more kernels
 # Example usage of WeisfeilerLehman kernel
 DEBUG = get_conifg_param('baseline_SVC', 'debuging_prints')  # Set to False to disable debug prints
-
-class VertexHistogram_SVC(SupportVectorMachine):
+# Vertrex Histogram SVC
+class VH_SVC(support_vector_classifier):
     model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     def __init__(self, attributes=None, **kwargs):
         kernel = VertexHistogram(sparse=True)
@@ -23,8 +18,8 @@ class VertexHistogram_SVC(SupportVectorMachine):
         if DEBUG:
             print(f"Initialized VertexHistogram_SVC in child class")
     
-
-class EdgeHistogram_SVC(SupportVectorMachine):
+# Edge Histogram SVC
+class EH_SVC(support_vector_classifier):
     model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     def __init__(self,attributes=None,**kwargs):
         kernel = EdgeHistogram(sparse=True)
@@ -32,8 +27,8 @@ class EdgeHistogram_SVC(SupportVectorMachine):
         if DEBUG:
             print(f"Initialized EdgeHistogram_SVC in child class")
     
-    
-class CombinedHistogram_SVC(SupportVectorMachine):
+# Combined Histogram SVC sum of EH and VH    
+class CH_SVC(support_vector_classifier):
     model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
 
     def __init__(self, attributes=None,weights=[1,1], **kwargs):
@@ -45,14 +40,14 @@ class CombinedHistogram_SVC(SupportVectorMachine):
             print(f"Model Name: {self.get_name}")
     @classmethod
     def get_param_grid(cls):
-        param_grid = SupportVectorMachine.get_param_grid()
+        param_grid = support_vector_classifier.get_param_grid()
         param_grid.update({
             'weights': [[1, 1], [1, 0.5], [0.5, 1],[0,1],[0,1]],  # Different weight combinations for the histograms
         })
         return param_grid
     @classmethod
     def get_random_param_space(cls):
-        param_space = SupportVectorMachine.get_random_param_space()
+        param_space = support_vector_classifier.get_random_param_space()
         param_space.update({
             'weights': [[1, 1], [1, 0.5], [0.5, 1],[0,1],[0,1]],  # Different weight combinations for the histograms
         })
@@ -100,8 +95,8 @@ class Combined_Kernel(Kernel):
                 raise ValueError(f"Kernel {kernel} does not have transform method.")
         # Concatenate the results from all kernels
         return combined_transformation
-    
-class NX_Histogram_SVC(SupportVectorMachine):
+# Nx Based Histogram SVC    
+class NxH_SVC(support_vector_classifier):
     model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     def __init__(self,Histogram_Type="node+1", attributes:dict=dict(),get_node_labels:callable=None,get_edge_labels:callable=None, **kwargs):
         self.Histogram_Type = Histogram_Type
@@ -164,7 +159,7 @@ class NX_Histogram_SVC(SupportVectorMachine):
         return feature_vectors
     @classmethod
     def get_param_grid(cls):
-        param_grid = SupportVectorMachine.get_param_grid()
+        param_grid = support_vector_classifier.get_param_grid()
         param_grid.update({
             'kernel_type': ['rbf'],
             'Histogram_Type': [ 'node+1', 'edge+1'],
@@ -173,7 +168,7 @@ class NX_Histogram_SVC(SupportVectorMachine):
         return param_grid
     @classmethod
     def get_random_param_space(cls):
-        param_space = SupportVectorMachine.get_random_param_space()
+        param_space = support_vector_classifier.get_random_param_space()
         param_space.update({
             'kernel_type': ['rbf', 'linear', 'poly'],
             'Histogram_Type': ["combined","node","edge","node+1", "edge+1"],

@@ -7,10 +7,9 @@ import sys
 import os
 import numpy as np
 import tqdm
-
 from Calculators.GED_Calculator import  load_calculator_from_id
 sys.path.append(os.getcwd())
-from Models.SupportVectorMachine_Classifier import SupportVectorMachine
+from Models.SVC import support_vector_classifier 
 from config_loader import get_conifg_param
 
 DEBUG = get_conifg_param('SVC', 'debuging_prints')  # Set to False to disable debug prints
@@ -19,13 +18,15 @@ def set_global_ged_calculator(calculator):
     global _ged_calculator
     _ged_calculator = calculator
 
-class Base_GED_SVC(SupportVectorMachine):
+# Base function for GED-based Support Vector Classifier
+class GED_SVC(support_vector_classifier):
     model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     def __init__(self,
             ged_bound,
             calculator_id,
             attributes: dict = dict(),
             name="GED_SVC",
+            scaling_method=None,
                 **kwargs):
         global _ged_calculator
         if _ged_calculator is None or calculator_id != _ged_calculator.get_identifier_name():
@@ -36,12 +37,14 @@ class Base_GED_SVC(SupportVectorMachine):
         self.ged_calculator = _ged_calculator
         self.ged_bound = ged_bound
         self.name = name
+        self.scaling_method = scaling_method
         # if needed.
 
 
 
         attributes.update({
             "ged_calculator_name": _ged_calculator.get_name() if _ged_calculator else None,
+            "scaling_method": scaling_method,
             "ged_bound": ged_bound
         })
         # Initialize the Support Vector Machine with the GED kernel
@@ -62,7 +65,8 @@ class Base_GED_SVC(SupportVectorMachine):
         # add the parameters of the ged_calculator with the prefix "GED_"
         params.update({
             "ged_bound": self.ged_bound,
-            "calculator_id": self.calculator_id
+            "calculator_id": self.calculator_id,
+            "scaling_method": self.scaling_method
         })
        
         return params
@@ -74,7 +78,7 @@ class Base_GED_SVC(SupportVectorMachine):
         if self.ged_calculator is None or not self.ged_calculator.isactive or not self.ged_calculator.isclalculated:
 
             raise RuntimeError("GED calculator is not initialized or not active. Call init() first.")
-
+        K = None
         if Y_graphs is None:
             Y_graphs = X_graphs       
             K = np.zeros((len(X_graphs), len(Y_graphs)), dtype=np.float64)
@@ -86,7 +90,6 @@ class Base_GED_SVC(SupportVectorMachine):
                 for j in range(i, len(Y_graphs)):
                     K[i, j] = self.compare(g1, Y_graphs[j])
                     K[j, i] = K[i, j]  # Exploit symmetry
-            return K
         else:
             K = np.zeros((len(X_graphs), len(Y_graphs)), dtype=np.float64) 
             if DEBUG:
@@ -96,8 +99,13 @@ class Base_GED_SVC(SupportVectorMachine):
             for i, g1 in iter:
                 for j, g2 in enumerate(Y_graphs):
                     K[i, j] = self.compare(g1, g2)
-            return K
-
+        
+        return K
+    def diagonal(self,Y):
+        Y_diag = np.empty(shape=(len(Y),))
+        for (i, y) in enumerate(Y):
+            Y_diag[i] = self.compare(y, y)
+        return self.X_diag, Y_diag
 
     def fit_transform(self, X, y=None):
         # print("Fitting GED_SVC...")
@@ -108,6 +116,7 @@ class Base_GED_SVC(SupportVectorMachine):
 
         # Calculate the kernel matrix for the training data
         K_train = self._calculate_kernel_matrix(X_graphs=X)
+        self.X_diag = np.diagonal(K_train)
         
         # Check if the generated matrix is approximately positive semi-definite (optional but good practice)
         # E.g., check eigenvalues, but SVC is usually robust enough for RBF on metric spaces.
@@ -122,12 +131,11 @@ class Base_GED_SVC(SupportVectorMachine):
         
         # Calculate the cross-kernel matrix between X (test) and X_fit_graphs_ (train)
         K_test = self._calculate_kernel_matrix(X_graphs=X, Y_graphs=self.X_fit_graphs_)
-        
         return K_test
 
     @classmethod
     def get_param_grid(cls):
-        param_grid = SupportVectorMachine.get_param_grid()
+        param_grid = support_vector_classifier.get_param_grid()
         # this is a problem, because the kernel has its own parameters
         param_grid.update({
             # "ged_bound": ['UpperBound-Distance', 'Mean-Distance', 'LowerBound-Distance']
@@ -135,7 +143,7 @@ class Base_GED_SVC(SupportVectorMachine):
         return param_grid
     @classmethod
     def get_random_param_space(cls):
-        param_space = SupportVectorMachine.get_random_param_space()
+        param_space = support_vector_classifier.get_random_param_space()
         param_space.update({
             # "ged_bound": ['UpperBound-Distance', 'Mean-Distance', 'LowerBound-Distance']
         })

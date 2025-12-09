@@ -1,26 +1,19 @@
-# GED K-NN Classifier
-# imports
-import traceback
-from sklearn.neighbors import KNeighborsClassifier
 from scipy.stats import randint, uniform
 from typing import Dict, Any, List
 
 # imports from custom modules
 import sys
 import os
-
-from Models.KNN.GEDLIB_KNN import abstract_GED_KNN
+from Models.k_nearest_neighbour.GED_KNN import abstract_GED_KNN
 sys.path.append(os.getcwd())
-from Models.Graph_Classifier import GraphClassifier
-from Models.KNN_Classifer import KNN
+from Models.graph_classifier import graph_classifier
+from Models.KNN import KNN
 from Calculators import Base_Calculator, Dummy_Calculator
 from config_loader import get_conifg_param
-# from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
-# from Calculators.Dummy_Calculator import Dummy_Calculator
 DEBUG = get_conifg_param('GED_models', 'debuging_prints', type='bool')
 
-class Feature_KNN(abstract_GED_KNN):
-    model_specific_iterations = get_conifg_param('Hyperparameter_fields', '', type='int')
+class feature_KNN(abstract_GED_KNN):
+    model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
 
     def __init__(self,
                 vector_feature_list:list,

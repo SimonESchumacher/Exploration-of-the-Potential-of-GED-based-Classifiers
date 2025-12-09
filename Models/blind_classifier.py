@@ -1,19 +1,15 @@
-# desperate Fitter 
-# model, that gets random info and tries to fit it
-# import dummy classifier
-# import perceptron classifier
 from sklearn.linear_model import Perceptron
 import numpy as np
-# liabry to save Model:
 import sys
 import os
 import traceback
+from Models.graph_classifier import graph_classifier
 sys.path.append(os.getcwd())
 import random as rnd
 DEBUG = False  # Set to True for debug prints
-from Models.Graph_Classifier import GraphClassifier
-
-class Blind_Classifier(GraphClassifier):
+# desperate Fitter 
+# model, that gets random info and tries to fit it
+class blind_classifier(graph_classifier):
     model_specific_iterations = 1
     def __init__(self,random_state=42,attributes=dict(),**kwargs):
         self.random_state = random_state

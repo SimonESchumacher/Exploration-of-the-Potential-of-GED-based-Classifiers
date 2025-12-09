@@ -13,7 +13,7 @@ import pandas as pd
 import traceback
 from datetime import datetime
 from scipy import stats
-from Models.SupportVectorMachine_Classifier import SupportVectorMachine
+from Models.SVC import support_vector_classifier
 from config_loader import get_conifg_param
 module="Experiment"
 RANDOM_STATE = get_conifg_param(module, 'random_state', type='int') # default 42
@@ -334,7 +334,7 @@ class experiment:
             trained_time = pd.Timestamp.now()
             train_duration = trained_time - start_time
             # test if the trained model is an SVC
-            if isinstance(trained_model, SupportVectorMachine):
+            if isinstance(trained_model, support_vector_classifier):
                 i_num_support_Vectors = len(trained_model.classifier.support_)
             else: 
                 i_num_support_Vectors= len(G_train)
@@ -431,7 +431,7 @@ class experiment:
             tuner = None
             if search_method == "grid":
                 param_grid = self.model.get_param_grid()
-                tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=inner_cv_object, verbose=verbose, n_jobs=n_jobs,) 
+                tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=inner_cv_object, verbose=verbose, n_jobs=n_jobs,refit=False) 
             elif search_method == "random":
                 param_grid = self.model.get_random_param_space()
                 tuner = RandomizedSearchCV(estimator=self.model, param_distributions=param_grid, n_iter=self.model.random_search_iterations(), scoring=scoring, cv=inner_cv_object, verbose=verbose, n_jobs=n_jobs,refit=scoring[0])
@@ -481,6 +481,9 @@ class experiment:
         results_dict["f1_weighted_test"] = f1_score(y_test, y_pred_test, average='weighted', zero_division=0.0)
         results_dict["precision_test"] = precision_score(y_test, y_pred_test, average=REPORT_SETTING, zero_division=0.0)
         results_dict["recall_test"] = recall_score(y_test, y_pred_test, average=REPORT_SETTING, zero_division=0.0)
+        results_dict["roc_auc_test"] = roc_auc_score(y_test, y_score_test, labels=self.model.classes_, multi_class='ovr') if y_score_test is not None else 0.0
+        # measure some  
+
         # figure out if this is a binary or multi class classification
         if len(classes) == 2:
             try:

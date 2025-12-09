@@ -1,5 +1,3 @@
-# K-NN Classifer 
-# imports 
 import traceback
 import joblib
 from sklearn.neighbors import KNeighborsClassifier
@@ -7,15 +5,13 @@ import numpy as np
 from scipy.stats import randint
 from typing import Dict, Any
 from config_loader import get_conifg_param
-
-# imports from custom modules
 import sys
 import os
 sys.path.append(os.getcwd())
-from Models.Graph_Classifier import GraphClassifier
+from Models.graph_classifier import graph_classifier
 DEBUG = get_conifg_param('KNN', 'debuging_prints')  # Set to False to disable debug prints
 
-class KNN(GraphClassifier):
+class KNN(graph_classifier):
     def __init__(self, n_neighbors=1, weights='uniform', leaf_size=30,
                   metric=None,metric_name="unspecified",random_state=None,
                   attributes:dict=dict(), **kwargs): 
@@ -167,7 +163,7 @@ class KNN(GraphClassifier):
 
     @classmethod
     def get_param_grid(cls):
-        param_grid = GraphClassifier.get_param_grid()
+        param_grid = graph_classifier.get_param_grid()
         param_grid.update({
             'n_neighbors': [1, 3, 5],
             'weights': ['uniform', 'distance'],

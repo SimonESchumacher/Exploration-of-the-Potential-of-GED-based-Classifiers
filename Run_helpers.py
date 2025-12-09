@@ -1,14 +1,14 @@
-# file for main Run helper Functions
-# Imports
 import os
 import pandas as pd
+import sys
+sys.path.append(os.getcwd())
 from Calculators.Base_Calculator import Base_Calculator
 import multiprocessing
-from Models.KNN.GEDLIB_KNN import set_global_ged_calculator_KNN
-from Models.SVC.Base_GED_SVC import set_global_ged_calculator
+from Models.k_nearest_neighbour.GED_KNN import set_global_ged_calculator_KNN
+from Models.support_vector_models.GED_SVC import set_global_ged_calculator
 last_save_time = pd.Timestamp.now()
 from config_loader import get_conifg_param
-INTERMEDIATE_SAVE_INTERVAL = get_conifg_param("Run_Experiment_main", "INTERMEDIATE_SAVE_INTERVAL")  # seconds, how often to save the intermediate results
+INTERMEDIATE_SAVE_INTERVAL = get_conifg_param("main_experiment_run", "INTERMEDIATE_SAVE_INTERVAL")  # seconds, how often to save the intermediate results
 
 def save_progress(testDF: pd.DataFrame, experiment_name: str):
     global last_save_time
@@ -142,7 +142,7 @@ def configure_run(Datasets_to_run, MODELS_TO_RUN,testing_level):
                 TESTING_MODE = "MULTI"
             else:
                 TESTING_MODE = "ALL"
-        elif isinstance(MODELS_TO_RUN, str) and MODELS_TO_RUN in ["VH","EH","CH","RW","WL-ST","GED-KNN","Diff-GED","Triv-GED","RWE","Zero-GED"]:
+        elif isinstance(MODELS_TO_RUN, str):
             if  multi_ds_mode:
                 TESTING_MODE = "SINGLEMULTI"
             else:
