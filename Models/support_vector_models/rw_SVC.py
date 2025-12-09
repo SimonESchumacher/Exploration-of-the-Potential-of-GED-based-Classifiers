@@ -1,26 +1,17 @@
-from grakel import VertexHistogram, EdgeHistogram
-from grakel.kernels import WeisfeilerLehman, RandomWalk, RandomWalkLabeled
-from sklearn.svm import SVC
-from sklearn.utils.validation import check_X_y, check_array
-
-# liabry to save Model:
-import joblib
-from sklearn.model_selection import GridSearchCV
+from grakel.kernels import RandomWalk, RandomWalkLabeled
 from sklearn.utils.validation import check_array
 import numpy as np
-import abc
 import sys
 import os
-import traceback
 sys.path.append(os.getcwd())
-from scipy.stats import randint
-from Models.Graph_Classifier import GraphClassifier
-from Models.SupportVectorMachine_Classifier import SupportVectorMachine
-from scipy.stats import randint, uniform, loguniform
+from Models.SVC import support_vector_classifier 
+from scipy.stats import loguniform
 from config_loader import get_conifg_param
 DEBUG = get_conifg_param('baseline_SVC', 'debuging_prints')  # Set to False to disable debug prints
 
-class RandomWalk_SVC(SupportVectorMachine):
+
+# Support Vector Machine with Random Walk Graph Kernel
+class rw_SVC(support_vector_classifier):
     model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')  # Base number of iterations for this model
 
     def __init__(self, normalize_kernel,rw_kernel_type,p_steps,C=1.0,  kernel_type="precomputed",decay_lambda: float = 0.1, attributes: dict = dict(), **kwargs):
@@ -124,7 +115,7 @@ class RandomWalk_SVC(SupportVectorMachine):
 
     @classmethod
     def get_param_grid(cls):
-        param_grid = SupportVectorMachine.get_param_grid()
+        param_grid = support_vector_classifier.get_param_grid()
         param_grid.update({
             "normalize_kernel": [True, False],
             "rw_kernel_type": ["geometric", "exponential"],
@@ -133,7 +124,7 @@ class RandomWalk_SVC(SupportVectorMachine):
         return param_grid
     @classmethod
     def get_random_param_space(cls):
-        param_space = SupportVectorMachine.get_random_param_space()
+        param_space = support_vector_classifier.get_random_param_space()
         param_space.update({
             "normalize_kernel": [True, False],
             "rw_kernel_type": ["geometric", "exponential"],
@@ -147,3 +138,33 @@ class RandomWalk_SVC(SupportVectorMachine):
         if include_kernel_normalization_options:
             param_space['normalize_kernel'] = [True, False]
         return param_space
+    
+
+class rw_SVC_unlabeled(rw_SVC):
+    def __init__(self, normalize_kernel,rw_kernel_type,p_steps,C=1.0,  kernel_type="precomputed",decay_lambda: float = 0.1, attributes: dict = dict(), **kwargs):
+        self.normalize_kernel = normalize_kernel
+        self.rw_kernel_type = rw_kernel_type
+        self.p_steps = p_steps
+        self.decay_lambda = decay_lambda
+        self.kernel = RandomWalk(normalize=self.normalize_kernel, kernel_type=self.rw_kernel_type, p=self.p_steps,lamda=self.decay_lambda, method_type="fast")
+        attributes.update({
+            "normalize_kernel": self.normalize_kernel,
+            "rw_kernel_type": self.rw_kernel_type,
+            "p_steps": self.p_steps,
+            "decay_lambda": self.decay_lambda
+        })
+        super().__init__(
+            normalize_kernel=normalize_kernel,
+            rw_kernel_type=rw_kernel_type,
+            p_steps=p_steps,
+            C=C,
+            kernel_type=kernel_type,
+            decay_lambda=decay_lambda,
+            kernelfunction=self.kernel,
+            kernel_name=f"RandomWalk_unlabeled",
+            attributes=attributes,
+            **kwargs
+        )
+        if DEBUG:
+            print(f"Initialized SVC_RandomWalk_unlabeled with C={self.C}, in child class")
+            print(f"Model Name: {self.get_name}")

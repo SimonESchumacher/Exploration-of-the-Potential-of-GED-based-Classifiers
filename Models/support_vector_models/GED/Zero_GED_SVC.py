@@ -5,28 +5,22 @@ import os
 import numpy as np
 import pandas as pd
 import tqdm
-
-from Calculators.Prototype_Selction import Prototype_Selector
 sys.path.append(os.getcwd())
-from grakel.kernels import Kernel
+from Calculators.prototype_selector import Select_Prototypes
 from Calculators.Base_Calculator import Base_Calculator
-from Models.SupportVectorMachine_Classifier import SupportVectorMachine
-from Models.SVC.Base_GED_SVC import Base_GED_SVC
-from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
-from Calculators.Prototype_Selction import Prototype_Selector, Select_Prototypes, buffered_prototype_selection
-from scipy.stats import randint, uniform, loguniform
-from typing import Dict, Any, List 
+from Models.support_vector_models.GED_SVC import GED_SVC
 from config_loader import get_conifg_param
 DEBUG = get_conifg_param('GED_models', 'debuging_prints', type='bool')
 
-class ZERO_GED_SVC(Base_GED_SVC):
+# Zero-Prototype Graph Edit Distance Support Vector Classifier
+# Only works for Random Prototype Selection currently
+class Zero_GED_SVC(GED_SVC):
     model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     def __init__(self,
                     aggregation_method,
                     prototype_size,
                     selection_split,
                     selection_method,
-                    dataset_name,
                     attributes:dict=dict(),
                     **kwargs):
         self.aggregation_method = aggregation_method
@@ -34,14 +28,12 @@ class ZERO_GED_SVC(Base_GED_SVC):
         self.selection_split = selection_split
         self.selection_method = selection_method
 
-        self.dataset_name = dataset_name
         self.kernel_name = "Zero-GED"
         attributes.update({
             "aggregation_method": self.aggregation_method,
             "prototype_size": self.prototype_size,
             "selection_split": self.selection_split,
             "selection_method": self.selection_method,
-            "dataset_name": self.dataset_name
         })
         super().__init__(attributes=attributes, name=self.kernel_name, **kwargs)
     def compare(self, g1, g2):
@@ -169,34 +161,33 @@ class ZERO_GED_SVC(Base_GED_SVC):
             "selection_split": self.selection_split,
             "selection_method": self.selection_method,
             "ged_bound": self.ged_bound,
-            "dataset_name": self.dataset_name
         })
        
         return params
 
     @classmethod
     def get_param_grid(cls):
-        param_grid = Base_GED_SVC.get_param_grid()
+        param_grid = GED_SVC.get_param_grid()
         # this is a problem, because the kernel has its own parameters
         param_grid.update(
             {
                 "prototype_size": [1, 2, 3],
                 "aggregation_method": ["sum"],
                 "selection_split": ["all", "classwise", "single_class"],
-                "selection_method": ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"],
+                # "selection_method": ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"], # Since Claculator_rebuild, only RPS works
                 "C": [0.1]
             }
         )
         return param_grid
     @classmethod
     def get_random_param_space(cls):
-        param_space = Base_GED_SVC.get_random_param_space()
+        param_space = GED_SVC.get_random_param_space()
         param_space.update(
             {
                 # "prototype_size": [1, 2],
                 "aggregation_method": ["sum","prod","sum"],
                 "selection_split": ["all", "classwise", "single_class"],
-                "selection_method": ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"],
+                # "selection_method": ["RPS", "CPS", "BPS", "TPS", "SPS", "k-CPS"], # Since Claculator_rebuild, only RPS works
             }
         )
         return param_space

@@ -1,19 +1,15 @@
-import numpy as np
-import pandas as pd
 import time
-from Calculators.GED_Calculator import load_Randomwalk_GED_calculator, load_Randomwalk_calculator_from_id
-from Calculators.Product_GRaphs import RandomWalkCalculator, build_restricted_product_graph, limited_length_approx_random_walk_similarity, infinte_length_random_walk_similarity
-from Models.SVC.Base_GED_SVC import Base_GED_SVC
-from io_Manager import IO_Manager
-from scipy.stats import randint, uniform, loguniform
-from typing import Dict, Any, List 
+from Models.support_vector_models.GED_SVC import GED_SVC
+from Calculators.GED_Calculator import load_Randomwalk_calculator_from_id
+from Calculators.Product_GRaphs import build_restricted_product_graph, limited_length_approx_random_walk_similarity, infinte_length_random_walk_similarity
+from scipy.stats import loguniform
 from config_loader import get_conifg_param
 DEBUG = get_conifg_param('GED_models', 'debuging_prints', type='bool')
-
-class Random_walk_edit_SVC(Base_GED_SVC):
+# Support Vector Machine with Random Walk Edit Graph Kernel
+class rwe_SVC(GED_SVC):
     model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     """
-    Support Vector Machine with Graph Edit Distance Kernel
+    Support Vector Machine with Random Walk Edit Graph Kernel
     """
     def __init__(self,
                 decay_lambda,
@@ -70,7 +66,7 @@ class Random_walk_edit_SVC(Base_GED_SVC):
     
     @classmethod
     def get_param_grid(cls):
-        param_grid = Base_GED_SVC.get_param_grid()
+        param_grid = GED_SVC.get_param_grid()
         # this is a problem, because the kernel has its own parameters
         param_grid.update({
             "decay_lambda": [0.01, 0.1],
@@ -79,7 +75,7 @@ class Random_walk_edit_SVC(Base_GED_SVC):
         return param_grid
     @classmethod
     def get_random_param_space(cls):
-        param_space = Base_GED_SVC.get_random_param_space()
+        param_space = GED_SVC.get_random_param_space()
         param_space.update({
             "decay_lambda": loguniform(a=0.005, b=0.95),
             "max_walk_length": list(range(get_conifg_param('Hyperparameter_fields', 'iteration_depth_min'),
@@ -91,7 +87,7 @@ _random_walk_calculator = None
 def set_global_random_walk_calculator(calculator):
     global _random_walk_calculator
     _random_walk_calculator = calculator
-class Random_Walk_edit_accelerated(Random_walk_edit_SVC):
+class rwe_SVC_new(rwe_SVC):
     model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations',type="int")
     
     def __init__(self,
@@ -106,7 +102,8 @@ class Random_Walk_edit_accelerated(Random_walk_edit_SVC):
         self.random_walk_calculator_id = random_walk_calculator_id
         global _random_walk_calculator
         if _random_walk_calculator is None or _random_walk_calculator.get_identifier_name() != random_walk_calculator_id:
-            print("Warning: _random_walk_calculator is None or has a different ID. We are rebuilding")
+            if DEBUG:
+                print("Warning: _random_walk_calculator is None or has a different ID. We are rebuilding")
             _random_walk_calculator = load_Randomwalk_calculator_from_id(random_walk_calculator_id)
         else:
             self.random_walk_calculator = _random_walk_calculator

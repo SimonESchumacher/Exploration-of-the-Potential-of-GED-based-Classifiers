@@ -2,7 +2,7 @@ import sys
 import os
 # add the root directory to the sys.path
 sys.path.append(os.getcwd())
-from Dataset import Dataset
+from Dataset_loader import Dataset_loader
 from Calculators.GED_Calculator import build_Heuristic_calculator, build_exact_ged_calculator
 import multiprocessing
 from config_loader import get_conifg_param
@@ -22,7 +22,7 @@ datasets = [  # more Datasets can be added, the need to be in TUD format in the 
     ]
 
 
-def convert_Dataset_to_exact_GED_format(dataset:Dataset,use_node_labels=True,use_edge_labels=True):
+def convert_Dataset_to_exact_GED_format(dataset:Dataset_loader,use_node_labels=True,use_edge_labels=True):
     dataset_name = dataset.get_name()
     label_info = f"{int(use_node_labels)}_{int(use_edge_labels)}"
     filepath = f"Datasets/ged/{dataset_name}_{label_info}/"
@@ -91,7 +91,7 @@ for dataset_name in dataset_names:
     use_node_edge_labels = not dataset_name.endswith("_0_0")
     dataset_name_only :str = dataset_name.rsplit("_",2)[0]
     load = "label" if use_node_edge_labels else None
-    DATASET = Dataset(name=dataset_name_only, source="TUD", domain="Bioinformatics", ged_calculator=None, use_node_labels=load, use_edge_labels=load, load_now=False)     
+    DATASET = Dataset_loader(name=dataset_name_only, source="TUD", domain="Bioinformatics", ged_calculator=None, use_node_labels=load, use_edge_labels=load, load_now=False)     
     DATASET.load()
 
     convert_Dataset_to_exact_GED_format(DATASET,use_node_labels=DATASET.use_node_labels(), use_edge_labels=DATASET.use_edge_labels())
@@ -103,7 +103,7 @@ try:
 
         load = "label" if use_node_edge_labels else None
         dataset_name_only :str = dataset_name.rsplit("_",2)[0]
-        DATASET = Dataset(name=dataset_name_only, source="TUD", domain="Bioinformatics", ged_calculator=None, use_node_labels=load, use_edge_labels=load, load_now=False)
+        DATASET = Dataset_loader(name=dataset_name_only, source="TUD", domain="Bioinformatics", ged_calculator=None, use_node_labels=load, use_edge_labels=load, load_now=False)
         DATASET.load()
         Dataset_name = DATASET.get_name() + f"_{int(DATASET.use_node_labels())}_{int(DATASET.use_edge_labels())}"
         ged_calculator, approximation_counter, rel_deviation, average_time = build_exact_ged_calculator(DATASET.get_graphs(),Dataset_name, n_jobs=N_JOBS,timeout=TIMEOUT)

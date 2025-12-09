@@ -542,6 +542,8 @@ class exact_GED_Calculator(GED_Calculator):
         self.isactive = True
         self.isclalculated = True
         self.save_calculator(dataset_name)
+        # a dict, that counts for every model, the numer of times a ged value was accsessed.
+        accesses_counts_dict = {}
         # Any specific initialization for exact GED can be added here
     def get_node_map(self, graph1_index, graph2_index, method):
         return self.node_map_dict[graph1_index][graph2_index]
@@ -781,7 +783,8 @@ def build_exact_ged_calculator(dataset=None, dataset_name=None, n_jobs=1, timeou
 
 def load_exact_GED_calculator(dataset_name: str) -> exact_GED_Calculator:
     filename = f"Exact_GED_{dataset_name}.joblib"
-    print(f"Loading Exact_GED_Calculator for {dataset_name}...")
+    if PRINT_GED_DEBUG_INFO:
+        print(f"Loading Exact_GED_Calculator for {dataset_name}...")
     filepath = f"presaved_data/{filename}"
     exact_ged_calculator: exact_GED_Calculator = joblib.load(filepath)
     global _ged_matrix

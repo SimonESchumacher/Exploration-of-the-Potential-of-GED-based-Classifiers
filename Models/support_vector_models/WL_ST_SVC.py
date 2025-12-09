@@ -1,27 +1,21 @@
-from grakel import VertexHistogram, EdgeHistogram, ShortestPath
+from grakel import VertexHistogram, ShortestPath
 from grakel.kernels import WeisfeilerLehman
 from sklearn.svm import SVC
-from sklearn.utils.validation import check_X_y, check_array
-
-# liabry to save Model:
-import joblib
-from sklearn.model_selection import GridSearchCV
 from sklearn.utils.validation import check_array
 import numpy as np
-import abc
 import sys
 import os
 import traceback
-sys.path.append(os.getcwd())
 from scipy.stats import randint
-from Models.Graph_Classifier import GraphClassifier
-from Models.SupportVectorMachine_Classifier import SupportVectorMachine
+from Models.SVC import support_vector_classifier
 from config_loader import get_conifg_param
+sys.path.append(os.getcwd())
+
 
 DEBUG = get_conifg_param('baseline_SVC', 'debuging_prints')  # Set to False to disable debug prints
 # import GraphClassifier as gc
 # Class of the SVC_WeisfeilerLehman is an extension of the SVC class
-class WeisfeilerLehman_SVC(SupportVectorMachine):
+class WL_ST_SVC(support_vector_classifier):
     model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')  # Base number of iterations for this model
     def __init__(self, n_iter=5, C=1.0,normalize_kernel=True, random_state=None,base_kernel=(VertexHistogram,{ 'sparse': True }),kernel_type="precomputed",attributes:dict=dict(),**kwargs):
         self.n_iter = n_iter
@@ -33,12 +27,13 @@ class WeisfeilerLehman_SVC(SupportVectorMachine):
             "normalize_kernel": self.normalize_kernel,
             "base_kernel": self.base_kernel.__class__.__name__
         })
+        kernel_name = kwargs.get("kernel_name","WL-ST")
         super().__init__(
             kernel_type=kernel_type,
             C=C,
             random_state=random_state,
             kernelfunction=self.kernel,
-            kernel_name="WL-ST",
+            kernel_name=kernel_name,
             
             attributes=attributes,
             **kwargs
@@ -127,14 +122,14 @@ class WeisfeilerLehman_SVC(SupportVectorMachine):
     
     @classmethod
     def get_param_grid(cls):
-        param_grid = SupportVectorMachine.get_param_grid()
+        param_grid = support_vector_classifier.get_param_grid()
         param_grid.update({
             'n_iter': [1,2,3,4, 5, 7]
         })
         return param_grid
     @classmethod
     def get_random_param_space(cls):
-        param_space = SupportVectorMachine.get_random_param_space()
+        param_space = support_vector_classifier.get_random_param_space()
         param_space.update({
             'n_iter': randint(get_conifg_param('Hyperparameter_fields', 'wl_depth_min', type='int'),
                                get_conifg_param('Hyperparameter_fields', 'wl_depth_max', type='int')),
@@ -143,6 +138,29 @@ class WeisfeilerLehman_SVC(SupportVectorMachine):
         if include_kernel_normalization_options:
             param_space['normalize_kernel'] = [True, False]
         return param_space
+    
+class WL_SP_SVC(WL_ST_SVC):
+    def __init__(self, n_iter=5, C=1.0,normalize_kernel=True, random_state=None,attributes:dict=dict(),**kwargs):
+        base_kernel = ShortestPath
+        attributes.update({
+            "base_kernel": base_kernel.__class__.__name__
+        })
+        kwargs.update({
+            "kernel_name": "WL-SP"
+        })
+        super().__init__(
+            n_iter=n_iter,
+            C=C,
+            normalize_kernel=normalize_kernel,
+            random_state=random_state,
+            base_kernel=base_kernel,
+            attributes=attributes,
+            **kwargs
+        )
+        if DEBUG:
+            print(f"Initialized SVC_WeisfeilerLehman_ShortestPath with n_iter={self.n_iter}, C={self.C}, in child class")
+            print(f"Model Name: {self.get_name}")
+
        
     
 

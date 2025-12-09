@@ -5,7 +5,7 @@ from scipy.linalg import inv
 from scipy.interpolate import interp1d
 
 from Calculators import Base_Calculator
-import Dataset
+import Dataset_loader
 DEBUG = True
 def build_restricted_product_graph(g1: nx.Graph, g2: nx.Graph, node_matches : list[(int,int)]):
     restricted_graph = nx.Graph()
@@ -123,7 +123,7 @@ def infinte_length_random_walk_similarity2(adj_matrix, llamda=0.1):
     
 class RandomWalkCalculator():
     backup = None
-    def __init__(self, ged_calculator: Base_Calculator, llambda_samples: list[float], dataset: Dataset, ged_method: str):
+    def __init__(self, ged_calculator: Base_Calculator, llambda_samples: list[float], dataset: Dataset_loader, ged_method: str):
         if (hasattr(RandomWalkCalculator, 'backup') and RandomWalkCalculator.backup is not None and dataset.__str__() == RandomWalkCalculator.backup.dataset_str):
             backup = RandomWalkCalculator.backup
             self.ged_calculator = backup.ged_calculator

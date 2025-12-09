@@ -41,7 +41,7 @@ The repository includes a version of GEDLIBPY. To ensure compatibility with your
 
 ```bash
 # Navigate to the GEDLIBPY directory
-cd path/to/gedlibpy/directory
+cd gedlibpy/
 
 # Recompile the Python bindings
 python setup.py build_ext --inplace
@@ -83,13 +83,13 @@ To run an experiment with the MUTAG dataset:
 ```bash
 # 1. Ensure the MUTAG dataset is in Datasets/TUD/MUTAG/
 # 2. Run the main experiment script
-python Run_Experiment_main.py
+python main_experiment_run.py
 ```
 
 ### Detailed Workflow
 #### Step 1: Dataset Preparation
 
-1. Place your dataset in the Datasets/TUD/ directory in TUDataset format:
+1. Place your dataset in the `Datasets/TUD/` directory in TUDataset format:
 ```
 Datasets/TUD/DATASET_NAME/
 ├── DATASET_NAME_A.txt          # Graph adjacency lists
@@ -101,16 +101,16 @@ Datasets/TUD/DATASET_NAME/
 #### 2. GED Precomputation
 Before running experiments with exact GED calculations, you must precompute the pairwise distance matrix:
 
-Edit exact_GED_Calculator.py:
+Edit exact_GED_builder.py:
 
 Set the `datasets_to_compute` list to include your dataset name
 
-Example: `datasets_to_compute = ['MUTAG', 'BZR']`
+Example: `datasets_to_compute = ['MUTAG', 'BZR_MD']`
 
 Run the precomputation:
 
 ```bash
-python Calculators/exact_GED_Calculator.py
+python Calculators/exact_GED_builder.py
 ```
 The results are saved as `.joblib` files in `presaved_data/` (e.g., `Exact_GED_MUTAG_0_0.joblib`)
 
@@ -119,12 +119,13 @@ All experiment parameters are configured in `confgis/Config.ini`
 
 #### 4. Running Experimetns
 - Single dataset experiment:
-    - Set `Datasets_to_run = 'MUTAG'` in `Run_Experiment_main.py`
-    - Run: `python Run_Experiment_main.py`
+    - Set `Datasets_to_run = 'MUTAG'` in `main_experiment_run.py`
+    - Run: `python main_experiment_run.py`
 
 - Multiple dataset experiment:
-    - Set `Datasets_to_run = ['MUTAG', 'BZR', 'ENZYMES']` in `Run_Experiment_main.py`
-    - Run: `python Run_Experiment_main.py`
+    - Run: `python main_experiment_run.py`
+    - Specify the Datasets, either in the Arguments, or provide them as a system input.
+
 
 
 #### Step 5: Understanding Results
@@ -139,155 +140,106 @@ The system generates two types of output files:
     - Automatically saved during long-running experiments
     - Prevents data loss if the experiment is interrupted
     - same contetent as final results
-3. Hyperparameter Tuning Results (`configs/results/Hyperparameter_tuning_results/`):
+3. Hyperparameter Tuning Results (`results/Hyperparameter_tuning_results/`):
     - Detailed logs of hyperparameter search
     - Performance for each parameter combination
 
 #### Sept 6 Methodlogy
-    - Find that in the Attached Bacelor Thesis `Exploration of GED-based Classifers Simon Schumacher.pdf`
-    - Chapter Experimental Design.
+
+- Find that in the Attached Bacelor Thesis `Exploration of GED-based Classifers Simon Schumacher.pdf`
+- Chapter Experimental Design.
 
 
 
 
-## **📂 Project Structure**
+## **📂 Project Structure (current)**
 ```
-├── README.md # This documentation file
-├── requirements.txt # Python dependencies
-├── config_loader.py # Configuration file parser
-├── Experiment.py # Main experiment class
-├── Dataset.py # Dataset loading and preprocessing
-├── Graph_Tools.py # Graph utilities and helper functions
-├── io_Manager.py # Input/output management
-├── Run_Experiment_main.py # Main experiment runner
-├── Run_helpers.py # Helper functions for experiments
-├── Timeout_handler.py # Timeout handling utilities
-├── init.py # Package initialization
-├── Exploration of GED-based Classifiers Simon Schumacher.pdf # Thesis document
-├── The-GED-classifier-bakeoff.code-workspace # IDE workspace file
-│
-├── Calculators/ # Graph Edit Distance calculators
-│   ├── Base_Calculator.py # Abstract base calculator class
-│   ├── GED_Calculator.py # Main GED calculator interface
-│   ├── exact_GED_Calculator.py # Exact GED computation using external tool
-│   ├── GEDLIB_Calculator.py # GEDLIB-based approximate GED
-│   ├── Random_walk_edit_Calculator.py # Random walk based GED approximation
-│   ├── Dummy_Calculator.py # Placeholder/dummy calculator for testing
-│   ├── Product_Graphs.py # Product graph representations
-│   ├── Prototype_Selection.py # Prototype selection algorithms
-│   ├── exact_GED_results_summary.txt # Summary of exact GED results
-│   └── init.py
-│
-├── Models/ # Machine learning classifiers
-│   ├── Graph_Classifier.py # Base graph classifier class
-│   ├── KNN_Classifier.py # k-Nearest Neighbors classifier
-│   ├── SupportVectorMachine_Classifier.py # SVM classifier base
-│   ├── Blind_Classifier.py # Baseline random classifier
-│   ├── Random_Classifier.py # Random prediction classifier
-│   ├── init.py
-│   │
-│   ├── KNN/ # KNN implementations
-│   │   ├── feature_KNN.py # Feature-based KNN
-│   │   └── GEDLIB_KNN.py # GEDLIB-based KNN
-│   │
-│   └── SVC/ # Support Vector Classifier implementations
-│       ├── Base_GED_SVC.py # Base GED-based SVC
-│       ├── Baseline_SVC.py # Baseline SVC implementation
-│       ├── WeisfeilerLehman_SVC.py # Weisfeiler-Lehman kernel SVC
-│       ├── random_walk.py # Random walk kernel SVC
-│       └── init.py
-│
-├── Custom_Kernels/ # Custom kernel implementations
-│   ├── GEDLIB_kernel.py # GEDLIB-based kernel functions
-│   └── init.py
-│
-├── Datasets/ # Graph datasets
-│   ├── TUD/ # TUDataset format collections
-│   │   ├── MUTAG/ # Mutagenicity dataset
-│   │   ├── BZR/ # Benzodiazepine receptor dataset
-│   │   ├── BZR_MD/ # BZR with additional metadata
-│   │   ├── COX2_MD/ # Cyclooxygenase-2 dataset
-│   │   ├── ENZYMES/ # Enzyme protein structures
-│   │   ├── IMDB-BINARY/ # IMDB movie collaboration network
-│   │   ├── IMDB-MULTI/ # Multi-class IMDB dataset
-│   │   ├── KKI/ # KKI medical imaging dataset
-│   │   ├── Letter-high/ # Letter recognition dataset
-│   │   ├── MSRC_9/ # Microsoft Research Cambridge dataset
-│   │   ├── PTC_FR/ # Predictive toxicology challenge
-│   │   └── ... (other TUDatasets)
-│   │
-│   ├── ged/ # Preprocessed datasets for GED computation
-│   │   ├── MUTAG_0_0/ # MUTAG with label normalization scheme 0_0
-│   │   ├── MUTAG_1_1/ # MUTAG with label normalization scheme 1_1
-│   │   ├── BZR_0_0/ # BZR with label normalization scheme 0_0
-│   │   ├── BZR_1_1/ # BZR with label normalization scheme 1_1
-│   │   └── ... (other preprocessed datasets)
-│   │
-│   └── Test_graphs/ # Test graph files for debugging
-│       ├── G.txt
-│       ├── G2.txt
-│       ├── Ge1.txt
-│       └── Ge2.txt
-├── gedlipy Repo foked for approximate GEDs
-├── Graph_Edit_Distance/ # Exact GED computation tool (C++)
-│   ├── ged # Precompiled binary (Ubuntu 20.04 compatible)
-│   ├── Application.cpp/.h # Main application logic
-│   ├── Graph.h # Graph data structure
-│   ├── Timer.h # Timing utilities
-│   ├── Utility.h # Utility functions
-│   ├── main.cpp # Entry point
-│   ├── makefile # Build configuration
-│   ├── popl.hpp # Command-line argument parser
-│   ├── LICENSE.md # License information
-│   ├── README.md # Original documentation
-│   ├── config.yml # Configuration for documentation
-│   │
-│   └── datasets/ # Example datasets for testing
-│         ├── AIDS.txt
-│         ├── AIDS_query100.txt
-│         ├── graph_g.txt
-│         └── graph_q.txt
-│
-├── configs/ # Experiment configurations
-|    └──── Config.ini # Main configuration file (INI format)
-│
-├── presaved_data/ # Precomputed GED matrices and calculators
-│    ├── Exact_GED_.joblib # Precomputed exact GED matrices
-│    ├── GED_Calculator_.joblib # Saved calculator states
-│    ├── Heuristic_Calculator_.joblib # Heuristic calculator states
-│    └── Randomwalk_GED_Calculator_*.joblib # Random walk calculator states
-│
-├── results/ # Current experiment results
-│    ├── *Some_Result.xlsx # Result files in Excel format
-|    ├── Hyperparameter_tuning_results/ # Hyperparameter tuning outputs
-|    |     └── HP_Some_hypertuning_data.xlsx
-│    └── intermediate/ # Intermediate computation files
-│          └── Some_Result_inter.xlsx
-├── Graphics_builders/ # Visualization tools and figures
-│    ├── SVM_visualizations.ipynb # Jupyter notebook for SVM visualizations
-│    ├── Kernel_Matrix.ipynb # Kernel matrix visualization
-│    ├── visulaize_graphs.ipynb # Graph visualization tools
-│    ├── *.pdf # Generated figures and diagrams
-│    └── *.ipynb # Jupyter notebooks for analysis
-│
-├── tests/ # Unit and integration tests
-│    ├── test_clone.py # Cloning functionality tests
-│    ├── test_exact_GED.ipynb # Exact GED computation tests
-│    └── Calculator_path_test.ipynb # Calculator path testing
-│
-└── bin/ # Binary directory (empty/utility)
+The-GED-classifier-bakeoff/
+├── README.md
+├── requirements.txt
+├── config_loader.py
+├── Experiment.py
+├── Dataset_loader.py
+├── Graph_Tools.py
+├── main_experiment_run.py
+├── Run_helpers.py
+├── Exploration of GED-based Classifiers Simon Schumacher.pdf
+├── The-GED-classifier-bakeoff.code-workspace
+├── Calculators/
+│   ├── __init__.py
+│   ├── Base_Calculator.py
+│   ├── GED_Calculator.py
+│   ├── exact_GED_builder.py
+│   ├── GEDLIB_Caclulator.py
+│   ├── Product_GRaphs.py
+│   ├── Prototype_Selction.py
+│   ├── Dummy_Calculator.py
+│   └── Random_walk_edit _Calculator.py
+├── Models/
+│   ├── __init__.py
+│   ├── graph_classifier.py
+│   ├── SVC.py
+│   ├── blind_classifier.py
+│   ├── random_classifer.py
+│   ├── graph_Classifier.py
+│   ├── KNN.py
+│   ├── support_vector_models/
+│   │   ├── GED_SVC.py
+│   │   ├── baseline_SVC.py
+│   │   ├── WL_ST_SVC.py
+│   │   ├── rw_SVC.py
+│   │   └── GED/
+│   │       ├── Triv_GED_SVC.py
+│   │       ├── Zero_GED_SVC.py
+│   │       ├── prototype_GED_SVC.py
+│   │       ├── Diff_GED_SVC.py
+│   │       ├── hybrid_prototype_selector.py
+│   |       └── rwe_SVC.py
+│   └── k_nearest_neigbour/
+│       ├── GED_KNN.py
+│       └── feature_KNN.py
+├── Datasets/
+│   ├── ged/
+│   ├── TUD/
+│   └── Test_graphs/
+├── gedlibpy/           # bundled GEDLIB Python bindings (sub-repo)
+├── Graph_Edit_Distance/ # C++ exact GED tool and sources
+├── graph_mixup/         # experimental module (not referenced by core code)
+├── configs/
+│   ├── Config.ini
+│   └── example_config.json
+├── presaved_data/
+├── results/
+├── Graphics_builders/
+├── tests/
+└── bin/
 ```
 
-### Key Directories Explained:
+### Key directories and notes
 
-1. **`Calculators/`** - Implements different Graph Edit Distance computation methods
-Here the GEDs Are precomputed.
-2. **`Models/`** - Contains machine learning classifiers using GED-based kernels
-3. **`Datasets/`** - Stores graph datasets in TUDataset format and preprocessed versions
-4. **`Graph_Edit_Distance/`** - C++ tool for exact GED computation with precompiled binary
-5. **`configs/`** - Configuration files for experiments
-    - the main file of intrest here is configs.ini
-6. **`presaved_data/`** - Cache of precomputed GED matrices to speed up experiments
-    - Saved GED Distance matrices, for the models to use
-7. **`Graphics_builders/`** - Tools for visualizing results and algorithms
-8. **`tests/`** - Test suite for validation
+1. **`Calculators/`** — Graph Edit Distance calculators and helpers. Contains both exact and approximate GED implementations and the prototype selection utilities. Precomputed calculators/matrices are stored under `presaved_data/`.
+
+2. **`Models/`** — ML classifiers and SVC/KNN implementations. The package exposes base classes in `graph_classifier.py` and various concrete models under `Models/SVC/` and `Models/KNN/`.
+
+3. **`Datasets/`** — TUDataset-format datasets and preprocessed GED-ready data (`ged/` holds preprocessed matrices used by GED calculators).
+
+4. **`gedlibpy/`** — Bundled copy of the GEDLIB Python bindings (kept as a nested repository/submodule). It's registered as a submodule and used by some calculators; the working tree is included for convenience.
+
+5. **`Graph_Edit_Distance/`** — External C++ project (fork) providing exact GED computation. Contains sources and precompiled binaries.
+
+6. **`Custom_Kernels/`** — Optional custom kernel implementations (e.g., `GEDLIB_kernel.py`) used by some models and notebooks.
+
+7. **`graph_mixup/`** — Experimental code and notebooks for graph mixup; currently self-contained and not referenced by the main run scripts.
+
+8. **`configs/`** — Experiment and hyperparameter tuning configuration files. `Config.ini` is the central configuration.
+
+9. **`presaved_data/` & `results/`** — Precomputed artifacts and output directories used by experiments. Keep backups of large `.joblib` artifacts when cleaning the repo.
+
+10. **`tests/`** & **`Graphics_builders/`** — Notebooks and lightweight tests used for development and visualization (some rely on the experimental modules).
+
+---
+
+If you want, I can also:
+- generate a compact tree (`tree -L 2`) and insert it verbatim, or
+- add a one-line map of which modules import which major subpackages (helpful for cleanup).
+Which of those would you prefer?

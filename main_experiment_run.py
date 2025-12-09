@@ -6,28 +6,32 @@ import os
 import traceback
 import pandas as pd
 # Main support modules
-from Run_helpers import configure_run, define_dataset_processing, define_experiment_name, end_run, save_progress,set_Mode, set_global_ged_calculator_All 
+from Calculators import Base_Calculator
 from Calculators.GED_Calculator import reset_calculators_cache, try_load_else_build_rw_calculator
-from Dataset import Dataset
+from Dataset_loader import Dataset_loader
 from Experiment import experiment
+from Models.support_vector_models import rw_SVC
 sys.path.append(os.getcwd())
 
 
 # Model imports
-from Models.SVC.GED.RandomWalk_edit import Random_Walk_edit_accelerated, set_global_random_walk_calculator
-from Models.SVC.WeisfeilerLehman_SVC import WeisfeilerLehman_SVC
-from Models.SVC.random_walk import RandomWalk_SVC
-from Models.Graph_Classifier import GraphClassifier
-from Models.SVC.Baseline_SVC import VertexHistogram_SVC,EdgeHistogram_SVC, CombinedHistogram_SVC
-from Models.Blind_Classifier import Blind_Classifier
-from Models.Random_Classifer import Random_Classifier
-from Models.SVC.GED.Trivial_GED_SVC import Trivial_GED_SVC
-from Calculators.Base_Calculator import Base_Calculator
-from Models.SVC.GED.GED_Diffu_SVC import DIFFUSION_GED_SVC
-from Models.SVC.GED.Zero_GED_SVC import ZERO_GED_SVC
-from Models.KNN.GEDLIB_KNN import GED_KNN
+from Models.graph_classifier import graph_classifier
+from Models.blind_classifier import blind_classifier
+from Models.random_classifier import random_classifier
+from Models.support_vector_models.baseline_SVC import VH_SVC, EH_SVC, CH_SVC, NxH_SVC
+from Models.support_vector_models.WL_ST_SVC import WL_ST_SVC, WL_SP_SVC
+from Models.support_vector_models.rw_SVC import rw_SVC, rw_SVC_unlabeled
+from Models.KNN import KNN
+from Models.k_nearest_neighbour.GED_KNN import GED_KNN 
+from Models.k_nearest_neighbour.feature_KNN import feature_KNN
+from Models.support_vector_models.GED.Triv_GED_SVC import Triv_GED_SVC
+from Models.support_vector_models.GED.Diff_GED_SVC import Diff_GED_SVC, Diff_GED_new
+from Models.support_vector_models.GED.Zero_GED_SVC import Zero_GED_SVC
+from Models.support_vector_models.GED.prototype_GED_SVC import prototype_GED_SVC
+from Models.support_vector_models.GED.rwe_SVC import rwe_SVC, rwe_SVC_new, set_global_random_walk_calculator
+from Run_helpers import configure_run, define_dataset_processing, define_experiment_name, end_run, save_progress,set_Mode, set_global_ged_calculator_All 
 from config_loader import get_conifg_param
-module="Run_Experiment_main"
+module="main_experiment_run"
 
 # User Configurable Parameters
 
@@ -38,7 +42,22 @@ module="Run_Experiment_main"
 # 2 a test trail, with only 1 trail
 # 3 test trail, but with full trials
 # 4 Full Run with all tuning results saved
-Datasets_to_run = ["PTC_FR","MUTAG"]  # singel string or list of dataset names e.g. "MUTAG", "PTC_MR", "IMDB-MULTI", "PROTEINS", "NCI1", "NCI109", "DD", "COLLAB", "REDDIT-BINARY"
+# overite the Datasets_to_run with the aregument passed from command line if exists
+# in the command line, the datasets should be passed as a comma separated string
+if len(sys.argv) > 1:
+    arg_datasets = sys.argv[1]
+    if "," in arg_datasets:
+        Datasets_to_run = arg_datasets.split(",")
+    else:
+        Datasets_to_run = [arg_datasets]
+else:
+    # ask for a system input, with prompt "Enter datasets to run (comma separated), or leave blank for default: "
+    arg_datasets = input("Enter datasets to run (comma separated): ")
+    if arg_datasets == "":
+        raise ValueError("No datasets provided. Please provide datasets to run.")
+    else:
+        Datasets_to_run = arg_datasets.split(",")
+        
 testing_level= get_conifg_param(module, 'testing_level', type='int') # 0-4
 MODELS_TO_RUN= get_conifg_param(module, 'models_to_run', type='str') # ALL for all models, or "String of a specific model or list of models e.g. ["Random_Walk_edit_accelerated", "VertexHistogram_SVC"]
 Nodes_and_edges = get_conifg_param(module, 'nodes_and_edges') # eg "labels", "attributes" or None for both
@@ -71,7 +90,7 @@ EXPERIMENT_NAME=define_experiment_name(EXPERIMENT_NAME, TUNING_METRIC, DATASET_N
 
 # isntanciate ged calculator and dataset
 def get_Dataset(ged_calculator,name=DATASET_NAME):
-    DATASET= Dataset(name=name,ged_calculator=ged_calculator, use_node_labels=DATASET_NODE_LABELS, use_edge_labels=DATASET_EDGE_LABELS,load_now=False,use_node_attributes=DATASET_NODE_ATTRIBUTES, use_edge_attributes=DATASET_EDGE_ATTRIBUTES)
+    DATASET= Dataset_loader(name=name,ged_calculator=ged_calculator, use_node_labels=DATASET_NODE_LABELS, use_edge_labels=DATASET_EDGE_LABELS,load_now=False,use_node_attributes=DATASET_NODE_ATTRIBUTES, use_edge_attributes=DATASET_EDGE_ATTRIBUTES)
     DATASET.load()
     # DATASET.load_with_attributes(new_attributes=["x","y"], encoding_dimension=2, remove_old=True)
     return DATASET, DATASET.get_calculator()
@@ -86,40 +105,41 @@ def get_single_classifier(ged_calculator):
     except Exception as e:
         print(f"Error occurred while getting identifiers: {e}")
     if MODELS_TO_RUN == "VH":
-        return [VertexHistogram_SVC()]
+        return [VH_SVC()]
     elif MODELS_TO_RUN == "EH":
-        return [EdgeHistogram_SVC()]
+        return [EH_SVC()]
     elif MODELS_TO_RUN == "CH":
-        return [CombinedHistogram_SVC(C=1.0, class_weight='balanced')]
+        return [CH_SVC(C=1.0, class_weight='balanced')]
     elif MODELS_TO_RUN == "RW":
-        return [RandomWalk_SVC(normalize_kernel=True, rw_kernel_type="exponential", p_steps=1,C=1.0, kernel_type="precomputed")]
+        return [rw_SVC(rw_kernel_type="exponential", p_steps=1,C=1.0, kernel_type="precomputed")]
     elif MODELS_TO_RUN == "WL-ST":
-        return [WeisfeilerLehman_SVC(n_iter=5,C=1.0, normalize_kernel=True)]
+        return [WL_ST_SVC(n_iter=5,C=1.0)]
+    elif MODELS_TO_RUN == "WL-SP": # might be broken
+        return [WL_SP_SVC(n_iter=5,C=1.0)]
     elif MODELS_TO_RUN == "GED-KNN":
         return [GED_KNN(calculator_id=calculator_id, ged_bound=GED_BOUND, n_neighbors=5, weights='distance', algorithm='auto')]
     elif MODELS_TO_RUN == "Diff-GED":
-        return [DIFFUSION_GED_SVC(C=1.0, llambda=0.1, calculator_id=calculator_id, ged_bound=GED_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5)]
+        return [Diff_GED_SVC(C=1.0, llambda=0.1, calculator_id=calculator_id, ged_bound=GED_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5)]
     elif MODELS_TO_RUN == "Triv-GED":
-        return [Trivial_GED_SVC(calculator_id=calculator_id, ged_bound=GED_BOUND, C=0.5,kernel_type="precomputed", class_weight='balanced',similarity_function='k4',llambda
-            =0.1)]
+        return [Triv_GED_SVC(calculator_id=calculator_id, ged_bound=GED_BOUND, C=0.5,kernel_type="precomputed", class_weight='balanced',similarity_function='k4',llambda=0.1)]
     elif MODELS_TO_RUN == "RWE":
-        return [Random_Walk_edit_accelerated(calculator_id=calculator_id, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1,random_walk_calculator_id=random_walk_calculator_id, C=1.0,kernel_type="precomputed", class_weight='balanced')]
-    elif MODELS_TO_RUN == "Zero-GED":
+        return [rwe_SVC_new(calculator_id=calculator_id, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1,random_walk_calculator_id=random_walk_calculator_id, C=1.0,kernel_type="precomputed", class_weight='balanced')]
+    elif MODELS_TO_RUN == "Zero-GED":# only works for RPS
         # Probably Broken
-        return [ZERO_GED_SVC(ged_calculator=ged_calculator, ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=7, aggregation_method="sum",dataset_name=DATASET.name,selection_method="k-CPS")]
+        return [Zero_GED_SVC(calculator_id=calculator_id, ged_bound=GED_BOUND, C=1.0,kernel_type="precomputed", selection_split="classwise",prototype_size=7, aggregation_method="sum",selection_method="RPS")]
     else:
         return []
 
 # Get all non-GED classifiers
 def nonGEd_classifiers(ged_calculator: Base_Calculator):
     return [
-        Random_Classifier(),
-        Blind_Classifier(),
-        WeisfeilerLehman_SVC(n_iter=5,C=1.0, normalize_kernel=True),
-        VertexHistogram_SVC(),
-        EdgeHistogram_SVC(),
-        CombinedHistogram_SVC(C=1.0, class_weight='balanced'),
-        RandomWalk_SVC(normalize_kernel=True, rw_kernel_type="geometric", p_steps=3,C=1.0, kernel_type="precomputed"),
+        random_classifier(),
+        blind_classifier(),
+        WL_ST_SVC(n_iter=5,C=1.0, normalize_kernel=True),
+        VH_SVC(),
+        EH_SVC(),
+        CH_SVC(C=1.0, class_weight='balanced'),
+        # rw_SVC(normalize_kernel=True, rw_kernel_type="geometric", p_steps=3,C=1.0, kernel_type="precomputed"),
         ]
 # Get all GED classifiers
 def ged_classifiers(ged_calculator: Base_Calculator):
@@ -129,9 +149,9 @@ def ged_classifiers(ged_calculator: Base_Calculator):
     calculator_id = set_global_ged_calculator_All(ged_calculator)
     return [
         GED_KNN(calculator_id=calculator_id, ged_bound=GED_BOUND, n_neighbors=5, weights='distance', algorithm='auto'),
-        Trivial_GED_SVC(calculator_id=calculator_id, ged_bound=GED_BOUND, C=0.5,kernel_type="precomputed", class_weight='balanced',similarity_function='k4',llambda=0.1),
-        DIFFUSION_GED_SVC(C=1.0, llambda=0.1, calculator_id=calculator_id, ged_bound=GED_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
-        Random_Walk_edit_accelerated(calculator_id=calculator_id, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1,random_walk_calculator_id=random_walk_calculator_id, C=1.0,kernel_type="precomputed", class_weight='balanced')
+        Triv_GED_SVC(calculator_id=calculator_id, ged_bound=GED_BOUND, C=0.5,kernel_type="precomputed", class_weight='balanced',similarity_function='k4',llambda=0.1),
+        Diff_GED_SVC(C=1.0, llambda=0.1, calculator_id=calculator_id, ged_bound=GED_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
+        rwe_SVC_new(calculator_id=calculator_id, ged_bound=GED_BOUND, decay_lambda=0.1, max_walk_length=-1,random_walk_calculator_id=random_walk_calculator_id, C=1.0,kernel_type="precomputed", class_weight='balanced')
         ]
 
 # GED calculators with for basic GED node count heuristics calculators
@@ -140,11 +160,11 @@ def reference_classifiers(ged_calculator: Base_Calculator):
     calculator_id = set_global_ged_calculator_All(ged_calculator)
     return [
         GED_KNN(calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, n_neighbors=7, weights='uniform', algorithm='auto'),
-        Trivial_GED_SVC(calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1',llambda=1.0),
-        DIFFUSION_GED_SVC(C=1.0, llambda=1.0, calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
+        Triv_GED_SVC(calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, C=1.0,kernel_type="precomputed", class_weight='balanced',similarity_function='k1',llambda=1.0),
+        Diff_GED_SVC(C=1.0, llambda=1.0, calculator_id=calculator_id, ged_bound=HEURISTIC_BOUND, diffusion_function="exp_diff_kernel", class_weight='balanced', t_iterations=5),
         ]
 
-def run_classifier(classifier: GraphClassifier,expi: experiment,cv:int,testDF: pd.DataFrame):        
+def run_classifier(classifier: graph_classifier,expi: experiment,cv:int,testDF: pd.DataFrame):        
     try:
         instance_dict =expi.run_joblib_parallel_nested_cv(outer_cv=cv,inner_cv=cv,num_trials=NUM_TRIALS,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'],tuning_metric=TUNING_METRIC, verbose=0, n_jobs=N_JOBS, search_method=SEARCH_METHOD,should_print=True,test_trail=TEST_TRIAL, get_all_results=GET_ALL_TUNING_RESULTS)
     except Exception as e:
@@ -168,7 +188,7 @@ def run_speed_test(get_classifiers_funct: callable, calculator_type:str, iterati
     DATASET, ged_calculator = get_Dataset(calculator_type,dataset_name)
 
     print(f"Running speed test for {calculator_type} on {DATASET_NAME} dataset.")
-    classifier_list: list[GraphClassifier] = get_classifiers_funct(ged_calculator)
+    classifier_list: list[graph_classifier] = get_classifiers_funct(ged_calculator)
     get_expi = lambda classifier: experiment(f"{EXPERIMENT_NAME}_{classifier.get_name}",DATASET,dataset_name=DATASET_NAME,
                     model=classifier,model_name=classifier.get_name,ged_calculator=None)
 
@@ -176,7 +196,6 @@ def run_speed_test(get_classifiers_funct: callable, calculator_type:str, iterati
         expi = get_expi(classifier)
         new_row = expi.run_large_speed_test(iterations=iterations)
         new_row["Model"] = classifier.get_name
-        new_row["Dataset"] = DATASET_NAME
         new_row["tuning_metric"] = TUNING_METRIC
         testDF = pd.concat([testDF, pd.DataFrame([new_row])], ignore_index=True)
     return testDF
@@ -186,7 +205,7 @@ def run_classifier_group(get_classifiers_funct: callable, calculator_type:str,
                         testDF: pd.DataFrame,dataset_name:str=DATASET_NAME):
  
     DATASET, ged_calculator = get_Dataset(calculator_type,dataset_name)
-    classifier_list: list[GraphClassifier] = get_classifiers_funct(ged_calculator)
+    classifier_list: list[graph_classifier] = get_classifiers_funct(ged_calculator)
     get_expi = lambda classifier: experiment(f"{EXPERIMENT_NAME}_{classifier.get_name}",DATASET,dataset_name=DATASET_NAME,
                     model=classifier,model_name=classifier.get_name,ged_calculator=None)
     cv = int(1/SPLIT)
@@ -216,7 +235,6 @@ if __name__ == "__main__":
             DATASET_NAME=ds
             print(DATASET_NAME)
             set_global_random_walk_calculator(None)
-            Test_df["Dataset"] = ds
             Test_df, total_duration = run_classifier_group(get_single_classifier,calculator_type=CALCULATOR_NAME,testDF=Test_df,dataset_name=ds)
             reset_calculators_cache()
     elif TESTING_MODE == "ALL":

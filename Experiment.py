@@ -13,13 +13,11 @@ import pandas as pd
 import traceback
 from datetime import datetime
 from scipy import stats
-from Models.SupportVectorMachine_Classifier import SupportVectorMachine
+from Models.SVC import support_vector_classifier
 from config_loader import get_conifg_param
 module="Experiment"
 RANDOM_STATE = get_conifg_param(module, 'random_state', type='int') # default 42
 TEST_SIZE = get_conifg_param(module, 'test_size', type='float') # default 0.2
-RESULTS_FILE = get_conifg_param(module, 'results_filepath', type='str') # default "experiment_log.xlsx"
-DIAGNOSTIC_FILE =get_conifg_param(module, 'disgnostics_filepath', type='str') 
 # DATASET_NAMES = ["MUTAG", "PROTEINS_full", "COLLAB", "IMDB-BINARY", "IMDB-MULTI"]
 DEBUG = get_conifg_param(module, 'DEBUG', type='bool')# Set to False to disable debug prints
 # load config file with the models, with teir specifcations
@@ -30,7 +28,7 @@ ERROR_SCORE_HP_TUNING = get_conifg_param(module, 'error_score_hp_tuning', type='
 ERRORINTERVAL_SETTING = get_conifg_param(module, 'errorinterval_setting', type='str') # "std" or "confidence interval"
 SAVE_MODELS = get_conifg_param(module, 'save_models', type='bool') # default True
 SAVE_LOGS = get_conifg_param(module, 'save_logs', type='bool') # default True
-
+CONFIDENCE_INTERVAL = get_conifg_param(module, 'confidence_interval_level', type='float') # default 0.95
 DATASET_HYPERPARAM = get_conifg_param(module, 'dataset_hyperparams', type='bool') # default False
 CALCULATOR_HYPERPARAM = get_conifg_param(module, 'calculator_hyperparams', type='bool') # default False
 class experiment:
@@ -185,7 +183,8 @@ class experiment:
             self.results_log["precision"] = np.mean(precisions)
             self.results_log["recall"] = np.mean(recalls)
         else:
-            raise ValueError(f"Unknown error acknowledgment method: {erroraccnolagement}. Use 'std', 'confidence interval', or 'none'.")
+            pass
+            # raise ValueError(f"Unknown error acknowledgment method: {erroraccnolagement}. Use 'std', 'confidence interval', or 'none'.")
         self.results_log["Action"] = "K-Fold Cross-Validation"
         self.results_log["Calculator_name"] = self.ged_calculator.get_Name() if self.ged_calculator else "NO Calculator"
         print(f"Model {self.model_name} trained and tested with K-Fold cross-validation (k={k}).")
@@ -335,10 +334,10 @@ class experiment:
             trained_time = pd.Timestamp.now()
             train_duration = trained_time - start_time
             # test if the trained model is an SVC
-            if isinstance(trained_model, SupportVectorMachine):
-                num_support_Vectors = len(trained_model.classifier.support_)
+            if isinstance(trained_model, support_vector_classifier):
+                i_num_support_Vectors = len(trained_model.classifier.support_)
             else: 
-                num_support_Vectors= len(G_train)
+                i_num_support_Vectors= len(G_train)
                 # if so, set the number of support vectors
             if trained_model is None:
                 print("Model training failed. Exiting experiment.")
@@ -349,7 +348,7 @@ class experiment:
             # Save results
             train_durations += train_duration.total_seconds()
             test_durations += test_duration.total_seconds()
-            num_support_Vectors += num_support_Vectors
+            num_support_Vectors += i_num_support_Vectors
         training_duration = train_durations / iterations
         testing_duration = test_durations / iterations
         avg_num_support_Vectors = num_support_Vectors / iterations
@@ -432,7 +431,7 @@ class experiment:
             tuner = None
             if search_method == "grid":
                 param_grid = self.model.get_param_grid()
-                tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=inner_cv_object, verbose=verbose, n_jobs=n_jobs,) 
+                tuner = GridSearchCV(estimator=self.model, param_grid=param_grid, scoring=scoring, cv=inner_cv_object, verbose=verbose, n_jobs=n_jobs,refit=False) 
             elif search_method == "random":
                 param_grid = self.model.get_random_param_space()
                 tuner = RandomizedSearchCV(estimator=self.model, param_distributions=param_grid, n_iter=self.model.random_search_iterations(), scoring=scoring, cv=inner_cv_object, verbose=verbose, n_jobs=n_jobs,refit=scoring[0])
@@ -482,6 +481,9 @@ class experiment:
         results_dict["f1_weighted_test"] = f1_score(y_test, y_pred_test, average='weighted', zero_division=0.0)
         results_dict["precision_test"] = precision_score(y_test, y_pred_test, average=REPORT_SETTING, zero_division=0.0)
         results_dict["recall_test"] = recall_score(y_test, y_pred_test, average=REPORT_SETTING, zero_division=0.0)
+        results_dict["roc_auc_test"] = roc_auc_score(y_test, y_score_test, labels=self.model.classes_, multi_class='ovr') if y_score_test is not None else 0.0
+        # measure some  
+
         # figure out if this is a binary or multi class classification
         if len(classes) == 2:
             try:
@@ -521,10 +523,33 @@ class experiment:
         return results_dict
 
 
+    def write_metrics_to_dict(self, metrics_dict,results_dict):
+        for key, values in metrics_dict.items():
+            results_dict[f"{key}_mean"] = np.mean(values)
+            if ERRORINTERVAL_SETTING == "std":
+                results_dict[f"{key}_std"] = np.std(values)
+            elif ERRORINTERVAL_SETTING == "confidence interval":
+                z_score = stats.norm.ppf((1 + CONFIDENCE_INTERVAL) / 2)
+                results_dict[f"{key}_ci"] = z_score * np.std(values) / np.sqrt(len(values))
+            elif ERRORINTERVAL_SETTING == "std_and_confidence_interval":
+                std_val= np.std(values)
+                z_score = stats.norm.ppf((1 + CONFIDENCE_INTERVAL) / 2)
+                results_dict[f"{key}_std"] = std_val
+                results_dict[f"{key}_ci"] = z_score * std_val / np.sqrt(len(values))
+            elif ERRORINTERVAL_SETTING == "min_max":
+                results_dict[f"{key}_min"] = np.min(values)
+                results_dict[f"{key}_max"] = np.max(values)
+            elif ERRORINTERVAL_SETTING == "abs_min_mix":
+                # the max ditance from the mean out of min and max, and that as the error
+                mean_val = np.mean(values)
+                min_val = np.min(values)
+                max_val = np.max(values)
+                results_dict[f"{key}_max_error"] = max(mean_val - min_val, max_val - mean_val)
+            elif ERRORINTERVAL_SETTING == "none":
+                continue
+            else:
+                raise ValueError(f"Unknown error acknowledgment method: {ERRORINTERVAL_SETTING}. Use 'std', 'confidence interval', 'both' or 'none'.")
 
-
-
-    
     def run_inner_hyperparameter_tuning(self,X_train,y_train,Y_test,y_test,inner_cv=5,scoring=['f1_macro','f1_weighted','accuracy','roc_auc','precision','recall'], verbose=0, n_jobs=-1, random_seed=RANDOM_STATE, search_method="random",test_trail=False,fold_index=None):
         random_gen = random.Random(random_seed)
         if search_method == "grid":
@@ -580,7 +605,7 @@ class experiment:
         test_Dict = dict()
         if should_print:
            print("\n--------------------------------------------------------------------")
-           print(f"Running extensive test for model:\n {self.model_name}")
+           print(f"Running extensive test for model:\n {self.model_name} on {self.dataset_name} ")
         estimated_test_duration = None
         test_Dict["Dataset_name"] = self.dataset_name + " (U)" if self.dataset.Node_label_name is None else self.dataset_name
         test_Dict["model_name"] = self.model_name
@@ -602,14 +627,19 @@ class experiment:
 
 
 
-        accuracy_scores = []
-        f1_scores = []
-        roc_auc_scores = []
-        precision_scores = []
-        recall_scores = []
-        support_vector_counts = []
-        training_durations = []
-        testing_durations = []
+
+        raw_results_dict = {
+            "accuracy": [],
+            "f1": [],
+            "roc_auc": [],
+            "precision": [],
+            "recall": [],
+            "support_vector_count": [],
+            "training_duration": [],
+            "testing_duration": [],
+        }
+
+
         time_Start = pd.Timestamp.now()
         results_df = pd.DataFrame()
         # build a progress bar which tracks the progress of both loops.
@@ -635,32 +665,21 @@ class experiment:
             for i, (X_train, X_test, y_train_fold, y_test_fold) in enumerate(self.dataset.split_k_fold(k=inner_cv, random_state=random_gen.randint(0, 1000),repeat=num_trials,stratify=True))
         ]
         all_folds_results = joblib.Parallel(n_jobs=maximum_jobs,verbose=1)(delayed_calls)
-        all_scores_list = pd.DataFrame()
-        # for fold_index, (best_model,best_params, scores, results_dict) in enumerate(all_folds_results):
-        #     if fold_index ==0:
-        #         test_Dict["best_params"] = str(best_params)
-        #         test_Dict["best_score"] = scores["accuracy_test"]
-        #         test_Dict["classification_report_train"] = results_dict["classification_report_test"]
-
-
-        #     # Append the results_dict to the results_df
-        #     results_dict['fold_index'] = fold_index
-        #     results_df = pd.concat([results_df, pd.DataFrame([results_dict])], ignore_index=True)
-        #     all_scores_list = pd.concat([all_scores_list, pd.DataFrame([scores])], ignore_index=True)
-        
+        all_scores_list = pd.DataFrame()        
         for fold_index, (return_dict, results_dict) in enumerate(all_folds_results):
             if fold_index ==0:
                 test_Dict["best_params"] = str(return_dict["best_params"])
                 test_Dict["best_score"] = return_dict["best_score"]
                 test_Dict["classification_report_train"] = return_dict["classification_report"]
-            accuracy_scores.append(return_dict["accuracy"])
-            f1_scores.append(return_dict["f1"])
-            roc_auc_scores.append(return_dict["roc_auc"])
-            precision_scores.append(return_dict["precision"])
-            recall_scores.append(return_dict["recall"])
-            training_durations.append(float(return_dict.get("Large_speed_test_training_duration", 0)))
-            testing_durations.append(float(return_dict.get("Large_speed_test_testing_duration", 0)))
-            support_vector_counts.append(float(return_dict.get("Large_speed_test_avg_num_support_vectors", 0)))
+            raw_results_dict["accuracy"].append(return_dict["accuracy"])
+            raw_results_dict["f1"].append(return_dict["f1"])
+            raw_results_dict["roc_auc"].append(return_dict["roc_auc"])
+            raw_results_dict["precision"].append(return_dict["precision"])
+            raw_results_dict["recall"].append(return_dict["recall"])
+            raw_results_dict["support_vector_count"].append(return_dict["Large_speed_test_avg_num_support_vectors"])
+            raw_results_dict["training_duration"].append(return_dict["Large_speed_test_training_duration"])
+            raw_results_dict["testing_duration"].append(return_dict["Large_speed_test_testing_duration"])
+
             
 
             # Append the results_dict to the results_df
@@ -677,35 +696,7 @@ class experiment:
             print(f"Time {pd.Timestamp.now()}")
             print("--------------------------------------------------------------------\n")
         if test_Dict is not None:
-            erroracknowledgment = ERRORINTERVAL_SETTING
-        if erroracknowledgment == "std":
-            test_Dict["k_fold_accuracy"] = np.mean(accuracy_scores)
-            test_Dict["k_fold_acc_std"] = np.std(accuracy_scores)
-            test_Dict["k_fold_f1_score"] = np.mean(f1_scores)
-            test_Dict["k_fold_f1_std"] = np.std(f1_scores)
-            test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)
-            test_Dict["k_fold_roc_auc_std"] = np.std(roc_auc_scores)
-            test_Dict["k_fold_precision"] = np.mean(precision_scores)
-            test_Dict["k_fold_recall"] = np.mean(recall_scores)
-        elif erroracknowledgment == "confidence interval":
-            # Calculate confidence intervals for each metric
-            n = len(accuracy_scores)
-            confidence = 0.95
-            z_score = stats.norm.ppf((1 + confidence) / 2)
-            test_Dict["k_fold_accuracy"] = np.mean(accuracy_scores)
-            test_Dict["K_fold_acc_CI"] = z_score * np.std(accuracy_scores) / np.sqrt(n)
-            test_Dict["k_fold_f1_score"] = np.mean(f1_scores)
-            test_Dict["K_fold_f1_CI"] = z_score * np.std(f1_scores) / np.sqrt(n)
-            test_Dict["k_fold_roc_auc"] = np.mean(roc_auc_scores)
-            test_Dict["K_fold_roc_auc_CI"] = z_score * np.std(roc_auc_scores) / np.sqrt(n)
-            test_Dict["k_fold_precision"] = np.mean(precision_scores)
-            test_Dict["k_fold_recall"] = np.mean(recall_scores)
-        else:
-            raise ValueError(f"Unknown error acknowledgment method: {erroracknowledgment}. Use 'std', 'confidence interval', or 'none'.")
-        test_Dict["nested_total_duration"] = str(total_duration)
-        test_Dict["nested_training_durations"] = np.mean(training_durations)
-        test_Dict["nested_testing_durations"] = np.mean(testing_durations)
-        test_Dict["nested_avg_support_vectors"] = np.mean(support_vector_counts)
+            self.write_metrics_to_dict(raw_results_dict, test_Dict)
         test_Dict["timestamp"] = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
         test_Dict["tuning_metirc"] = tuning_metric
         if get_all_results:

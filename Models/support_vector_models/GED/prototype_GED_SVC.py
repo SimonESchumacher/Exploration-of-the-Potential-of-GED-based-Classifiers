@@ -1,22 +1,15 @@
-# Class for Graph Edit Distance Kernel
-# imports
 import sys
 import os
 import numpy as np
-import tqdm
-from scipy.stats import randint, uniform
-from typing import Dict, Any, List
-
+from scipy.stats import randint
 sys.path.append(os.getcwd())
-from grakel.kernels import Kernel
-from Calculators.Base_Calculator import Base_Calculator
-from Models.SupportVectorMachine_Classifier import SupportVectorMachine
-from Models.SVC.Base_GED_SVC import Base_GED_SVC
-from Calculators.Prototype_Selction import select_Prototype, Prototype_Selector,Select_Prototypes, buffered_prototype_selection
+from Models.support_vector_models.GED_SVC import GED_SVC
+from Calculators.prototype_selector import Select_Prototypes
 from config_loader import get_conifg_param
 DEBUG = get_conifg_param('GED_models', 'debuging_prints', type='bool')
-
-class Simple_Prototype_GED_SVC(Base_GED_SVC):
+# Prototype-based Graph Edit Distance Support Vector Classifier
+# Broken because not continued
+class prototype_GED_SVC(GED_SVC):
     model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'tuning_iterations', type='int')
     def __init__(self,
                 prototype_size,
@@ -82,7 +75,7 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
     
     @classmethod
     def get_param_grid(cls):
-        param_grid = Base_GED_SVC.get_param_grid()
+        param_grid = GED_SVC.get_param_grid()
         # this is a problem, because the kernel has its own parameters
         param_grid.update({            
             'kernel_type': ['poly', 'rbf', 'linear'],
@@ -95,7 +88,7 @@ class Simple_Prototype_GED_SVC(Base_GED_SVC):
         return param_grid
     @classmethod
     def get_random_param_space(cls):
-        param_space = Base_GED_SVC.get_random_param_space()
+        param_space = GED_SVC.get_random_param_space()
         param_space.update({
             'kernel_type': ['poly', 'rbf', 'linear'],
             "prototype_size": randint(1, 6),

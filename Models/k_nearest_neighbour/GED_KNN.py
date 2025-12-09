@@ -1,21 +1,13 @@
 # GED K-NN Classifier
 # imports
-import traceback
-from typing import Any, Dict
-from sklearn.neighbors import KNeighborsClassifier
-
-
 # imports from custom modules
 import sys
 import os
 sys.path.append(os.getcwd())
 from Calculators.GED_Calculator import load_calculator_from_id
-from Models.Graph_Classifier import GraphClassifier
-from Models.KNN_Classifer import KNN
+from Models.KNN import KNN
 from Calculators import Base_Calculator, Dummy_Calculator
 from config_loader import get_conifg_param
-# from Calculators.GEDLIB_Caclulator import GEDLIB_Calculator
-# from Calculators.Dummy_Calculator import Dummy_Calculator
 DEBUG = get_conifg_param('GED_models', 'debuging_prints', type='bool')
 _ged_calculator = None
 def set_global_ged_calculator_KNN(calculator):

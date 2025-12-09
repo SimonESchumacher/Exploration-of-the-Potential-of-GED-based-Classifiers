@@ -14,17 +14,17 @@ from Calculators.GED_Calculator import load_GED_calculator, load_Heuristic_calcu
 from config_loader import get_conifg_param
 from Calculators.GED_Calculator import exact_GED_Calculator
 from tqdm import tqdm  # Import tqdm for progress bar
-
-LOCAL_DATA_PATH = get_conifg_param('Dataset', 'local_data_path', type='str') # Path to the local data directory
+module = "Dataset_loader"
+LOCAL_DATA_PATH = get_conifg_param(module, 'local_data_path', type='str') # Path to the local data directory
 # DOWNLOAD_SOURCE = 'TUD'
 DATASET_NAME = 'NONE' # Placeholder, will be set later
-DEBUG = get_conifg_param('Dataset','DEBUG') # Set to False to disable debug prints
+DEBUG = get_conifg_param(module, 'DEBUG') # Set to False to disable debug prints
 
 # Constants
-SHUFFLE = get_conifg_param('Dataset', 'shuffle_default', type='bool')# laod the default setting
-RANDOM_STATE = get_conifg_param('Dataset', 'random_state', type='int') # Default random state for reproducibility
-TEST_SIZE = get_conifg_param('Dataset', 'test_size', type='float') # Default test size for train-test split
-DATASTE_LOG_FILE = get_conifg_param('Dataset', 'datasets_log', type='str') # Path to the dataset log file
+SHUFFLE = get_conifg_param(module, 'shuffle_default', type='bool')# laod the default setting
+RANDOM_STATE = get_conifg_param(module, 'random_state', type='int') # Default random state for reproducibility
+TEST_SIZE = get_conifg_param(module, 'test_size', type='float') # Default test size for train-test split
+DATASTE_LOG_FILE = get_conifg_param(module, 'datasets_log', type='str') # Path to the dataset log file
 
 
 
@@ -295,7 +295,7 @@ def calculate_dataset_attributes(data: tuple, source: str, domain: str = None, N
     return dataset_characteristics
 
 
-class Dataset:
+class Dataset_loader:
 
     def __init__(self, name,source="TUD", domain=None,ged_calculator=None, use_node_labels="label", use_node_attributes="label", use_edge_labels=None, use_edge_attributes=None,load_now=True,save_calculator=True):
         

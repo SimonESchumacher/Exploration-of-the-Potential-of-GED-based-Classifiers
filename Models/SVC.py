@@ -1,23 +1,21 @@
-# Kernels
 import pandas as pd
 from sklearn.svm import SVC
 import numpy as np
-# library to save Model:
 import sys
 import os
 import traceback
 sys.path.append(os.getcwd())
-from Graph_Tools import  get_grakel_graphs_from_nx
-from Models.Graph_Classifier import GraphClassifier
+from Grakel_Converter import  get_grakel_graphs_from_nx
+from Models.graph_classifier import graph_classifier
 from scipy.stats import loguniform
 from config_loader import get_conifg_param
-
-DEBUG = get_conifg_param('SVC', 'debuging_prints')  # Set to False to disable debug prints
-PROBABILITY_ESTIMATES = get_conifg_param('SVC', 'probability_estimates')  # Enable probability estimates for SVC
-FITTING_TOLERANCE = get_conifg_param('SVC', 'fitting_tolerance', type='float')  # Tolerance for SVC fitting
-CHACHE_SIZE = get_conifg_param('SVC', 'cache_size', type='int')  # Cache size for SVC
-DEFAULT_SVC_RANDOM_STATE = get_conifg_param('SVC', 'default_random_state', type='int')  # Default random state for SVC
-class SupportVectorMachine(GraphClassifier):
+module="SVC"
+DEBUG = get_conifg_param(module, 'debuging_prints')  # Set to False to disable debug prints
+PROBABILITY_ESTIMATES = get_conifg_param(module, 'probability_estimates')  # Enable probability estimates for SVC
+FITTING_TOLERANCE = get_conifg_param(module, 'fitting_tolerance', type='float')  # Tolerance for SVC fitting
+CHACHE_SIZE = get_conifg_param(module, 'cache_size', type='int')  # Cache size for SVC
+DEFAULT_SVC_RANDOM_STATE = get_conifg_param(module, 'default_random_state', type='int')  # Default random state for SVC
+class support_vector_classifier(graph_classifier):
     model_specific_iterations = get_conifg_param("Hyperparameter_fields", "tuning_iterations", type="int")
     # Support Vector Machine Classifier for Graphs
     # with different Kernels
@@ -166,7 +164,7 @@ class SupportVectorMachine(GraphClassifier):
                 f"random_state={self.random_state})")
     @classmethod
     def get_param_grid(cls):
-        param_grid = GraphClassifier.get_param_grid()
+        param_grid = graph_classifier.get_param_grid()
         param_grid.update({
             'C': [0.1, 0.5,0.25],
             # 'kernel_type': ['poly', 'linear'],
@@ -177,7 +175,7 @@ class SupportVectorMachine(GraphClassifier):
         return param_grid
     @classmethod
     def get_random_param_space(cls):
-        param_space = GraphClassifier.get_random_param_space()
+        param_space = graph_classifier.get_random_param_space()
         param_space.update({
             'C': loguniform(a=get_conifg_param('Hyperparameter_fields', 'lower_C'), b=get_conifg_param('Hyperparameter_fields', 'upper_C')),
             # 'kernel_type': ['poly', 'linear', 'rbf', 'sigmoid'],

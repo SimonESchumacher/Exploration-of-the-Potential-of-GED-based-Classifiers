@@ -1,13 +1,14 @@
 import networkx as nx
 import numpy as np
-from Graph_Tools import get_grakel_graphs_from_nx, graph_from_networkx, convert_nx_to_grakel_graph
-from Models.SVC.GED.simiple_prototype_GED_SVC import Simple_Prototype_GED_SVC
+from Grakel_Converter import get_grakel_graphs_from_nx
 from grakel.kernels import VertexHistogram, EdgeHistogram, WeisfeilerLehman
-from scipy.stats import randint, uniform, loguniform
 from config_loader import get_conifg_param
+from Models.support_vector_models.GED.prototype_GED_SVC import prototype_GED_SVC
 DEBUG = get_conifg_param('GED_models', 'debuging_prints', type='bool')
 
-class HybridPrototype_GED_SVC(Simple_Prototype_GED_SVC):
+# Combination of prototype approach and vectorial graph features
+# Broken, because not continued
+class HybridPrototype_GED_SVC(prototype_GED_SVC):
     model_specific_iterations = get_conifg_param('Hyperparameter_fields', 'iteration_depth', type='int')
     def __init__(self,
                 vector_feature_list: list,
@@ -114,7 +115,7 @@ class HybridPrototype_GED_SVC(Simple_Prototype_GED_SVC):
         return params
     @classmethod
     def get_param_grid(cls):
-        param_grid = Simple_Prototype_GED_SVC.get_param_grid()
+        param_grid = prototype_GED_SVC.get_param_grid()
         param_grid.update({
             'vector_feature_list': [
                 ["VertexHistogram", "density"],
@@ -132,7 +133,7 @@ class HybridPrototype_GED_SVC(Simple_Prototype_GED_SVC):
         return param_grid
     @classmethod
     def get_random_param_space(cls):
-        param_space = Simple_Prototype_GED_SVC.get_random_param_space()
+        param_space = prototype_GED_SVC.get_random_param_space()
         param_space.update({
             'vector_feature_list': [
                 ["VertexHistogram", "density"],
