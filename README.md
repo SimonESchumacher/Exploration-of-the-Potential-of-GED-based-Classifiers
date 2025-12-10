@@ -215,31 +215,4 @@ The-GED-classifier-bakeoff/
 └── bin/
 ```
 
-### Key directories and notes
 
-1. **`Calculators/`** — Graph Edit Distance calculators and helpers. Contains both exact and approximate GED implementations and the prototype selection utilities. Precomputed calculators/matrices are stored under `presaved_data/`.
-
-2. **`Models/`** — ML classifiers and SVC/KNN implementations. The package exposes base classes in `graph_classifier.py` and various concrete models under `Models/SVC/` and `Models/KNN/`.
-
-3. **`Datasets/`** — TUDataset-format datasets and preprocessed GED-ready data (`ged/` holds preprocessed matrices used by GED calculators).
-
-4. **`gedlibpy/`** — Bundled copy of the GEDLIB Python bindings (kept as a nested repository/submodule). It's registered as a submodule and used by some calculators; the working tree is included for convenience.
-
-5. **`Graph_Edit_Distance/`** — External C++ project (fork) providing exact GED computation. Contains sources and precompiled binaries.
-
-6. **`Custom_Kernels/`** — Optional custom kernel implementations (e.g., `GEDLIB_kernel.py`) used by some models and notebooks.
-
-7. **`graph_mixup/`** — Experimental code and notebooks for graph mixup; currently self-contained and not referenced by the main run scripts.
-
-8. **`configs/`** — Experiment and hyperparameter tuning configuration files. `Config.ini` is the central configuration.
-
-9. **`presaved_data/` & `results/`** — Precomputed artifacts and output directories used by experiments. Keep backups of large `.joblib` artifacts when cleaning the repo.
-
-10. **`tests/`** & **`Graphics_builders/`** — Notebooks and lightweight tests used for development and visualization (some rely on the experimental modules).
-
----
-
-If you want, I can also:
-- generate a compact tree (`tree -L 2`) and insert it verbatim, or
-- add a one-line map of which modules import which major subpackages (helpful for cleanup).
-Which of those would you prefer?
